@@ -854,6 +854,8 @@ static void __init mm_init(void)/* 内存管理初始化 */
 	/*
 	 * page_ext requires contiguous pages,
 	 * bigger than MAX_ORDER unless SPARSEMEM.
+	 *
+	 * 初始化页扩展数据结构。这个函数在 CONFIG_SPARSEMEM 配置选项启用时才会执行。它负责初始化每个页的扩展数据结构，这些数据结构用于管理页的额外信息
 	 */
 	page_ext_init_flatmem();    /* 页扩展 */
 
@@ -868,14 +870,16 @@ static void __init mm_init(void)/* 内存管理初始化 */
 	report_meminit();           /* 一些 LOG */
 
 	/**
-	 *
+	 * 释放 bootmem 分配器管理的内存，并将其转换为伙伴系统管理的内存。
+	  mem_init 函数会遍历所有的页，将它们从 bootmem 分配器中释放出来，并标记为可用状态。
 	 */
 	mem_init();                 /* 初始化: releases all `bootmem` */
 
 	/**
 	 *  分配各种大小的 kmem_cache
-	 *
 	 *  sudo cat /proc/slabinfo | grep kmalloc
+	 *
+	 * 初始化 SLAB 分配器。SLAB 分配器用于管理小块内存的分配和释放。kmem_cache_init 函数会创建一些基本的 SLAB 缓存，用于后续的内存分配。
 	 */
 	kmem_cache_init();          /* 初始化 slab slob slub */
 	/**
@@ -886,6 +890,7 @@ static void __init mm_init(void)/* 内存管理初始化 */
 	/**
 	 *  也是分配 kmem_cache
 	 */
+	// 初始化页表相关的数据结构。这个函数会初始化页表缓存，确保页表的高速缓存对齐。
 	pgtable_init();             /* 页表初始化 */
 	debug_objects_mem_init();   /* 调试结构的内存分配 */
 
@@ -893,6 +898,8 @@ static void __init mm_init(void)/* 内存管理初始化 */
 	 *  vmalloc的核心是在vmalloc区域中找到合适的hole，hole是虚拟地址连续的；
 	 *  然后逐页分配内存来从物理上填充hole。
 	 */
+	// 初始化 vmalloc 分配器。vmalloc
+	// 分配器用于分配虚拟地址空间中的连续内存区域，即使这些内存区域在物理内存中不一定连续。
 	vmalloc_init();             /* vmalloc虚拟内存连续的内存 */
 	/**
 	 *
@@ -987,7 +994,7 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	boot_cpu_hotplug_init();
 
 	/**
-	 *  ZONE lists 创建
+	 *  创建备用列表
 	 */
 	/* `pglist_data` or `pg_data_t`  */
 	build_all_zonelists(NULL);          /* sets up the order of zones that allocations are preferred from */

@@ -749,6 +749,7 @@ struct zone {   /* 内存 ZONE */
 	 *
 	 * 初始化 `calculate_node_totalpages()`
 	 */
+	// managed_pages 记录的是当前可以被分配的页面数量。这意味着这些页面是空闲的，并且可以被分配给新的内存请求。当页面被分配时，managed_pages 会减少；当页面被释放并返回到伙伴系统时，managed_pages 会增加。
 	atomic_long_t		managed_pages;  /* 伙伴系统管理的 当前页 数量 */
 	unsigned long		spanned_pages;  /* 包含的页面数量 */
 	unsigned long		present_pages;  /* ZONE 中实际管理的 物理页 数量 */

@@ -111,6 +111,8 @@ struct memblock {
 	struct memblock_type reserved;  //被保留
 };
 
+// 整个内核中确实只有一个全局实例
+// 这个就是所谓的block memory allocator
 extern struct memblock memblock;
 
 #ifndef CONFIG_ARCH_KEEP_MEMBLOCK

@@ -1670,6 +1670,7 @@ void __meminit reserve_bootmem_region(phys_addr_t start, phys_addr_t end)
 			struct page *page = pfn_to_page(start_pfn);
 
             /* 初始化 page */
+			//将页面标记为保留，这意味着这些页面不能被普通的内存分配器使用。
 			init_reserved_page(start_pfn);
 
             /**

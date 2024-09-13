@@ -2178,7 +2178,7 @@ static unsigned long __init __free_memory_core(phys_addr_t start,/* 从 start �
 }
 
 /**
-  *
+  * 释放低端内存并返回释放的页面数量
   */
 static unsigned long __init free_low_memory_core_early(void)
 {
@@ -2227,7 +2227,13 @@ void reset_node_managed_pages(pg_data_t *pgdat)
 }
 
 /**
- *
+	函数首先检查 reset_managed_pages_done 标志。如果已经完成重置，则直接返回，避免重复操作。
+
+	使用 for_each_online_pgdat 宏遍历所有在线的内存节点（NUMA 节点）。
+
+	对于每个节点，调用 reset_node_managed_pages(pgdat) 函数来重置该节点的所有区域的管理页面计数。
+
+	重置完成后，将 reset_managed_pages_done 标志设置为 1，表示重置操作已完成
  */
 void __init reset_all_zones_managed_pages(void)/* 重置所有的 ZONE 管理页 */
 {
@@ -2261,7 +2267,7 @@ unsigned long __init memblock_free_all(void)/* 所有内存块都挂入 freelist
 {
 	unsigned long pages;
 
-    //zone.managed_pages = 0
+    //设置当前结点的所有zone.managed_pages = 0
 	reset_all_zones_managed_pages();    /* 重置所有 的 ZONE 管理页 - 伙伴系统管理的页 清零 */
 
     /**

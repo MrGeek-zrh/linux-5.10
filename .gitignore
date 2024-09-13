@@ -8,3 +8,12 @@
 *.tar.*
 .cache
 compile_commands.json
+.auto-coder/
+actions/
+output.txt
+.auto-coder/
+actions/
+output.txt
+.auto-coder/
+actions/
+output.txt
