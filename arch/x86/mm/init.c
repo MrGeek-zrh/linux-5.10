@@ -963,6 +963,17 @@ void __init free_initrd_mem(unsigned long start, unsigned long end)
 }
 #endif
 
+/**
+* 代码的作用:
+* 该函数 `memblock_find_dma_reserve` 在 x86_64 架构下，用于计算需要为 DMA（直接内存访问）保留的内存页数量，确保在系统启动时预留足够的低地址物理内存供 DMA 使用。DMA 通常只能访问低于 16MB 的内存，因此需要特别的内存管理。
+*
+* 详细步骤如下：
+* 1. `nr_pages` 和 `nr_free_pages` 分别用于统计总的物理页数和可用的（空闲的）物理页数。
+* 2. 首先，遍历所有的内存块（包括空闲的和保留的）来计算低于 16MB 内存区域的总页数。通过遍历所有内存范围，检查每个范围的起始页帧号（`start_pfn`）和结束页帧号（`end_pfn`），确保它们不会超出 DMA 区域的最大页帧号 `MAX_DMA_PFN`（通常是低于 16MB 的页帧号）。这些页数累加到 `nr_pages`。
+* 3. 然后，遍历空闲内存区域，计算实际可用的低于 16MB 的空闲页数。这里使用了 `for_each_free_mem_range` 函数，遍历每一个空闲内存范围，并根据 `start_addr` 和 `end_addr` 的物理地址，计算出对应的页帧号，并累加到 `nr_free_pages` 中。
+* 4. 最后，通过 `set_dma_reserve` 函数，设置需要为 DMA 保留的页数，计算公式为 `nr_pages - nr_free_pages`，即总的低地址内存页数减去已经空闲的页数，确保预留给 DMA 充足的内存。
+* 5. 该函数在 x86_64 系统下编译有效，主要用于在系统启动时为 DMA 操作保留足够的低地址物理内存。
+*/
 /*
  * Calculate the precise size of the DMA zone (first 16 MB of RAM),
  * and pass it to the MM layer - to help it set zone watermarks more
@@ -998,6 +1009,7 @@ void __init memblock_find_dma_reserve(void)
 	 * pages at the beginning or the end of the range:
 	 */
 	nr_free_pages = 0;
+	// 空闲页面：memory & !reserved
 	for_each_free_mem_range(u, NUMA_NO_NODE, MEMBLOCK_NONE, &start_addr, &end_addr, NULL) {
 		start_pfn = min_t(unsigned long, PFN_UP(start_addr), MAX_DMA_PFN);
 		end_pfn   = min_t(unsigned long, PFN_DOWN(end_addr), MAX_DMA_PFN);
@@ -1013,7 +1025,7 @@ void __init memblock_find_dma_reserve(void)
 /**
  *  初始化 zone
  */
-// initialize sizes of zones 初始化 ZONE 大小
+// initialize sizes of zones 初始化 ZONE 大小(设置zone的上边界)
 void __init zone_sizes_init(void)
 {
 	unsigned long max_zone_pfns[MAX_NR_ZONES];

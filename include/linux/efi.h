@@ -539,36 +539,36 @@ extern unsigned long __ro_after_init efi_rng_seed;		/* RNG Seed table */
  * All runtime access to EFI goes through this structure:
  */
 extern struct efi {
-	const efi_runtime_services_t	*runtime;		/* EFI runtime services table */
-	unsigned int			runtime_version;	/* Runtime services version */
-	unsigned int			runtime_supported_mask;
+    const efi_runtime_services_t *runtime;     /* EFI runtime services table, 用于提供系统引导后的运行时服务 */
+    unsigned int runtime_version;              /* 运行时服务版本 */
+    unsigned int runtime_supported_mask;       /* 运行时服务支持的特性掩码 */
 
-	unsigned long			acpi;			/* ACPI table  (IA64 ext 0.71) */
-	unsigned long			acpi20;			/* ACPI table  (ACPI 2.0) */
-	unsigned long			smbios;			/* SMBIOS table (32 bit entry point) */
-	unsigned long			smbios3;		/* SMBIOS table (64 bit entry point) */
-	unsigned long			esrt;			/* ESRT table */
-	unsigned long			tpm_log;		/* TPM2 Event Log table */
-	unsigned long			tpm_final_log;		/* TPM2 Final Events Log table */
-	unsigned long			mokvar_table;		/* MOK variable config table */
+    unsigned long acpi;                        /* 指向 ACPI 表 (IA64 扩展 0.71 版本) 的指针 */
+    unsigned long acpi20;                      /* 指向 ACPI 2.0 表的指针 */
+    unsigned long smbios;                      /* 指向 SMBIOS 表的指针 (32 位入口点) */
+    unsigned long smbios3;                     /* 指向 SMBIOS 3 表的指针 (64 位入口点) */
+    unsigned long esrt;                        /* 指向 ESRT（EFI 系统资源表）的指针 */
+    unsigned long tpm_log;                     /* 指向 TPM2 事件日志表的指针 */
+    unsigned long tpm_final_log;               /* 指向 TPM2 最终事件日志表的指针 */
+    unsigned long mokvar_table;                /* 指向 MOK（Machine Owner Key）变量配置表的指针 */
 
-	efi_get_time_t			*get_time;
-	efi_set_time_t			*set_time;
-	efi_get_wakeup_time_t		*get_wakeup_time;
-	efi_set_wakeup_time_t		*set_wakeup_time;
-	efi_get_variable_t		*get_variable;
-	efi_get_next_variable_t		*get_next_variable;
-	efi_set_variable_t		*set_variable;
-	efi_set_variable_t		*set_variable_nonblocking;
-	efi_query_variable_info_t	*query_variable_info;
-	efi_query_variable_info_t	*query_variable_info_nonblocking;
-	efi_update_capsule_t		*update_capsule;
-	efi_query_capsule_caps_t	*query_capsule_caps;
-	efi_get_next_high_mono_count_t	*get_next_high_mono_count;
-	efi_reset_system_t		*reset_system;
+    efi_get_time_t *get_time;                  /* EFI 获取时间函数的指针 */
+    efi_set_time_t *set_time;                  /* EFI 设置时间函数的指针 */
+    efi_get_wakeup_time_t *get_wakeup_time;    /* EFI 获取唤醒时间函数的指针 */
+    efi_set_wakeup_time_t *set_wakeup_time;    /* EFI 设置唤醒时间函数的指针 */
+    efi_get_variable_t *get_variable;          /* EFI 获取变量函数的指针 */
+    efi_get_next_variable_t *get_next_variable;/* EFI 获取下一个变量函数的指针 */
+    efi_set_variable_t *set_variable;          /* EFI 设置变量函数的指针 */
+    efi_set_variable_t *set_variable_nonblocking; /* 非阻塞版本的设置变量函数指针 */
+    efi_query_variable_info_t *query_variable_info; /* EFI 查询变量信息函数的指针 */
+    efi_query_variable_info_t *query_variable_info_nonblocking; /* 非阻塞版本的查询变量信息函数指针 */
+    efi_update_capsule_t *update_capsule;      /* EFI 更新胶囊（固件更新）函数的指针 */
+    efi_query_capsule_caps_t *query_capsule_caps; /* EFI 查询胶囊功能函数的指针 */
+    efi_get_next_high_mono_count_t *get_next_high_mono_count; /* EFI 获取下一个高单调计数器函数的指针 */
+    efi_reset_system_t *reset_system;          /* EFI 重置系统函数的指针 */
 
-	struct efi_memory_map		memmap;
-	unsigned long			flags;
+    struct efi_memory_map memmap;              /* EFI 内存映射，表示系统中的物理内存布局 */
+    unsigned long flags;                       /* EFI 标志，用于指示各种 EFI 状态或特性 */
 } efi;
 
 #define EFI_RT_SUPPORTED_GET_TIME 				0x0001

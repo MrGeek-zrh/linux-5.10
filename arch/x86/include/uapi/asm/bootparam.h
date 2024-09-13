@@ -162,15 +162,16 @@ struct olpc_ofw_header {
 } __attribute__((packed));
 
 struct efi_info {
-	__u32 efi_loader_signature;
-	__u32 efi_systab;
-	__u32 efi_memdesc_size;
-	__u32 efi_memdesc_version;
-	__u32 efi_memmap;
-	__u32 efi_memmap_size;
-	__u32 efi_systab_hi;
-	__u32 efi_memmap_hi;
+	__u32 efi_loader_signature;   /* EFI 加载器签名，用于标识 EFI 启动器 */
+	__u32 efi_systab;             /* EFI 系统表的物理地址（低 32 位） */
+	__u32 efi_memdesc_size;       /* 每个 EFI 内存描述符的大小（字节） */
+	__u32 efi_memdesc_version;    /* EFI 内存描述符的版本号 */
+	__u32 efi_memmap;             /* EFI 内存映射的物理地址（低 32 位） */
+	__u32 efi_memmap_size;        /* EFI 内存映射的大小（字节） */
+	__u32 efi_systab_hi;          /* EFI 系统表的物理地址（高 32 位） */
+	__u32 efi_memmap_hi;          /* EFI 内存映射的物理地址（高 32 位） */
 };
+
 
 /*
  * This is the maximum number of entries in struct boot_params::e820_table

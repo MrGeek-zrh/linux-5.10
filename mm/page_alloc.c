@@ -426,7 +426,9 @@ int __read_mostly watermark_boost_factor  = 15000;
  */
 int watermark_scale_factor = 10;
 
+// 是一个全局变量，用于跟踪系统中所有一致映射的页的数量
 static unsigned long __initdata nr_kernel_pages ;
+// 是一个全局变量，用于跟踪系统中所有页的总数。它包括了所有内存域中的页，无论是空闲的还是已经被分配的。
 static unsigned long __initdata nr_all_pages ;
 static unsigned long __initdata dma_reserve ;
 
@@ -6893,6 +6895,13 @@ static void zoneref_set_zone(struct zone *zone, struct zoneref *zoneref)
 }
 
 /*
+ * `build_zonerefs_node` 函数的主要作用是为当前节点的内存区域创建引用列表，并返回有效内存区域的数量。 
+ *
+ 函数从最大的内存区域类型开始，逐一遍历节点中的所有内存区域（pgdat->node_zones）。对于每个区域，使用 managed_zone 来判断该区域是否有效，只有包含可管理页面的区域才会被纳入引用列表。如果区域有效，函数通过 zoneref_set_zone 将其添加到 zonerefs 数组中。
+
+此外，check_highest_zone函数会在每次处理一个区域后进行调用，用于确认和记录节点中优先级最高的内存区域，这对于后续的内存分配策略有重要作用。
+
+最终，build_zonerefs_node函数返回有效区域的数量，表明该节点的内存区域中有多少可以用于内存分配。
  * Builds allocation fallback zone lists. 创建 fallback zone list
  *
  * Add all populated zones of a node to the zonelist.
@@ -7031,7 +7040,11 @@ static int find_next_best_node(int node, nodemask_t *used_node_mask)
 }
 
 
+
 /*
+ * 
+ * 节点优先策略
+ *
  * Build zonelists ordered by node and zones within node.
  * This results in maximum locality--normal zone overflows into local
  * DMA zone, if any--but risks exhausting DMA zone.
@@ -7085,7 +7098,7 @@ static void build_zonelists_in_node_order(pg_data_t *pgdat, int *node_order,
 	zonerefs->zone_idx = 0;
 }
 
-/*
+/* `build_thisnode_zonelists` 函数为当前节点构建内存区域列表，优先从本地节点的内存区域（`ZONELIST_NOFALLBACK`）分配内存。函数通过调用 `build_zonerefs_node(pgdat, zonerefs)` 构建当前节点的内存区域列表，并根据返回的区域数量调整 `zonerefs` 指针，最后设置 `zonerefs->zone = NULL` 以标记列表的结束。
  * Build gfp_thisnode zonelists
  */
 static void build_thisnode_zonelists(pg_data_t *pgdat)
@@ -7103,6 +7116,7 @@ static void build_thisnode_zonelists(pg_data_t *pgdat)
 	 * cat /sys/devices/system/node/node0/numastat 节点能看 hit miss 的次数
 	 *
 	 */
+	// zonerefs是一个zoneref数组，每个zoneref实际上就可以等价成zone吧。对zone进行一个包装只是为了省空间，或者是编程上的技巧？
 	zonerefs = pgdat->node_zonelists[ZONELIST_NOFALLBACK]._zonerefs;
 
 	/**
@@ -7115,6 +7129,14 @@ static void build_thisnode_zonelists(pg_data_t *pgdat)
 	zonerefs->zone_idx = 0;
 }
 
+/**
+`build_zonelists(pg_data_t *pgdat)` 函数的主要目的是为指定的节点构建内存区域列表，确保在 NUMA 系统中，内存分配的优先顺序是基于节点的物理距离进行优化的。 
+首先，函数通过 find_next_best_node(local_node, &used_mask) 查找离 local_node 最近的节点，并将其顺序存入 node_order数组。为避免将内存压力集中在某个节点上，代码引入了负载平衡机制，即当相邻节点的距离不同时，重新设置节点的负载，以确保内存访问能够均匀分布。
+
+在节点排序完成后，build_zonelists_in_node_order(pgdat, node_order, nr_nodes) 根据生成的节点顺序构建内存区域列表，允许内存分配时优先从距离较近的节点中选择内存。此外，build_thisnode_zonelists(pgdat) 专门为当前节点构建其本地的内存区域列表，确保内存分配的效率和性能。
+
+这种设计在 NUMA系统中优化了内存访问路径，减少了跨节点的内存访问延迟，并通过负载平衡机制保证系统整体的内存压力不会集中于单一节点。
+*/
 /*
  * Build zonelists ordered by zone and nodes within zones.
  * This results in conserving DMA zone[s] until all Normal memory is
@@ -7160,6 +7182,8 @@ static void build_zonelists(pg_data_t *pgdat)
 	 * @brief
 	 *
 	 */
+	// 默认就是结点优先了？
+	// 之前还有个zone优先的函数：build_zonelists_in_zone_order()
 	build_zonelists_in_node_order(pgdat, node_order, nr_nodes);
 
 	/**
@@ -7254,6 +7278,7 @@ static DEFINE_PER_CPU(struct per_cpu_nodestat, boot_nodestats);
 static struct per_cpu_nodestat boot_nodestats;
 static struct per_cpu_pageset boot_pageset;
 
+// 主要是对各个内存节点都调用build_zoneliosts函数，构建备用列表
 /**
  * @brief
  *
@@ -7281,12 +7306,16 @@ static void __build_all_zonelists(void *data)
 	 * This node is hotadded and no memory is yet present.   So just
 	 * building zonelists is fine - no need to touch other nodes.
 	 */
+	/**
+	如果检测到当前节点 `self` 尚未上线（通过 `node_online(self->node_id)` 判断），则只为该节点构建 `zonelists`，避免干扰其他已在线的节点
+	 */
 	if (self && !node_online(self->node_id)) {
 		build_zonelists(self);
 	} else {
 		/**
 		 * @brief 遍历所有节点
-		 *
+		 * 否则，系统将遍历所有在线节点，为每个节点调用 `build_zonelists(pgdat)` 构建其内存区域列表
+		 * nid的遍历步骤是什么样的？
 		 */
 		for_each_online_node(nid) {
 			/**
@@ -7358,6 +7387,7 @@ build_all_zonelists_init(void)
 }
 
 /**
+ * 为内存结点、zone创建备用列表
  * zone list 创建
  *
  * unless system_state == SYSTEM_BOOTING.
@@ -7892,6 +7922,7 @@ static __meminit void zone_pcp_init(struct zone *zone)
 
 /**
  *  初始化 zone
+ *  初始化free_area列表,并将属于该内存域的所有page实例都设置为初始默认值。
  */
 void __meminit init_currently_empty_zone(struct zone *zone,
                         					unsigned long zone_start_pfn,
@@ -8151,6 +8182,7 @@ static unsigned long __init zone_absent_pages_in_node(int nid,
 
 /**
  *  计算 node 所有页数
+ *  去除了空洞
  *
  * [    0.000000] On node 0 totalpages: 2096926 -> 8GB
  */
@@ -8499,6 +8531,23 @@ void __ref free_area_init_core_hotplug(int nid)
 }
 #endif
 
+/**
+* 代码的作用
+* 该函数 `free_area_init_core(struct pglist_data *pgdat)` 负责初始化 NUMA 节点 `pgdat` 中所有的内存管理区域（zone），
+* 主要目的是为系统中的不同内存区域（例如 DMA, DMA32, Normal zones）建立管理结构，确保每个 zone 能够正确跟踪和管理它们所涵盖的物理页帧。
+*
+* 具体步骤包括：
+* 1. 初始化节点 `pgdat` 的内部结构，设置统计信息等。
+* 2. 遍历该节点的所有 zone，逐个 zone 进行初始化：
+*    - 计算 zone 的管理页数（spanned_pages 和 present_pages），以及用于存储 `struct page` 的页数（memmap_pages）。
+*    - 调整可用页的数量（freesize），扣除用于管理的页面。
+*    - 记录并输出每个 zone 中用于 memmap 的页面数量。
+*    - 如果需要，处理预留的页（例如 DMA zone 的 reserved pages）。
+* 3. 根据不同 zone 的类型（如 DMA, Normal），将高内存（highmem）页和低内存页分类，并更新系统中内核页和全部页的计数。
+* 4. 为每个 zone 设置低内存页的初始估值，并在后续内存管理过程中进行调整。
+* 5. 初始化每个 zone 的内部结构，包括每个 zone 的空闲页面链表（free_area）的初始化和 `per-CPU` 的页面缓存初始化。
+* 6. 调用 `memmap_init` 函数为当前 zone 初始化 `memmap`，从而管理其所有页帧。
+*/
 /*
  * Set up the zone data structures:
  *   - mark all pages reserved
@@ -8664,9 +8713,10 @@ static void __init free_area_init_core(struct pglist_data *pgdat)
         init_currently_empty_zone(zone, zone_start_pfn, size);
 
         /**
-         *
+         *初始化内存域的页
+		 * 启动一个很重要的工作是要设置pageblock们最开始都是MIGRATE_MOVABLE
          */
-		memmap_init(size, nid, j, zone_start_pfn);
+        memmap_init(size, nid, j, zone_start_pfn);
 	}
 }
 
@@ -8733,6 +8783,18 @@ static inline void pgdat_set_deferred_range(pg_data_t *pgdat)
 #endif
 
 /**
+* 代码的作用
+* 该函数 `free_area_init_node(int nid)` 用于初始化指定的 NUMA 节点（node）的内存管理数据结构，确保其能够正确管理该节点的内存区域。
+* 具体步骤包括：
+* 1. 获取节点的物理页帧范围（PFN）。
+* 2. 初始化该节点的 `pg_data_t` 数据结构，包括节点的 ID、起始页帧号、以及其他相关内存统计数据。
+* 3. 输出日志信息，显示该节点的内存布局。
+* 4. 计算并设置该节点的总页数。
+* 5. 为该节点分配页帧管理表。
+* 6. 设置延迟范围（deferred range）。
+* 7. 初始化该节点的所有管理区（zone），包括各个 zone 的空闲列表（free_list），以便管理不同区域的内存，如 DMA、DMA32 和 Normal 区。
+*/
+/**
  *  "初始化node和zone"
  *
 //[    0.000000] Zone ranges:
@@ -8769,6 +8831,7 @@ static void __init free_area_init_node(int nid)
         		end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
     /**
      *  初始化所有 node 的 管理 zone ，设计到 具体 absent 页 等
+	 *  去除了空洞
      *
      *  [rongtao@localhost src]$ dmesg | grep totalpages
      *  [    0.000000] On node 0 totalpages: 2096926
@@ -8796,6 +8859,7 @@ static void __init free_area_init_node(int nid)
     //[    0.000000]   Normal zone: 20480 pages used for memmap
     //[    0.000000]   Normal zone: 1310720 pages, LIFO batch:31
      */
+	// 创建伙伴系统管理结构
 	free_area_init_core(pgdat);
 }
 
@@ -8999,6 +9063,26 @@ static unsigned long __init early_calculate_totalpages(void)
 	return totalpages;
 }
 
+/**
+* 代码的作用
+* 该函数 `find_zone_movable_pfns_for_nodes(void)` 主要用于初始化并找到每个 NUMA 节点中 `ZONE_MOVABLE` 区域的起始页帧号（PFN）。
+* `ZONE_MOVABLE` 是一种特殊的内存区域，用于支持内存热插拔，或者将内存专门用于用户态分配，防止影响内核态分配。
+*
+* 主要功能：
+* 1. **处理 movable_node 和镜像内核内存（mirrored_kernelcore）**：
+   - 如果启用了 `movable_node`，则会找到所有可移动的内存区域（通常与内存热插拔相关），并为每个 NUMA 节点的 `ZONE_MOVABLE` 区域确定起始页帧。
+   - 如果启用了 `mirrored_kernelcore`，则会处理是否所有内存都已镜像的问题，并确保内核内存被镜像保留。
+* 2. **计算内核所需的核心内存（kernelcore）和可移动内存（movablecore）**：
+   - 根据用户配置的参数 `kernelcore` 和 `movablecore`（如果有）来计算需要的内存大小，并确保这些内存合理分配在各个 NUMA 节点中。
+* 3. **分配 ZONE_MOVABLE 的起始页帧**：
+   - 遍历所有内存块，确定每个 NUMA 节点中可用于 `ZONE_MOVABLE` 的起始页帧。
+   - 根据 `kernelcore` 的分配情况，确保内存被合理分配，并计算出每个节点 `ZONE_MOVABLE` 的范围。
+* 4. **最后调整和对齐**：
+   - 在分配结束后，将每个节点的 `ZONE_MOVABLE` 的起始页帧对齐到系统要求的最大内存块（`MAX_ORDER_NR_PAGES`）。
+   - 最后恢复内核的内存节点状态。
+*
+* 该函数的目的是根据系统的内存配置和用户的参数，合理划分可用于内核和用户分配的内存区域，并确保某些内存区域可以被移动或热插拔而不会影响系统稳定性。
+*/
 /*
  * Find the PFN the Movable zone begins in each node. Kernel memory
  * is spread evenly between nodes as long as the nodes have enough
@@ -9266,6 +9350,53 @@ bool __weak arch_has_descending_max_zone_pfns(void)
 }
 
 /**
+ * 代码的作用
+ *
+ * 该函数 `free_area_init()` 主要负责初始化内存管理的 `zone` 和 `node` 的结构，并设置各个 `zone` 的内存范围。在 Linux 内核的启动阶段，它用于根据物理内存的布局来初始化内存的区域分配情况，包括 DMA、DMA32 和 Normal 等内存区域。
+ * 
+ * 具体功能和步骤如下：
+ *
+ * 1. **记录 `zone` 的边界**：
+ *    - 通过 `memset()` 清空 `arch_zone_lowest_possible_pfn` 和 `arch_zone_highest_possible_pfn` 以记录每个 `zone` 的最小和最大物理帧号（PFN）。
+ *
+ * 2. **找到最小物理地址**：
+ *    - 使用 `find_min_pfn_with_active_regions()` 查找系统中有活动区域的最小物理地址（起始 PFN）。
+ *
+ * 3. **确定区域顺序**：
+ *    - 通过 `arch_has_descending_max_zone_pfns()` 来判断是否使用降序排列区域（默认返回 `false`），所以区域会按正常顺序处理。
+ *
+ * 4. **遍历并初始化各个 `zone`**：
+ *    - 遍历所有内存 `zone`，并跳过 `ZONE_MOVABLE`（可移动内存区域）。
+ *    - 为每个 `zone` 设置其对应的起始和结束 PFN，确保记录它们的范围。
+ *
+ * 5. **设置 `ZONE_MOVABLE` 的边界**：
+ *    - 通过 `find_zone_movable_pfns_for_nodes()` 计算每个 `node` 上 `ZONE_MOVABLE` 的起始位置。
+ *
+ * 6. **打印 `zone` 范围**：
+ *    - 输出各个 `zone` 的物理内存范围。这个范围通常通过内核日志 `dmesg` 输出，帮助内核开发者了解系统内存的分布情况。
+ *
+ * 7. **打印可移动 `zone` 的起始位置**：
+ *    - 打印每个 `node` 上 `ZONE_MOVABLE` 的起始地址（PFN）。
+ *
+ * 8. **打印内存节点范围**：
+ *    - 使用 `for_each_mem_pfn_range()` 遍历并打印内存节点的范围。每个 `node` 的物理内存地址范围也会通过内核日志显示。
+ *
+ * 9. **初始化页面标志布局**：
+ *    - 通过 `mminit_verify_pageflags_layout()` 初始化每个页面的标志位布局。
+ *
+ * 10. **设置 `node` 的 ID 数量**：
+ *    - 通过 `setup_nr_node_ids()` 初始化系统中的 `node` 数量。
+ *
+ * 11. **处理不可用内存**：
+ *    - 调用 `init_unavailable_mem()` 来处理系统中不可用的内存。
+ *
+ * 12. **遍历每个 `node` 并初始化其区域**：
+ *    - 通过 `for_each_online_node()` 遍历所有在线的 `node`。
+ *    - 对每个 `node` 调用 `free_area_init_node()` 来初始化其对应的内存管理结构，包括初始化所有区域（`zone`）。
+ *    - 若该 `node` 上存在页面，将该 `node` 标记为 `N_MEMORY`。
+ *    - 最后通过 `check_for_memory()` 统计和检查内存情况，输出内存统计信息（总页数、内存量等）。
+ */
+/**
  * free_area_init - Initialise all pg_data_t and zone data
  * @max_zone_pfn: an array of max PFNs for each zone
  *
@@ -9281,6 +9412,7 @@ bool __weak arch_has_descending_max_zone_pfns(void)
  * 初始化所有内存节点NODE，和 zone 数据，这是和架构无关的
  *
  * 数据类型 unsigned long max_zone_pfns[MAX_NR_ZONES];
+ * max_zone_pfns是每个zone的上边界
  */
 void __init free_area_init(unsigned long *max_zone_pfn)
 {

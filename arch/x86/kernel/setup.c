@@ -1020,6 +1020,7 @@ void __init setup_arch(char **cmdline_p)
 #ifdef CONFIG_BLK_DEV_RAM
 	rd_image_start = boot_params.hdr.ram_size & RAMDISK_IMAGE_START_MASK;
 #endif
+// 初始化efi
 #ifdef CONFIG_EFI
 	if (!strncmp((char *)&boot_params.efi_info.efi_loader_signature,
 		     EFI32_LOADER_SIGNATURE, 4)) {
@@ -1059,12 +1060,13 @@ void __init setup_arch(char **cmdline_p)
 	iomem_resource.end = (1ULL << boot_cpu_data.x86_phys_bits) - 1;
 
 	/**
-	 * 设置内存映射
-	 *
-	 *  设置完根 `iomem` 的资源地址范围的结束地址后，下一步就是 设置内存映射
-	 *
-	 *  获取内存布局，从 BIOS 中拷贝一份新的 到 e802_table 中
-	 */
+	* 设置内存映射
+	*
+	*  设置完根 `iomem` 的资源地址范围的结束地址后，下一步就是 设置内存映射
+	*
+	*  获取内存布局，从 BIOS 中拷贝一份新的 到 e802_table 中
+	*  比较核心的是 将 内存布局拷贝到 零两个全局变量中
+	*/
 	e820__memory_setup();
 
 	parse_setup_data();
@@ -1425,6 +1427,7 @@ void __init setup_arch(char **cmdline_p)
 	 *
 	 */
 	efi_fake_memmap();
+	// 找到的镜像内存在boot memory allocator中标记为MIRROR
 	efi_find_mirror();
 	efi_esrt_init();
 	efi_mokvar_table_init();
@@ -1584,6 +1587,7 @@ void __init setup_arch(char **cmdline_p)
 	 */
 	reserve_crashkernel();
 
+	// 为DMA区域预留内存
 	memblock_find_dma_reserve();
 
 	if (!early_xdbc_setup_hardware())

@@ -1327,9 +1327,10 @@ static inline int local_memory_node(int node_id) { return node_id; };
  *
  *  结果为 idx = 2
  */
+// * 当前这个zone在当前内存结点中的排序：
 #define zone_idx(zone)		((zone) - (zone)->zone_pgdat->node_zones)   /* 数组成员地址 - 数组起始地址 */
 
-/*
+/* managed_zone 函数通过调用 zone_managed_pages 来判断一个内存区域是否有受 buddy allocator 管理的页面。
  * Returns true if a zone has pages managed by the buddy allocator.
  * All the reclaim decisions have to use this function rather than
  * populated_zone(). If the whole zone is reserved then we can easily

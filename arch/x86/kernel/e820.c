@@ -1488,6 +1488,24 @@ char *__init e820__memory_setup_default(void)
 	return who;
 }
 
+/**
+* 代码的作用
+* 该函数 `e820__memory_setup(void)` 用于设置并打印系统内存布局，具体通过 `e820` 机制从 BIOS 获取物理内存的布局信息，并将其记录下来。
+* e820 是 BIOS 提供的一个中断服务（INT 0x15，AX=0xE820），用于返回系统内存的分段信息。
+* 每段内存有不同的类型和属性，例如“可用”、“保留”等。
+*
+* 主要步骤：
+* 1. **ABI 校验**：
+   - 使用 `BUILD_BUG_ON` 检查 `struct boot_e820_entry` 的大小是否符合预期（20 字节），以确保 ABI 兼容性。
+* 2. **调用内存初始化函数**：
+   - 调用 `x86_init.resources.memory_setup()` 初始化内存设置，这个函数会调用架构特定的内存初始化逻辑。
+* 3. **保存内存布局**：
+   - 将当前内存布局拷贝到两个全局变量 `e820_table_kexec` 和 `e820_table_firmware` 中，分别用于保存内存布局的快照（用于 Kexec 机制）和原始 BIOS 提供的内存布局。
+* 4. **打印内存布局**：
+   - 使用 `pr_info` 打印 BIOS 提供的物理内存布局信息到内核日志，并通过 `e820__print_table(who)` 输出详细的内存区域。
+*
+* 最终效果是通过 BIOS 的 e820 接口获取并打印系统的物理内存布局，为后续的内存管理提供基础信息。
+*/
 /*
  * Calls e820__memory_setup_default() in essence to pick up the firmware/bootloader
  * E820 map - with an optional platform quirk available for virtual platforms
@@ -1508,6 +1526,7 @@ void __init e820__memory_setup(void)
     /**
      *  arch/x86/kernel/x86_init.c: .memory_setup = e820__memory_setup_default()
      */
+	// 这个应该就是paging_init
 	who = x86_init.resources.memory_setup();    /* 内存初始化 */
 
     /**
@@ -1529,6 +1548,22 @@ void __init e820__memory_setup(void)
  * @brief 初始化 memblock
  *
  */
+/**
+* 代码的作用:
+* 该函数 `e820__memblock_setup` 在系统启动的早期阶段，用于根据 BIOS 提供的 e820 内存映射表（BIOS-e820）设置和初始化 `memblock` 结构。
+* `memblock` 是 Linux 内核用于管理物理内存的一个早期数据结构，允许预留和管理内存区域。
+*
+* 详细步骤如下：
+* 1. `memblock_allow_resize()`：允许 `memblock` 的大小进行动态调整，确保它可以容纳足够的内存区域条目。EFI 可能会提供比默认最大数量（128 个）更多的 e820 条目，因此需要此调整。
+* 2. 遍历 e820 表的所有内存条目（`e820_table->nr_entries`），并检查每个内存区域的结束地址是否超出 64 位物理地址空间（`resource_size_t`），如果是则跳过该条目。
+* 3. 对每个有效条目进行进一步处理：
+   - 如果条目类型为 `E820_TYPE_SOFT_RESERVED`，表示这是保留区域，将其加入 `memblock.reserved`，以确保内核不会使用这些区域。
+   - 如果条目类型是 `E820_TYPE_RAM` 或 `E820_TYPE_RESERVED_KERN`，则将其添加到 `memblock.memory` 中，这些区域可供系统使用。
+* 4. 调用 `memblock_trim_memory(PAGE_SIZE)`，对内存块进行调整，丢弃小于一个页面大小的部分，确保内存块以页面为单位管理。
+* 5. 最后，调用 `memblock_dump_all()`，将所有 memblock 的状态打印出来，便于调试和确认内存块的分配情况。
+*
+* 该函数的主要作用是基于 BIOS 提供的 e820 内存表，设置内存块的预留和可用区域，确保系统启动时正确管理物理内存。
+*/
 void __init e820__memblock_setup(void)
 {
 //[rongtao@localhost src]$ dmesg | grep e820

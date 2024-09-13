@@ -6,3 +6,5 @@
 *.symvers
 *.tar
 *.tar.*
+.cache
+compile_commands.json

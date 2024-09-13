@@ -105,6 +105,16 @@ static int __init setup_add_efi_memmap(char *arg)
 }
 early_param("add_efi_memmap", setup_add_efi_memmap);
 
+/**
+* 代码的作用:
+* 该函数 `efi_find_mirror()` 用于查找并标记系统内存中具有镜像属性的内存区域。
+* 函数首先检查 EFI 内存映射是否启用（通过 `efi_enabled(EFI_MEMMAP)`），如果没有启用，则直接返回。
+* 接着通过 `for_each_efi_memory_desc(md)` 遍历所有的 EFI 内存描述符。
+* 对于每个内存描述符，计算其物理地址 `start` 和内存大小 `size`。
+* 累加所有内存的总大小 `total_size`。
+* 如果某段内存具有 EFI 内存属性标志 `EFI_MEMORY_MORE_RELIABLE`，则认为该内存段是更可靠的镜像内存，调用 `memblock_mark_mirror()` 对这部分内存进行标记，并累加这部分内存的大小到 `mirror_size`。
+* 如果镜像内存大小 `mirror_size` 大于 0，输出日志信息，打印镜像内存与总内存的大小。
+*/
 void __init efi_find_mirror(void)
 {
 	efi_memory_desc_t *md;
@@ -128,63 +138,72 @@ void __init efi_find_mirror(void)
 			mirror_size>>20, total_size>>20);
 }
 
+// 告诉内核通过UEFI获取到的内存映射情况，一般一种类型的内存对应一个EFI内存描述符
 /*
  * Tell the kernel about the EFI memory map.  This might include
  * more than the max 128 entries that can fit in the passed in e820
  * legacy (zeropage) memory map, but the kernel's e820 table can hold
  * E820_MAX_ENTRIES.
  */
-
 static void __init do_add_efi_memmap(void)
 {
-	efi_memory_desc_t *md;
+	efi_memory_desc_t *md;  // 定义指向 EFI 内存描述符的指针
 
+	// 检查是否启用了 EFI 内存映射功能，若没有启用则直接返回
 	if (!efi_enabled(EFI_MEMMAP))
 		return;
 
+	// 遍历所有 EFI 内存描述符
 	for_each_efi_memory_desc(md) {
-		unsigned long long start = md->phys_addr;
-		unsigned long long size = md->num_pages << EFI_PAGE_SHIFT;
-		int e820_type;
+		// 获取当前内存描述符的物理地址和内存大小（以字节为单位）
+		unsigned long long start = md->phys_addr;  // 起始物理地址
+		unsigned long long size = md->num_pages << EFI_PAGE_SHIFT;  // 内存区域的大小（以字节为单位，页面数量 * 每页大小）
+		int e820_type;  // 定义 E820 表的内存类型
 
+		// 根据内存描述符的类型设置 E820 表的内存类型
 		switch (md->type) {
 		case EFI_LOADER_CODE:
 		case EFI_LOADER_DATA:
 		case EFI_BOOT_SERVICES_CODE:
 		case EFI_BOOT_SERVICES_DATA:
 		case EFI_CONVENTIONAL_MEMORY:
+			// 如果启用了软保留（Soft Reserve）且该内存区域带有 EFI_MEMORY_SP 属性
 			if (efi_soft_reserve_enabled()
 			    && (md->attribute & EFI_MEMORY_SP))
-				e820_type = E820_TYPE_SOFT_RESERVED;
+				e820_type = E820_TYPE_SOFT_RESERVED;  // 将内存标记为软保留类型
 			else if (md->attribute & EFI_MEMORY_WB)
-				e820_type = E820_TYPE_RAM;
+				e820_type = E820_TYPE_RAM;  // 如果内存带有写回缓存属性，标记为可用内存
 			else
-				e820_type = E820_TYPE_RESERVED;
+				e820_type = E820_TYPE_RESERVED;  // 否则标记为保留内存
 			break;
 		case EFI_ACPI_RECLAIM_MEMORY:
-			e820_type = E820_TYPE_ACPI;
+			e820_type = E820_TYPE_ACPI;  // 标记为可回收的 ACPI 内存
 			break;
 		case EFI_ACPI_MEMORY_NVS:
-			e820_type = E820_TYPE_NVS;
+			e820_type = E820_TYPE_NVS;  // 标记为 ACPI NVS（不可易失内存）
 			break;
 		case EFI_UNUSABLE_MEMORY:
-			e820_type = E820_TYPE_UNUSABLE;
+			e820_type = E820_TYPE_UNUSABLE;  // 标记为不可用内存
 			break;
 		case EFI_PERSISTENT_MEMORY:
-			e820_type = E820_TYPE_PMEM;
+			e820_type = E820_TYPE_PMEM;  // 标记为持久性内存（PMEM）
 			break;
 		default:
 			/*
-			 * EFI_RESERVED_TYPE EFI_RUNTIME_SERVICES_CODE
-			 * EFI_RUNTIME_SERVICES_DATA EFI_MEMORY_MAPPED_IO
-			 * EFI_MEMORY_MAPPED_IO_PORT_SPACE EFI_PAL_CODE
+			 * 其他类型的内存区域：
+			 * EFI_RESERVED_TYPE, EFI_RUNTIME_SERVICES_CODE,
+			 * EFI_RUNTIME_SERVICES_DATA, EFI_MEMORY_MAPPED_IO,
+			 * EFI_MEMORY_MAPPED_IO_PORT_SPACE, EFI_PAL_CODE
 			 */
-			e820_type = E820_TYPE_RESERVED;
+			e820_type = E820_TYPE_RESERVED;  // 默认标记为保留内存
 			break;
 		}
 
+		// 将内存范围及其类型添加到 E820 表
 		e820__range_add(start, size, e820_type);
 	}
+
+	// 更新 E820 表，确保内核能够正确识别和使用这些内存区域
 	e820__update_table(e820_table);
 }
 
@@ -212,42 +231,69 @@ static bool do_efi_soft_reserve(void)
 	return false;
 }
 
+/**
+* 代码的作用:
+* 这个函数 `efi_memblock_x86_reserve_range` 用于在 x86 架构下初始化并保留 EFI（可扩展固件接口）内存映射区域。
+* 
+* 详细步骤如下：
+* 1. 检查是否启用了 EFI 的虚拟化模式（`EFI_PARAVIRT`），如果启用，则不做任何操作，直接返回 0。
+* 2. 如果是在 32 位系统（`CONFIG_X86_32`）上运行，并且 EFI 的内存映射高于 4GB 地址空间，则打印错误信息并禁用 EFI，返回错误代码 `-EINVAL`。
+* 3. 计算出 EFI 内存映射的物理地址，并将相关内存映射信息存储在 `data` 结构体中，包括内存映射的大小、描述符的大小以及描述符的版本号。
+* 4. 调用 `efi_memmap_init_early` 函数来初始化 EFI 内存映射。如果初始化失败，返回错误代码。
+* 5. 如果需要添加 EFI 内存映射或执行软保留操作，调用 `do_add_efi_memmap` 函数处理 EFI 内存映射。
+* 6. 进行早期的 EFI 虚拟内存映射处理，调用 `efi_fake_memmap_early` 函数。
+* 7. 如果 EFI 的内存描述符版本不是 1，打印警告信息。
+* 8. 通过 `memblock_reserve` 函数保留 EFI 内存映射区域的内存块，避免它被操作系统内核重用。
+* 9. 设置标志位 `EFI_PRESERVE_BS_REGIONS`，用于指示保留 EFI Boot Service 区域。
+* 10. 函数执行成功，返回 0。
+*/
 int __init efi_memblock_x86_reserve_range(void)
 {
-	struct efi_info *e = &boot_params.efi_info;
-	struct efi_memory_map_data data;
-	phys_addr_t pmap;
-	int rv;
+	struct efi_info *e = &boot_params.efi_info;  // 获取启动参数中的 EFI 信息
+	struct efi_memory_map_data data;             // 定义用于存储 EFI 内存映射数据的结构
+	phys_addr_t pmap;                            // 保存物理内存映射地址
+	int rv;                                      // 用于保存函数返回值
 
+	// 如果启用了 EFI 的虚拟化环境，则直接返回 0，跳过该函数
 	if (efi_enabled(EFI_PARAVIRT))
 		return 0;
 
-	/* Can't handle firmware tables above 4GB on i386 */
+	/* 不能处理位于 4GB 以上的固件表（对于 32 位 x86 系统） */
 	if (IS_ENABLED(CONFIG_X86_32) && e->efi_memmap_hi > 0) {
 		pr_err("Memory map is above 4GB, disabling EFI.\n");
-		return -EINVAL;
+		return -EINVAL;  // 如果内存映射超过了 4GB，则返回错误并禁用 EFI
 	}
+
+	// 计算 EFI 内存映射的物理地址，将 32 位和 64 位部分组合为一个 64 位地址
 	pmap = (phys_addr_t)(e->efi_memmap | ((u64)e->efi_memmap_hi << 32));
 
-	data.phys_map		= pmap;
-	data.size 		= e->efi_memmap_size;
-	data.desc_size		= e->efi_memdesc_size;
-	data.desc_version	= e->efi_memdesc_version;
+	// 填充 EFI 内存映射数据结构的各个字段
+	data.phys_map      = pmap;                      // 物理内存映射地址
+	data.size          = e->efi_memmap_size;        // EFI 内存映射大小
+	data.desc_size     = e->efi_memdesc_size;       // 每个内存描述符的大小
+	data.desc_version  = e->efi_memdesc_version;    // EFI 内存描述符版本号
 
+	// 初始化早期的 EFI 内存映射，如果失败则返回错误码
 	rv = efi_memmap_init_early(&data);
 	if (rv)
 		return rv;
 
+	// 如果启用了添加 EFI 内存映射或软保留，则执行添加 EFI 内存映射
 	if (add_efi_memmap || do_efi_soft_reserve())
-		do_add_efi_memmap();
+		do_add_efi_memmap();  // 添加 EFI 内存映射
 
-	efi_fake_memmap_early();
+	// 这个应该是用来方便调试内存镜像的吧
+	efi_fake_memmap_early();  // 处理虚拟的 EFI 内存映射
 
+	// 检查 EFI 内存描述符版本是否为 1，如果不是则发出警告
 	WARN(efi.memmap.desc_version != 1,
 	     "Unexpected EFI_MEMORY_DESCRIPTOR version %ld",
 	     efi.memmap.desc_version);
 
+	// 保留 EFI 内存映射的物理地址范围，防止被系统内存分配器使用
 	memblock_reserve(pmap, efi.memmap.nr_map * efi.memmap.desc_size);
+
+	// 设置 EFI 标志，表示保留了引导服务区域
 	set_bit(EFI_PRESERVE_BS_REGIONS, &efi.flags);
 
 	return 0;
@@ -441,6 +487,22 @@ static int __init efi_config_init(const efi_config_table_type_t *arch_tables)
 	return ret;
 }
 
+/**
+* 代码的作用:
+* 该函数 `efi_init` 负责在系统启动时初始化 EFI（可扩展固件接口）环境，主要执行以下步骤：
+* 
+* 1. 如果启用了 `CONFIG_X86_32` 且 EFI 系统表或内存映射表位于 4GB 以上，则打印一条信息并禁用 EFI。
+* 2. 计算 EFI 系统表的物理地址，并初始化 EFI 系统表。
+* 3. 重用 EFI 配置表，如果重用失败则直接返回。
+* 4. 初始化 EFI 配置表并进行架构相关的表设置。
+* 5. 检查是否支持 EFI 运行时服务，如果不支持或者由于 32/64 位模式不匹配，则打印警告信息并清理 EFI 内存映射，退出初始化。
+* 6. 如果 EFI 属性表存在，尝试映射该表，并根据属性表设置运行时内存保护属性（如将 PE 数据段标记为不可执行）。
+* 7. 设置 EFI 运行时服务的标志位，清理 EFI 内存映射表。
+* 8. 如果启用了 EFI 调试模式，则打印 EFI 内存映射。
+*/
+// `efi_init()` 的主要工作有两个，
+// 一个是对 UEFI系统表的处理，包括运行时服务的保存、配置表的解析和初步处理；
+// 还有一个是把从UEFI Boot Stub 传递过来的 UEFI 内存映射表交接给 memblock。此函数的关键过程按序分析如下：
 void __init efi_init(void)
 {
 	if (IS_ENABLED(CONFIG_X86_32) &&
