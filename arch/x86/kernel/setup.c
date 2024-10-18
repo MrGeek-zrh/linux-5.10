@@ -1022,14 +1022,18 @@ void __init setup_arch(char **cmdline_p)
 #endif
 // 初始化efi
 #ifdef CONFIG_EFI
+	/* 检查EFI启动加载器的签名 */
 	if (!strncmp((char *)&boot_params.efi_info.efi_loader_signature,
 		     EFI32_LOADER_SIGNATURE, 4)) {
-		set_bit(EFI_BOOT, &efi.flags);
+		/* 如果是32位EFI加载器的签名 */
+		set_bit(EFI_BOOT, &efi.flags);  /* 设置EFI_BOOT标志,表示这是EFI引导 */
 	} else if (!strncmp((char *)&boot_params.efi_info.efi_loader_signature,
 		     EFI64_LOADER_SIGNATURE, 4)) {
-		set_bit(EFI_BOOT, &efi.flags);
-		set_bit(EFI_64BIT, &efi.flags);
+		/* 如果是64位EFI加载器的签名 */
+		set_bit(EFI_BOOT, &efi.flags);  /* 设置EFI_BOOT标志 */
+		set_bit(EFI_64BIT, &efi.flags); /* 额外设置EFI_64BIT标志,表示这是64位EFI */
 	}
+	/* 如果两个签名都不匹配,则不设置任何EFI相关标志 */
 #endif
 
 	/**
