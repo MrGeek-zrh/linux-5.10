@@ -234,18 +234,34 @@ static bool do_efi_soft_reserve(void)
 /**
 * 代码的作用:
 * 这个函数 `efi_memblock_x86_reserve_range` 用于在 x86 架构下初始化并保留 EFI（可扩展固件接口）内存映射区域。
-* 
-* 详细步骤如下：
-* 1. 检查是否启用了 EFI 的虚拟化模式（`EFI_PARAVIRT`），如果启用，则不做任何操作，直接返回 0。
-* 2. 如果是在 32 位系统（`CONFIG_X86_32`）上运行，并且 EFI 的内存映射高于 4GB 地址空间，则打印错误信息并禁用 EFI，返回错误代码 `-EINVAL`。
-* 3. 计算出 EFI 内存映射的物理地址，并将相关内存映射信息存储在 `data` 结构体中，包括内存映射的大小、描述符的大小以及描述符的版本号。
-* 4. 调用 `efi_memmap_init_early` 函数来初始化 EFI 内存映射。如果初始化失败，返回错误代码。
-* 5. 如果需要添加 EFI 内存映射或执行软保留操作，调用 `do_add_efi_memmap` 函数处理 EFI 内存映射。
-* 6. 进行早期的 EFI 虚拟内存映射处理，调用 `efi_fake_memmap_early` 函数。
-* 7. 如果 EFI 的内存描述符版本不是 1，打印警告信息。
-* 8. 通过 `memblock_reserve` 函数保留 EFI 内存映射区域的内存块，避免它被操作系统内核重用。
-* 9. 设置标志位 `EFI_PRESERVE_BS_REGIONS`，用于指示保留 EFI Boot Service 区域。
-* 10. 函数执行成功，返回 0。
+* EFI内存映射区域是由UEFI固件提供的,描述了系统物理内存的布局和用途。它不是位于某个固定的内存地址,而是通过以下方式获取和存储:
+
+1. 初始位置:
+   在系统启动时,UEFI固件会将内存映射信息放在一个特定的内存区域,并将这个区域的地址传递给操作系统内核。
+
+2. 在内核中的存储:
+   - 物理地址: 存储在 `boot_params.efi_info.efi_memmap` 中
+   - 大小: 存储在 `boot_params.efi_info.efi_memmap_size` 中
+
+3. 内核处理:
+   内核会读取这个初始位置的内存映射信息,然后将其复制到自己管理的内存区域中。这个过程在 `efi_memmap_init_early()` 函数中完成。
+
+4. 最终位置:
+   处理后的EFI内存映射信息存储在 `efi.memmap` 结构中,包括:
+   - `efi.memmap.phys_map`: 内存映射的物理地址
+   - `efi.memmap.map`: 内存映射的虚拟地址(如果已经映射)
+   - `efi.memmap.nr_map`: 内存映射条目的数量
+   - `efi.memmap.desc_size`: 每个内存描述符的大小
+   - `efi.memmap.desc_version`: 内存描述符的版本
+
+5. 保护:
+   为了防止这个重要的内存区域被意外覆盖,内核会调用 `memblock_reserve()` 函数来保留这块内存:
+
+   ```c
+   memblock_reserve(pmap, efi.memmap.nr_map * efi.memmap.desc_size);
+   ```
+
+所以,EFI内存映射区域最初是由UEFI固件提供的,然后被内核读取、处理并存储在自己管理的内存中。这个区域的具体物理地址可以通过 `efi.memmap.phys_map` 获取。
 */
 int __init efi_memblock_x86_reserve_range(void)
 {

@@ -839,7 +839,7 @@ bool __init is_early_ioremap_ptep(pte_t *ptep)
 }
 
 /**
- *  `ioremap` 就是用来把设备内存映射到内核地址空间的
+ *  `ioremap` 就是用来把设备内存映射到内核虚拟地址空间的
  * 
  *  通常有两种实现与设备通信的方式：
  *
