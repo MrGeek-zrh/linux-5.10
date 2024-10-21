@@ -1522,7 +1522,7 @@ void __init setup_arch(char **cmdline_p)
 	 */
     reserve_crashkernel();
 
-    // 为DMA区域预留内存
+    // 为DMA区域在低16MB中预留内存
     memblock_find_dma_reserve();
 
     if (!early_xdbc_setup_hardware())
