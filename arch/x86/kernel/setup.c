@@ -1273,6 +1273,11 @@ void __init setup_arch(char **cmdline_p)
 
     /* How many end-of-memory variables you have, grandma! */
     /* need this before calling reserve_initrd */
+
+    // 1UL << (32 - PAGE_SHIFT)的结果代表4GB内存拥有的物理页帧数
+    // 我觉得这个是针对64位系统的
+    // 在64位系统的情况下，如果实际物理内存不超过4GB，那么这些内存都作为低端内存，通过直接映射映射到虚拟内存区域中
+    // 如果高于4GB，就根据BIOS提供的信息来设置低端内存
     if (max_pfn > (1UL << (32 - PAGE_SHIFT)))
         max_low_pfn = e820__end_of_low_ram_pfn();
     else
