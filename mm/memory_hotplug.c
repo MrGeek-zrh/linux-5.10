@@ -1513,7 +1513,37 @@ static int count_system_ram_pages_cb(unsigned long start_pfn,
 	return 0;
 }
 
-int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
+/*
+ * offline_pages - 将一段物理内存下线
+ * @start_pfn: 要下线的内存起始页帧号 
+ * @nr_pages: 要下线的页面数量
+ *
+ * 该函数实现了内存热插拔中的内存下线功能。它会尝试将指定范围[start_pfn, start_pfn + nr_pages)
+ * 内的所有物理内存页下线,使其不再被系统使用。主要步骤包括:
+ *
+ * 1. 参数合法性检查,确保只能对齐到section边界的内存进行下线
+ * 2. 检查目标内存范围是否包含内存空洞,有洞则拒绝下线 
+ * 3. 检查目标内存是否都在同一个zone内,不允许跨zone下线
+ * 4. 将目标内存范围标记为隔离状态,确保不会有新的内存分配
+ * 5. 通知所有内存热插拔通知链上的观察者即将下线
+ * 6. 迁移目标范围内的所有可移动页面到其他地方
+ * 7. 释放目标范围内的大页(如果有)
+ * 8. 确认所有页面都已经隔离 
+ * 9. 将内存标记为offline状态并从伙伴系统中移除
+ * 10. 更新各种计数器和统计信息
+ * 11. 如果node变空,则停止该node上的kswapd和kcompactd
+ * 12. 通知观察者内存已经下线
+ * 
+ * 如果以上任何步骤失败,都会回滚之前的操作并返回错误码。
+ * 该函数主要被内存热插拔子系统使用,用于支持内存设备的动态移除。
+ *
+ * 返回值:
+ * 0 - 成功
+ * -EINVAL - 参数无效,比如包含内存空洞或者跨zone
+ * -EBUSY - 存在无法迁移的页面
+ * -ENOENT - 扫描可移动页面时返回(正常流程的一部分)
+ */
+int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)  
 {
 	const unsigned long end_pfn = start_pfn + nr_pages;
 	unsigned long pfn, system_ram_pages = 0;
