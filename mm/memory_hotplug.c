@@ -1235,16 +1235,29 @@ struct zone *test_pages_in_a_zone(unsigned long start_pfn, unsigned long end_pfn
     return zone;
 }
 
-/*
- * Scan pfn range [start,end) to find movable/migratable pages (LRU pages,
- * non-lru movable pages and hugepages). Will skip over most unmovable
- * pages (esp., pages that can be skipped when offlining), but bail out on
- * definitely unmovable pages.
+/**
+ * scan_movable_pages - 扫描物理内存范围中的可移动页面
+ * @start: 起始页帧号
+ * @end: 结束页帧号 
+ * @movable_pfn: 返回找到的第一个可移动页面的页帧号 
  *
- * Returns:
- *	0 in case a movable page is found and movable_pfn was updated.
- *	-ENOENT in case no movable page was found.
- *	-EBUSY in case a definitely unmovable page was found.
+ * 扫描指定的物理内存范围[start,end),寻找可移动或可迁移的页面。
+ * 可移动页面包括:
+ * 1. LRU链表上的页面(匿名页和文件页) 
+ * 2. 非LRU可移动页面(__PageMovable的页面)
+ * 3. 活跃的大页(active hugepages)
+ *
+ * 对于以下类型的页面的处理:
+ * - 大部分不可移动页面会被忽略并跳过(比如下线时可跳过的页面)
+ * - 已标记为offline但引用计数>0的页面被认为是确定不可移动,会导致函数失败
+ * - 对大页,会检查整个大页的状态而不是单个基本页
+ *
+ * 上下文: 在内存热插拔子系统中,用于识别哪些页面需要进行迁移操作
+ *
+ * 返回值:
+ * 0       - 成功找到可移动页面,movable_pfn被更新为该页面的页帧号
+ * -ENOENT - 整个范围内没有找到可移动页面
+ * -EBUSY  - 发现了一个确定无法移动的页面(离线页面且仍被引用)
  */
 static int scan_movable_pages(unsigned long start, unsigned long end, unsigned long *movable_pfn)
 {
