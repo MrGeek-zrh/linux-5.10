@@ -111,85 +111,85 @@
  *
  */
 enum pageflags {
-	PG_locked,		/* 页面已经上锁 Page is locked. Don't touch. 见`lock_page()`*/
-	PG_referenced,  /* 页面是否被引用过, 和`PG_active`用于控制页面的活跃程序，在 kswapd 中使用 */
-	PG_uptodate,    /* 标识页面的数据已经从块设备成功读取 */
-	PG_dirty,       /* 页面内容发生过改变，但是还没有和外部存储器进行同步 */
-	PG_lru,         /* 最近最少使用 zone->inactive_list */
-	PG_active,      /* 是否活跃，和`PG_referenced`用于控制页面的活跃程序，在 kswapd 中使用 */
-	PG_workingset,
-	PG_waiters,		/* 标识有进程正在等待这个页面。Page has waiters, check its waitqueue. Must be bit #7 and in the same byte as "PG_locked" */
-	PG_error,       /* 页面操作过程发生过错误 */
-	PG_slab,        /* 页面用于slab */
-	PG_owner_priv_1,/* Owner use. If pagecache, fs may use*/
-	PG_arch_1,      /* 与架构相关的页面状态位 */
-	PG_reserved,    /* 该页面不可换出 */
-	PG_private,		/* If pagecache, has fs-private data */
-	PG_private_2,	/* If pagecache, has fs aux data */
-	PG_writeback,	/* 页面正在向块设备回写，Page is under writeback */
-	PG_head,		/* A head page */
-	PG_mappedtodisk,/* Has blocks allocated on-disk */
-	PG_reclaim,		/* 页面马上要被回收，To be reclaimed asap */
-	PG_swapbacked,	/* 可以交换到磁盘(通常是匿名页) Page is backed by RAM/swap */
-	PG_unevictable,	/* 页面不可回收 Page is "unevictable"  */
+    PG_locked, /* 页面已经上锁 Page is locked. Don't touch. 见`lock_page()`*/
+    PG_referenced, /* 页面是否被引用过, 和`PG_active`用于控制页面的活跃程序，在 kswapd 中使用 */
+    PG_uptodate, /* 标识页面的数据已经从块设备成功读取 */
+    PG_dirty, /* 页面内容发生过改变，但是还没有和外部存储器进行同步 */
+    PG_lru, /* 最近最少使用 zone->inactive_list */
+    PG_active, /* 是否活跃，和`PG_referenced`用于控制页面的活跃程序，在 kswapd 中使用 */
+    PG_workingset,
+    PG_waiters, /* 标识有进程正在等待这个页面。Page has waiters, check its waitqueue. Must be bit #7 and in the same byte as "PG_locked" */
+    PG_error, /* 页面操作过程发生过错误 */
+    PG_slab, /* 页面用于slab */
+    PG_owner_priv_1, /* Owner use. If pagecache, fs may use*/
+    PG_arch_1, /* 与架构相关的页面状态位 */
+    PG_reserved, /* 该页面不可换出 */
+    PG_private, /* If pagecache, has fs-private data */
+    PG_private_2, /* If pagecache, has fs aux data */
+    PG_writeback, /* 页面正在向块设备回写，Page is under writeback */
+    PG_head, /* A head page */
+    PG_mappedtodisk, /* Has blocks allocated on-disk */
+    PG_reclaim, /* 页面马上要被回收，To be reclaimed asap */
+    PG_swapbacked, /* 可以交换到磁盘(通常是匿名页) Page is backed by RAM/swap */
+    PG_unevictable, /* 页面不可回收 Page is "unevictable"  */
 #ifdef CONFIG_MMU
-	PG_mlocked,		/* 页面对应的VMA处于 mlocked 状态，Page is vma mlocked */
+    PG_mlocked, /* 页面对应的VMA处于 mlocked 状态，Page is vma mlocked */
 #endif
 #ifdef CONFIG_ARCH_USES_PG_UNCACHED
-	PG_uncached,	/* Page has been mapped as uncached */
+    PG_uncached, /* Page has been mapped as uncached */
 #endif
 #ifdef CONFIG_MEMORY_FAILURE
-	PG_hwpoison,    /* hardware poisoned page. Don't touch */
+    PG_hwpoison, /* hardware poisoned page. Don't touch */
 #endif
 #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
-	PG_young,
-	PG_idle,
+    PG_young,
+    PG_idle,
 #endif
 #ifdef CONFIG_64BIT
-	PG_arch_2,
+    PG_arch_2,
 #endif
-	__NR_PAGEFLAGS,
+    __NR_PAGEFLAGS,
 
-	/* Filesystems */
-	PG_checked = PG_owner_priv_1,
+    /* Filesystems */
+    PG_checked = PG_owner_priv_1,
 
-	/**
+    /**
      * SwapBacked
      *
      * 页面处于交换缓存中，Swap page: swp_entry_t in private
      */
-	PG_swapcache = PG_owner_priv_1,
+    PG_swapcache = PG_owner_priv_1,
 
-	/* Two page bits are conscripted by FS-Cache to maintain local caching
+    /* Two page bits are conscripted by FS-Cache to maintain local caching
 	 * state.  These bits are set on pages belonging to the netfs's inodes
 	 * when those inodes are being locally cached.
 	 */
-	PG_fscache = PG_private_2,	/* page backed by cache */
+    PG_fscache = PG_private_2, /* page backed by cache */
 
-	/* XEN */
-	/* Pinned in Xen as a read-only pagetable page. */
-	PG_pinned = PG_owner_priv_1,
-	/* Pinned as part of domain save (see xen_mm_pin_all()). */
-	PG_savepinned = PG_dirty,
-	/* Has a grant mapping of another (foreign) domain's page. */
-	PG_foreign = PG_owner_priv_1,
-	/* Remapped by swiotlb-xen. */
-	PG_xen_remapped = PG_owner_priv_1,
+    /* XEN */
+    /* Pinned in Xen as a read-only pagetable page. */
+    PG_pinned = PG_owner_priv_1,
+    /* Pinned as part of domain save (see xen_mm_pin_all()). */
+    PG_savepinned = PG_dirty,
+    /* Has a grant mapping of another (foreign) domain's page. */
+    PG_foreign = PG_owner_priv_1,
+    /* Remapped by swiotlb-xen. */
+    PG_xen_remapped = PG_owner_priv_1,
 
-	/* SLOB */
-	PG_slob_free = PG_private,
+    /* SLOB */
+    PG_slob_free = PG_private,
 
-	/**
+    /**
 	 *  Compound pages. Stored in first tail page's flags
 	 *  复合页面
 	 */
-	PG_double_map = PG_workingset,
+    PG_double_map = PG_workingset,
 
-	/* non-lru isolated movable page */
-	PG_isolated = PG_reclaim,
+    /* non-lru isolated movable page */
+    PG_isolated = PG_reclaim,
 
-	/* Only valid for buddy pages. Used to track pages that are reported */
-	PG_reported = PG_uptodate,
+    /* Only valid for buddy pages. Used to track pages that are reported */
+    PG_reported = PG_uptodate,
 
     /**
      *  下面是我加的内容
@@ -200,7 +200,7 @@ enum pageflags {
 
 #ifndef __GENERATING_BOUNDS_H
 
-struct page;	/* forward declaration */
+struct page; /* forward declaration */
 
 /**
  *
@@ -208,16 +208,16 @@ struct page;	/* forward declaration */
  */
 static inline struct page *compound_head(struct page *page)
 {
-	unsigned long head = READ_ONCE(page->compound_head);
+    unsigned long head = READ_ONCE(page->compound_head);
 
-	if (unlikely(head & 1))
-		return (struct page *) (head - 1);
-	return page;
+    if (unlikely(head & 1))
+        return (struct page *)(head - 1);
+    return page;
 }
 
-static __always_inline int PageTail(struct page *page)  /* TODO */
+static __always_inline int PageTail(struct page *page) /* TODO */
 {
-	return READ_ONCE(page->compound_head) & 1;
+    return READ_ONCE(page->compound_head) & 1;
 }
 
 /**
@@ -225,13 +225,13 @@ static __always_inline int PageTail(struct page *page)  /* TODO */
  */
 static __always_inline int PageCompound(struct page *page)
 {
-	return test_bit(PG_head, &page->flags) || PageTail(page);
+    return test_bit(PG_head, &page->flags) || PageTail(page);
 }
 
-#define	PAGE_POISON_PATTERN	-1l
+#define PAGE_POISON_PATTERN -1l
 static inline int PagePoisoned(const struct page *page)
 {
-	return page->flags == PAGE_POISON_PATTERN;
+    return page->flags == PAGE_POISON_PATTERN;
 }
 
 #ifdef CONFIG_DEBUG_VM
@@ -266,100 +266,139 @@ void page_init_poison(struct page *page, size_t size);
  * PF_SECOND:
  *     the page flag is stored in the first tail page.
  */
-#define PF_POISONED_CHECK(page) ({					\
-		VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);		\
-		page; })
-#define PF_ANY(page, enforce)	PF_POISONED_CHECK(page)
-#define PF_HEAD(page, enforce)	PF_POISONED_CHECK(compound_head(page))
-#define PF_ONLY_HEAD(page, enforce) ({					\
-		VM_BUG_ON_PGFLAGS(PageTail(page), page);		\
-		PF_POISONED_CHECK(page); })
-#define PF_NO_TAIL(page, enforce) ({					\
-		VM_BUG_ON_PGFLAGS(enforce && PageTail(page), page);	\
-		PF_POISONED_CHECK(compound_head(page)); })
-#define PF_NO_COMPOUND(page, enforce) ({				\
-		VM_BUG_ON_PGFLAGS(enforce && PageCompound(page), page);	\
-		PF_POISONED_CHECK(page); })
-#define PF_SECOND(page, enforce) ({					\
-		VM_BUG_ON_PGFLAGS(!PageHead(page), page);		\
-		PF_POISONED_CHECK(&page[1]); })
+#define PF_POISONED_CHECK(page)                      \
+    ({                                               \
+        VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); \
+        page;                                        \
+    })
+#define PF_ANY(page, enforce) PF_POISONED_CHECK(page)
+#define PF_HEAD(page, enforce) PF_POISONED_CHECK(compound_head(page))
+#define PF_ONLY_HEAD(page, enforce)              \
+    ({                                           \
+        VM_BUG_ON_PGFLAGS(PageTail(page), page); \
+        PF_POISONED_CHECK(page);                 \
+    })
+#define PF_NO_TAIL(page, enforce)                          \
+    ({                                                     \
+        VM_BUG_ON_PGFLAGS(enforce &&PageTail(page), page); \
+        PF_POISONED_CHECK(compound_head(page));            \
+    })
+#define PF_NO_COMPOUND(page, enforce)                          \
+    ({                                                         \
+        VM_BUG_ON_PGFLAGS(enforce &&PageCompound(page), page); \
+        PF_POISONED_CHECK(page);                               \
+    })
+#define PF_SECOND(page, enforce)                  \
+    ({                                            \
+        VM_BUG_ON_PGFLAGS(!PageHead(page), page); \
+        PF_POISONED_CHECK(&page[1]);              \
+    })
 
 /*
  * Macros to create function definitions for page flags
  */
-#define TESTPAGEFLAG(uname, lname, policy)				\
-static __always_inline int Page##uname(struct page *page)		\
-	{ return test_bit(PG_##lname, &policy(page, 0)->flags); }
+#define TESTPAGEFLAG(uname, lname, policy)                    \
+    static __always_inline int Page##uname(struct page *page) \
+    {                                                         \
+        return test_bit(PG_##lname, &policy(page, 0)->flags); \
+    }
 
-#define SETPAGEFLAG(uname, lname, policy)				\
-static __always_inline void SetPage##uname(struct page *page)		\
-	{ set_bit(PG_##lname, &policy(page, 1)->flags); }
+#define SETPAGEFLAG(uname, lname, policy)                         \
+    static __always_inline void SetPage##uname(struct page *page) \
+    {                                                             \
+        set_bit(PG_##lname, &policy(page, 1)->flags);             \
+    }
 
-#define CLEARPAGEFLAG(uname, lname, policy)				\
-static __always_inline void ClearPage##uname(struct page *page)		\
-	{ clear_bit(PG_##lname, &policy(page, 1)->flags); }
+#define CLEARPAGEFLAG(uname, lname, policy)                         \
+    static __always_inline void ClearPage##uname(struct page *page) \
+    {                                                               \
+        clear_bit(PG_##lname, &policy(page, 1)->flags);             \
+    }
 
-#define __SETPAGEFLAG(uname, lname, policy)				\
-static __always_inline void __SetPage##uname(struct page *page)		\
-	{ __set_bit(PG_##lname, &policy(page, 1)->flags); }
+#define __SETPAGEFLAG(uname, lname, policy)                         \
+    static __always_inline void __SetPage##uname(struct page *page) \
+    {                                                               \
+        __set_bit(PG_##lname, &policy(page, 1)->flags);             \
+    }
 
-#define __CLEARPAGEFLAG(uname, lname, policy)				\
-static __always_inline void __ClearPage##uname(struct page *page)	\
-	{ __clear_bit(PG_##lname, &policy(page, 1)->flags); }
+#define __CLEARPAGEFLAG(uname, lname, policy)                         \
+    static __always_inline void __ClearPage##uname(struct page *page) \
+    {                                                                 \
+        __clear_bit(PG_##lname, &policy(page, 1)->flags);             \
+    }
 
-#define TESTSETFLAG(uname, lname, policy)				\
-static __always_inline int TestSetPage##uname(struct page *page)	\
-	{ return test_and_set_bit(PG_##lname, &policy(page, 1)->flags); }
+#define TESTSETFLAG(uname, lname, policy)                             \
+    static __always_inline int TestSetPage##uname(struct page *page)  \
+    {                                                                 \
+        return test_and_set_bit(PG_##lname, &policy(page, 1)->flags); \
+    }
 
-#define TESTCLEARFLAG(uname, lname, policy)				\
-static __always_inline int TestClearPage##uname(struct page *page)	\
-	{ return test_and_clear_bit(PG_##lname, &policy(page, 1)->flags); }
+#define TESTCLEARFLAG(uname, lname, policy)                             \
+    static __always_inline int TestClearPage##uname(struct page *page)  \
+    {                                                                   \
+        return test_and_clear_bit(PG_##lname, &policy(page, 1)->flags); \
+    }
 
-#define PAGEFLAG(uname, lname, policy)					\
-	TESTPAGEFLAG(uname, lname, policy)				\
-	SETPAGEFLAG(uname, lname, policy)				\
-	CLEARPAGEFLAG(uname, lname, policy)
+#define PAGEFLAG(uname, lname, policy) \
+    TESTPAGEFLAG(uname, lname, policy) \
+    SETPAGEFLAG(uname, lname, policy)  \
+    CLEARPAGEFLAG(uname, lname, policy)
 
-#define __PAGEFLAG(uname, lname, policy)				\
-	TESTPAGEFLAG(uname, lname, policy)				\
-	__SETPAGEFLAG(uname, lname, policy)				\
-	__CLEARPAGEFLAG(uname, lname, policy)
+#define __PAGEFLAG(uname, lname, policy) \
+    TESTPAGEFLAG(uname, lname, policy)   \
+    __SETPAGEFLAG(uname, lname, policy)  \
+    __CLEARPAGEFLAG(uname, lname, policy)
 
-#define TESTSCFLAG(uname, lname, policy)				\
-	TESTSETFLAG(uname, lname, policy)				\
-	TESTCLEARFLAG(uname, lname, policy)
+#define TESTSCFLAG(uname, lname, policy) \
+    TESTSETFLAG(uname, lname, policy)    \
+    TESTCLEARFLAG(uname, lname, policy)
 
-#define TESTPAGEFLAG_FALSE(uname)					\
-static inline int Page##uname(const struct page *page) { return 0; }
+#define TESTPAGEFLAG_FALSE(uname)                          \
+    static inline int Page##uname(const struct page *page) \
+    {                                                      \
+        return 0;                                          \
+    }
 
-#define SETPAGEFLAG_NOOP(uname)						\
-static inline void SetPage##uname(struct page *page) {  }
+#define SETPAGEFLAG_NOOP(uname)                          \
+    static inline void SetPage##uname(struct page *page) \
+    {                                                    \
+    }
 
-#define CLEARPAGEFLAG_NOOP(uname)					\
-static inline void ClearPage##uname(struct page *page) {  }
+#define CLEARPAGEFLAG_NOOP(uname)                          \
+    static inline void ClearPage##uname(struct page *page) \
+    {                                                      \
+    }
 
-#define __CLEARPAGEFLAG_NOOP(uname)					\
-static inline void __ClearPage##uname(struct page *page) {  }
+#define __CLEARPAGEFLAG_NOOP(uname)                          \
+    static inline void __ClearPage##uname(struct page *page) \
+    {                                                        \
+    }
 
-#define TESTSETFLAG_FALSE(uname)					\
-static inline int TestSetPage##uname(struct page *page) { return 0; }
+#define TESTSETFLAG_FALSE(uname)                            \
+    static inline int TestSetPage##uname(struct page *page) \
+    {                                                       \
+        return 0;                                           \
+    }
 
-#define TESTCLEARFLAG_FALSE(uname)					\
-static inline int TestClearPage##uname(struct page *page) { return 0; }
+#define TESTCLEARFLAG_FALSE(uname)                            \
+    static inline int TestClearPage##uname(struct page *page) \
+    {                                                         \
+        return 0;                                             \
+    }
 
-#define PAGEFLAG_FALSE(uname) TESTPAGEFLAG_FALSE(uname)			\
-	SETPAGEFLAG_NOOP(uname) CLEARPAGEFLAG_NOOP(uname)
+#define PAGEFLAG_FALSE(uname) \
+    TESTPAGEFLAG_FALSE(uname) \
+    SETPAGEFLAG_NOOP(uname) CLEARPAGEFLAG_NOOP(uname)
 
-#define TESTSCFLAG_FALSE(uname)						\
-	TESTSETFLAG_FALSE(uname) TESTCLEARFLAG_FALSE(uname)
+#define TESTSCFLAG_FALSE(uname) TESTSETFLAG_FALSE(uname) TESTCLEARFLAG_FALSE(uname)
 
 /**********************************************************************************************************************\
  *
  *   定义的函数是我写的，为什么会使用驼峰式命名呢？
  *
 \**********************************************************************************************************************/
-{/* +++ 2021年7月6日 */}
-
+{ /* +++ 2021年7月6日 */
+}
 
 static __always_inline int PageLocked(struct page *page);
 static __always_inline void __SetPageLocked(struct page *page);
@@ -373,12 +412,10 @@ static __always_inline int PageSlobFree(struct page *page);
 static __always_inline void __SetPageSlobFree(struct page *page);
 static __always_inline void __ClearPageSlobFree(struct page *page);
 
-
 static __always_inline int PageWaiters(struct page *page);
 static __always_inline void SetPageWaiters(struct page *page);
 static __always_inline void ClearPageWaiters(struct page *page);
 static __always_inline void __ClearPageWaiters(struct page *page);
-
 
 static __always_inline int PageError(struct page *page);
 static __always_inline void SetPageError(struct page *page);
@@ -392,14 +429,12 @@ static __always_inline void ClearPageReferenced(struct page *page); /* 清除   
 static __always_inline int TestClearPageReferenced(struct page *page);
 static __always_inline void __SetPageReferenced(struct page *page);
 
-
 static __always_inline int PageDirty(struct page *page);
 static __always_inline void SetPageDirty(struct page *page);
 static __always_inline void ClearPageDirty(struct page *page);
 static __always_inline int TestClearPageDirty(struct page *page);
 static __always_inline void __ClearPageDirty(struct page *page);
 static __always_inline void __SetPageDirty(struct page *page);
-
 
 /**
 一下函数通过此脚本生成 荣涛 2021年7月6日
@@ -738,10 +773,11 @@ static __always_inline int PageIsolated(struct page *page);
 
 #endif
 
-{/* +++ 2021年7月6日 */}
+{ /* +++ 2021年7月6日 */
+}
 
 __PAGEFLAG(Locked, locked, PF_NO_TAIL);
-PAGEFLAG(Waiters, waiters, PF_ONLY_HEAD) ;
+PAGEFLAG(Waiters, waiters, PF_ONLY_HEAD);
 __CLEARPAGEFLAG(Waiters, waiters, PF_ONLY_HEAD);
 PAGEFLAG(Error, error, PF_NO_TAIL)
 TESTCLEARFLAG(Error, error, PF_NO_TAIL)
@@ -760,7 +796,7 @@ PAGEFLAG(Workingset, workingset, PF_HEAD)
 TESTCLEARFLAG(Workingset, workingset, PF_HEAD)
 __PAGEFLAG(Slab, slab, PF_NO_TAIL)
 __PAGEFLAG(SlobFree, slob_free, PF_NO_TAIL)
-PAGEFLAG(Checked, checked, PF_NO_COMPOUND)	   /* Used by some filesystems */
+PAGEFLAG(Checked, checked, PF_NO_COMPOUND) /* Used by some filesystems */
 
 /* Xen */
 PAGEFLAG(Pinned, pinned, PF_NO_COMPOUND)
@@ -769,7 +805,8 @@ PAGEFLAG(SavePinned, savepinned, PF_NO_COMPOUND);
 PAGEFLAG(Foreign, foreign, PF_NO_COMPOUND);
 PAGEFLAG(XenRemapped, xen_remapped, PF_NO_COMPOUND)
 TESTCLEARFLAG(XenRemapped, xen_remapped, PF_NO_COMPOUND)
-    {/* +++ */}
+{ /* +++ */
+}
 
 PAGEFLAG(Reserved, reserved, PF_NO_COMPOUND)
 __CLEARPAGEFLAG(Reserved, reserved, PF_NO_COMPOUND)
@@ -777,7 +814,8 @@ __SETPAGEFLAG(Reserved, reserved, PF_NO_COMPOUND)
 PAGEFLAG(SwapBacked, swapbacked, PF_NO_TAIL)
 __CLEARPAGEFLAG(SwapBacked, swapbacked, PF_NO_TAIL)
 __SETPAGEFLAG(SwapBacked, swapbacked, PF_NO_TAIL)
-    {/* +++ */}
+{ /* +++ */
+}
 
 /*
  * Private page markings that may be used by the filesystem that owns the page
@@ -805,681 +843,923 @@ PAGEFLAG(Reclaim, reclaim, PF_NO_TAIL)
 TESTCLEARFLAG(Reclaim, reclaim, PF_NO_TAIL)
 PAGEFLAG(Readahead, reclaim, PF_NO_COMPOUND)
 TESTCLEARFLAG(Readahead, reclaim, PF_NO_COMPOUND)
-    {/* +++ */}
-
+{ /* +++ */
+}
 
 #if __rtoax_gcc_compile_with_E__
 
+static __always_inline int PageLocked(struct page *page)
+{
+    return test_bit(PG_locked, &({
+                                    VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                    ({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                        compound_head(page);
+                                    });
+                                })->flags);
+}
+static __always_inline void __SetPageLocked(struct page *page)
+{
+    __set_bit(PG_locked, &({
+                              VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                              ({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                  compound_head(page);
+                              });
+                          })->flags);
+}
+static __always_inline void __ClearPageLocked(struct page *page)
+{
+    __clear_bit(PG_locked, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                    compound_head(page);
+                                });
+                            })->flags);
+}
 
-static __always_inline int PageLocked(struct page *page) {
-    return test_bit(PG_locked, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageWaiters(struct page *page)
+{
+    return test_bit(PG_waiters, &({
+                                     VM_BUG_ON_PGFLAGS(PageTail(page), page);
+                                     ({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                         page;
+                                     });
+                                 })->flags);
 }
-static __always_inline void __SetPageLocked(struct page *page) {
-    __set_bit(PG_locked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void SetPageWaiters(struct page *page)
+{
+    set_bit(PG_waiters, &({
+                             VM_BUG_ON_PGFLAGS(PageTail(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                 page;
+                             });
+                         })->flags);
 }
-static __always_inline void __ClearPageLocked(struct page *page) {
-    __clear_bit(PG_locked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
+static __always_inline void ClearPageWaiters(struct page *page)
+{
+    clear_bit(PG_waiters, &({
+                               VM_BUG_ON_PGFLAGS(PageTail(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                   page;
+                               });
+                           })->flags);
+}
+static __always_inline void __ClearPageWaiters(struct page *page)
+{
+    __clear_bit(PG_waiters, &({
+                                 VM_BUG_ON_PGFLAGS(PageTail(page), page);
+                                 ({
+                                     VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                     page;
+                                 });
+                             })->flags);
+}
 
-static __always_inline int PageWaiters(struct page *page) {
-    return test_bit(PG_waiters, &({ VM_BUG_ON_PGFLAGS(PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int PageError(struct page *page)
+{
+    return test_bit(PG_error, &({
+                                   VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                   ({
+                                       VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                       compound_head(page);
+                                   });
+                               })->flags);
 }
-static __always_inline void SetPageWaiters(struct page *page) {
-    set_bit(PG_waiters, &({ VM_BUG_ON_PGFLAGS(PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void SetPageError(struct page *page)
+{
+    set_bit(PG_error, &({
+                           VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                           ({
+                               VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                               compound_head(page);
+                           });
+                       })->flags);
 }
-static __always_inline void ClearPageWaiters(struct page *page) {
-    clear_bit(PG_waiters, &({ VM_BUG_ON_PGFLAGS(PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void ClearPageError(struct page *page)
+{
+    clear_bit(PG_error, &({
+                             VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                 compound_head(page);
+                             });
+                         })->flags);
 }
-static __always_inline void __ClearPageWaiters(struct page *page) {
-    __clear_bit(PG_waiters, &({ VM_BUG_ON_PGFLAGS(PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline int TestClearPageError(struct page *page)
+{
+    return test_and_clear_bit(PG_error, &({
+                                             VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                             ({
+                                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                   compound_head(page));
+                                                 compound_head(page);
+                                             });
+                                         })->flags);
+}
 
-static __always_inline int PageError(struct page *page) {
-    return test_bit(PG_error, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageReferenced(struct page *page)
+{
+    return test_bit(PG_referenced, &({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                        compound_head(page);
+                                    })->flags);
 }
-static __always_inline void SetPageError(struct page *page) {
-    set_bit(PG_error, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void SetPageReferenced(struct page *page)
+{
+    set_bit(PG_referenced, &({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                compound_head(page);
+                            })->flags);
 }
-static __always_inline void ClearPageError(struct page *page) {
-    clear_bit(PG_error, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void ClearPageReferenced(struct page *page)
+{
+    clear_bit(PG_referenced, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                  compound_head(page);
+                              })->flags);
 }
-static __always_inline int TestClearPageError(struct page *page) {
-    return test_and_clear_bit(PG_error, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
 
-static __always_inline int PageReferenced(struct page *page) {
-    return test_bit(PG_referenced, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline int TestClearPageReferenced(struct page *page)
+{
+    return test_and_clear_bit(PG_referenced, &({
+                                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                    compound_head(page));
+                                                  compound_head(page);
+                                              })->flags);
 }
-static __always_inline void SetPageReferenced(struct page *page) {
-    set_bit(PG_referenced, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-}
-static __always_inline void ClearPageReferenced(struct page *page) {
-    clear_bit(PG_referenced, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
 
-static __always_inline int TestClearPageReferenced(struct page *page) {
-    return test_and_clear_bit(PG_referenced, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline void __SetPageReferenced(struct page *page)
+{
+    __set_bit(PG_referenced, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                  compound_head(page);
+                              })->flags);
+}
 
-static __always_inline void __SetPageReferenced(struct page *page) {
-    __set_bit(PG_referenced, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline int PageDirty(struct page *page)
+{
+    return test_bit(PG_dirty, &({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                   compound_head(page);
+                               })->flags);
+}
+static __always_inline void SetPageDirty(struct page *page)
+{
+    set_bit(PG_dirty, &({
+                           VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                           compound_head(page);
+                       })->flags);
+}
+static __always_inline void ClearPageDirty(struct page *page)
+{
+    clear_bit(PG_dirty, &({
+                             VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                             compound_head(page);
+                         })->flags);
+}
+static __always_inline int TestSetPageDirty(struct page *page)
+{
+    return test_and_set_bit(PG_dirty, &({
+                                           VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                           compound_head(page);
+                                       })->flags);
+}
+static __always_inline int TestClearPageDirty(struct page *page)
+{
+    return test_and_clear_bit(PG_dirty, &({
+                                             VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                             compound_head(page);
+                                         })->flags);
+}
 
-static __always_inline int PageDirty(struct page *page) {
-    return test_bit(PG_dirty, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline void __ClearPageDirty(struct page *page)
+{
+    __clear_bit(PG_dirty, &({
+                               VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                               compound_head(page);
+                           })->flags);
 }
-static __always_inline void SetPageDirty(struct page *page) {
-    set_bit(PG_dirty, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-}
-static __always_inline void ClearPageDirty(struct page *page) {
-    clear_bit(PG_dirty, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-}
-static __always_inline int TestSetPageDirty(struct page *page) {
-    return test_and_set_bit(PG_dirty, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-}
-static __always_inline int TestClearPageDirty(struct page *page) {
-    return test_and_clear_bit(PG_dirty, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
-
-static __always_inline void __ClearPageDirty(struct page *page) {
-    __clear_bit(PG_dirty, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
 
 /**
  *  在 LRU 链表中
  */
-static __always_inline int PageLRU(struct page *page) {
-    return test_bit(PG_lru, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline int PageLRU(struct page *page)
+{
+    return test_bit(PG_lru, &({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                 compound_head(page);
+                             })->flags);
 }
-static __always_inline void SetPageLRU(struct page *page) {
-    set_bit(PG_lru, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline void SetPageLRU(struct page *page)
+{
+    set_bit(PG_lru, &({
+                         VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                         compound_head(page);
+                     })->flags);
 }
-static __always_inline void ClearPageLRU(struct page *page) {
-    clear_bit(PG_lru, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline void ClearPageLRU(struct page *page)
+{
+    clear_bit(PG_lru, &({
+                           VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                           compound_head(page);
+                       })->flags);
 }
-static __always_inline void __ClearPageLRU(struct page *page) {
-    __clear_bit(PG_lru, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline void __ClearPageLRU(struct page *page)
+{
+    __clear_bit(PG_lru, &({
+                             VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                             compound_head(page);
+                         })->flags);
+}
 
-static __always_inline int PageActive(struct page *page) {
-    return test_bit(PG_active, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline int PageActive(struct page *page)
+{
+    return test_bit(PG_active, &({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                    compound_head(page);
+                                })->flags);
 }
-static __always_inline void SetPageActive(struct page *page) {
-    set_bit(PG_active, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline void SetPageActive(struct page *page)
+{
+    set_bit(PG_active, &({
+                            VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                            compound_head(page);
+                        })->flags);
 }
-static __always_inline void ClearPageActive(struct page *page) {
-    clear_bit(PG_active, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline void ClearPageActive(struct page *page)
+{
+    clear_bit(PG_active, &({
+                              VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                              compound_head(page);
+                          })->flags);
 }
-static __always_inline void __ClearPageActive(struct page *page) {
-    __clear_bit(PG_active, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline void __ClearPageActive(struct page *page)
+{
+    __clear_bit(PG_active, &({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                compound_head(page);
+                            })->flags);
+}
 
-static __always_inline int TestClearPageActive(struct page *page) {
-    return test_and_clear_bit(PG_active, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline int TestClearPageActive(struct page *page)
+{
+    return test_and_clear_bit(PG_active, &({
+                                              VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                              compound_head(page);
+                                          })->flags);
+}
 
-static __always_inline int PageWorkingset(struct page *page) {
-    return test_bit(PG_workingset, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline int PageWorkingset(struct page *page)
+{
+    return test_bit(PG_workingset, &({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                        compound_head(page);
+                                    })->flags);
 }
-static __always_inline void SetPageWorkingset(struct page *page) {
-    set_bit(PG_workingset, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
+static __always_inline void SetPageWorkingset(struct page *page)
+{
+    set_bit(PG_workingset, &({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                compound_head(page);
+                            })->flags);
 }
-static __always_inline void ClearPageWorkingset(struct page *page) {
-    clear_bit(PG_workingset, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline void ClearPageWorkingset(struct page *page)
+{
+    clear_bit(PG_workingset, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                  compound_head(page);
+                              })->flags);
+}
 
-static __always_inline int TestClearPageWorkingset(struct page *page) {
-    return test_and_clear_bit(PG_workingset, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    })->flags);
-    }
+static __always_inline int TestClearPageWorkingset(struct page *page)
+{
+    return test_and_clear_bit(PG_workingset, &({
+                                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                    compound_head(page));
+                                                  compound_head(page);
+                                              })->flags);
+}
 
-static __always_inline int PageSlab(struct page *page) {
-    return test_bit(PG_slab, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageSlab(struct page *page)
+{
+    return test_bit(PG_slab, &({
+                                  VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                      compound_head(page);
+                                  });
+                              })->flags);
 }
-static __always_inline void __SetPageSlab(struct page *page) {
-    __set_bit(PG_slab, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void __SetPageSlab(struct page *page)
+{
+    __set_bit(PG_slab, &({
+                            VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                            ({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                compound_head(page);
+                            });
+                        })->flags);
 }
-static __always_inline void __ClearPageSlab(struct page *page) {
-    __clear_bit(PG_slab, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
+static __always_inline void __ClearPageSlab(struct page *page)
+{
+    __clear_bit(PG_slab, &({
+                              VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                              ({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                  compound_head(page);
+                              });
+                          })->flags);
+}
 
-static __always_inline int PageSlobFree(struct page *page) {
-    return test_bit(PG_slob_free, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageSlobFree(struct page *page)
+{
+    return test_bit(PG_slob_free, &({
+                                       VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                       ({
+                                           VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                           compound_head(page);
+                                       });
+                                   })->flags);
 }
-static __always_inline void __SetPageSlobFree(struct page *page) {
-    __set_bit(PG_slob_free, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void __SetPageSlobFree(struct page *page)
+{
+    __set_bit(PG_slob_free, &({
+                                 VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                 ({
+                                     VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                     compound_head(page);
+                                 });
+                             })->flags);
 }
-static __always_inline void __ClearPageSlobFree(struct page *page) {
-    __clear_bit(PG_slob_free, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
+static __always_inline void __ClearPageSlobFree(struct page *page)
+{
+    __clear_bit(PG_slob_free, &({
+                                   VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                   ({
+                                       VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                       compound_head(page);
+                                   });
+                               })->flags);
+}
 
-static __always_inline int PageChecked(struct page *page) {
-    return test_bit(PG_checked, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int PageChecked(struct page *page)
+{
+    return test_bit(PG_checked, &({
+                                     VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                     ({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                         page;
+                                     });
+                                 })->flags);
 }
-static __always_inline void SetPageChecked(struct page *page) {
-    set_bit(PG_checked, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void SetPageChecked(struct page *page)
+{
+    set_bit(PG_checked, &({
+                             VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                 page;
+                             });
+                         })->flags);
 }
-static __always_inline void ClearPageChecked(struct page *page) {
-    clear_bit(PG_checked, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline void ClearPageChecked(struct page *page)
+{
+    clear_bit(PG_checked, &({
+                               VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                   page;
+                               });
+                           })->flags);
+}
 
-
-
-static __always_inline int PagePinned(struct page *page) {
-    return test_bit(PG_pinned, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int PagePinned(struct page *page)
+{
+    return test_bit(PG_pinned, &({
+                                    VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                    ({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                        page;
+                                    });
+                                })->flags);
 }
-static __always_inline void SetPagePinned(struct page *page) {
-    set_bit(PG_pinned, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void SetPagePinned(struct page *page)
+{
+    set_bit(PG_pinned, &({
+                            VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                            ({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                page;
+                            });
+                        })->flags);
 }
-static __always_inline void ClearPagePinned(struct page *page) {
-    clear_bit(PG_pinned, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline void ClearPagePinned(struct page *page)
+{
+    clear_bit(PG_pinned, &({
+                              VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                              ({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              });
+                          })->flags);
+}
 
-static __always_inline int TestSetPagePinned(struct page *page) {
-    return test_and_set_bit(PG_pinned, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int TestSetPagePinned(struct page *page)
+{
+    return test_and_set_bit(PG_pinned, &({
+                                            VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                            ({
+                                                VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                page;
+                                            });
+                                        })->flags);
 }
-static __always_inline int TestClearPagePinned(struct page *page) {
-    return test_and_clear_bit(PG_pinned, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline int TestClearPagePinned(struct page *page)
+{
+    return test_and_clear_bit(PG_pinned, &({
+                                              VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                              ({
+                                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                  page;
+                                              });
+                                          })->flags);
+}
 
-static __always_inline int PageSavePinned(struct page *page) {
-    return test_bit(PG_savepinned, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int PageSavePinned(struct page *page)
+{
+    return test_bit(PG_savepinned, &({
+                                        VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                        ({
+                                            VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                            page;
+                                        });
+                                    })->flags);
 }
-static __always_inline void SetPageSavePinned(struct page *page) {
-    set_bit(PG_savepinned, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void SetPageSavePinned(struct page *page)
+{
+    set_bit(PG_savepinned, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                    page;
+                                });
+                            })->flags);
 }
-static __always_inline void ClearPageSavePinned(struct page *page) {
-    clear_bit(PG_savepinned, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    };
+static __always_inline void ClearPageSavePinned(struct page *page)
+{
+    clear_bit(PG_savepinned, &({
+                                  VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                      page;
+                                  });
+                              })->flags);
+};
 
-static __always_inline int PageForeign(struct page *page) {
-    return test_bit(PG_foreign, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int PageForeign(struct page *page)
+{
+    return test_bit(PG_foreign, &({
+                                     VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                     ({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                         page;
+                                     });
+                                 })->flags);
 }
-static __always_inline void SetPageForeign(struct page *page) {
-    set_bit(PG_foreign, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void SetPageForeign(struct page *page)
+{
+    set_bit(PG_foreign, &({
+                             VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                 page;
+                             });
+                         })->flags);
 }
-static __always_inline void ClearPageForeign(struct page *page) {
-    clear_bit(PG_foreign, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    };
+static __always_inline void ClearPageForeign(struct page *page)
+{
+    clear_bit(PG_foreign, &({
+                               VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                   page;
+                               });
+                           })->flags);
+};
 
-static __always_inline int PageXenRemapped(struct page *page) {
-    return test_bit(PG_xen_remapped, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline int PageXenRemapped(struct page *page)
+{
+    return test_bit(PG_xen_remapped, &({
+                                          VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                          ({
+                                              VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                              page;
+                                          });
+                                      })->flags);
 }
-static __always_inline void SetPageXenRemapped(struct page *page) {
-    set_bit(PG_xen_remapped, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void SetPageXenRemapped(struct page *page)
+{
+    set_bit(PG_xen_remapped, &({
+                                  VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                      page;
+                                  });
+                              })->flags);
 }
-static __always_inline void ClearPageXenRemapped(struct page *page) {
-    clear_bit(PG_xen_remapped, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
-
-static __always_inline int TestClearPageXenRemapped(struct page *page) {
-    return test_and_clear_bit(PG_xen_remapped, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
-
-
-static __always_inline int PageReserved(struct page *page) {
-    return test_bit(PG_reserved, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void ClearPageXenRemapped(struct page *page)
+{
+    clear_bit(PG_xen_remapped, &({
+                                    VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                    ({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                        page;
+                                    });
+                                })->flags);
 }
-static __always_inline void SetPageReserved(struct page *page) {
-    set_bit(PG_reserved, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+
+static __always_inline int TestClearPageXenRemapped(struct page *page)
+{
+    return test_and_clear_bit(PG_xen_remapped, &({
+                                                    VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                                    ({
+                                                        VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                        page;
+                                                    });
+                                                })->flags);
 }
-static __always_inline void ClearPageReserved(struct page *page) {
-    clear_bit(PG_reserved, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
 
-static __always_inline void __ClearPageReserved(struct page *page) {
-    __clear_bit(PG_reserved, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline int PageReserved(struct page *page)
+{
+    return test_bit(PG_reserved, &({
+                                      VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                      ({
+                                          VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                          page;
+                                      });
+                                  })->flags);
+}
+static __always_inline void SetPageReserved(struct page *page)
+{
+    set_bit(PG_reserved, &({
+                              VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                              ({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              });
+                          })->flags);
+}
+static __always_inline void ClearPageReserved(struct page *page)
+{
+    clear_bit(PG_reserved, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                    page;
+                                });
+                            })->flags);
+}
 
-static __always_inline void __SetPageReserved(struct page *page) {
-    __set_bit(PG_reserved, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline void __ClearPageReserved(struct page *page)
+{
+    __clear_bit(PG_reserved, &({
+                                  VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                      page;
+                                  });
+                              })->flags);
+}
+
+static __always_inline void __SetPageReserved(struct page *page)
+{
+    __set_bit(PG_reserved, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                    page;
+                                });
+                            })->flags);
+}
 
 /**
  *
  */
-static __always_inline int PageSwapBacked(struct page *page) {
-    return test_bit(PG_swapbacked, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageSwapBacked(struct page *page)
+{
+    return test_bit(PG_swapbacked, &({
+                                        VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                        ({
+                                            VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                            compound_head(page);
+                                        });
+                                    })->flags);
 }
-static __always_inline void SetPageSwapBacked(struct page *page) {
-    set_bit(PG_swapbacked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void SetPageSwapBacked(struct page *page)
+{
+    set_bit(PG_swapbacked, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                    compound_head(page);
+                                });
+                            })->flags);
 }
-static __always_inline void ClearPageSwapBacked(struct page *page) {
-    clear_bit(PG_swapbacked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
-
-static __always_inline void __ClearPageSwapBacked(struct page *page) {
-    __clear_bit(PG_swapbacked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
-
-static __always_inline void __SetPageSwapBacked(struct page *page) {
-    __set_bit(PG_swapbacked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
-
-
-
-
-
-
-
-static __always_inline int PagePrivate(struct page *page) {
-    return test_bit(PG_private, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+static __always_inline void ClearPageSwapBacked(struct page *page)
+{
+    clear_bit(PG_swapbacked, &({
+                                  VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                      compound_head(page);
+                                  });
+                              })->flags);
 }
-static __always_inline void SetPagePrivate(struct page *page) {
-    set_bit(PG_private, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-}
-static __always_inline void ClearPagePrivate(struct page *page) {
-    clear_bit(PG_private, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-}
-static __always_inline void __SetPagePrivate(struct page *page) {
-    __set_bit(PG_private, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-    }
 
-static __always_inline void __ClearPagePrivate(struct page *page) {
-    __clear_bit(PG_private, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-    }
-
-static __always_inline int PagePrivate2(struct page *page) {
-    return test_bit(PG_private_2, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+static __always_inline void __ClearPageSwapBacked(struct page *page)
+{
+    __clear_bit(PG_swapbacked, &({
+                                    VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                    ({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                        compound_head(page);
+                                    });
+                                })->flags);
 }
-static __always_inline void SetPagePrivate2(struct page *page) {
-    set_bit(PG_private_2, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+
+static __always_inline void __SetPageSwapBacked(struct page *page)
+{
+    __set_bit(PG_swapbacked, &({
+                                  VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                      compound_head(page);
+                                  });
+                              })->flags);
 }
-static __always_inline void ClearPagePrivate2(struct page *page) {
-    clear_bit(PG_private_2, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+
+static __always_inline int PagePrivate(struct page *page)
+{
+    return test_bit(PG_private, &({
+                                     VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                     page;
+                                 })->flags);
 }
-static __always_inline int TestSetPagePrivate2(struct page *page) {
-    return test_and_set_bit(PG_private_2, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+static __always_inline void SetPagePrivate(struct page *page)
+{
+    set_bit(PG_private, &({
+                             VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                             page;
+                         })->flags);
 }
-static __always_inline int TestClearPagePrivate2(struct page *page) {
-    return test_and_clear_bit(PG_private_2, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-    }
-
-static __always_inline int PageOwnerPriv1(struct page *page) {
-    return test_bit(PG_owner_priv_1, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+static __always_inline void ClearPagePrivate(struct page *page)
+{
+    clear_bit(PG_private, &({
+                               VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                               page;
+                           })->flags);
 }
-static __always_inline void SetPageOwnerPriv1(struct page *page) {
-    set_bit(PG_owner_priv_1, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
+static __always_inline void __SetPagePrivate(struct page *page)
+{
+    __set_bit(PG_private, &({
+                               VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                               page;
+                           })->flags);
 }
-static __always_inline void ClearPageOwnerPriv1(struct page *page) {
-    clear_bit(PG_owner_priv_1, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-    }
 
-static __always_inline int TestClearPageOwnerPriv1(struct page *page) {
-    return test_and_clear_bit(PG_owner_priv_1, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    })->flags);
-    }
+static __always_inline void __ClearPagePrivate(struct page *page)
+{
+    __clear_bit(PG_private, &({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                 page;
+                             })->flags);
+}
 
+static __always_inline int PagePrivate2(struct page *page)
+{
+    return test_bit(PG_private_2, &({
+                                       VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                       page;
+                                   })->flags);
+}
+static __always_inline void SetPagePrivate2(struct page *page)
+{
+    set_bit(PG_private_2, &({
+                               VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                               page;
+                           })->flags);
+}
+static __always_inline void ClearPagePrivate2(struct page *page)
+{
+    clear_bit(PG_private_2, &({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                 page;
+                             })->flags);
+}
+static __always_inline int TestSetPagePrivate2(struct page *page)
+{
+    return test_and_set_bit(PG_private_2, &({
+                                               VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                               page;
+                                           })->flags);
+}
+static __always_inline int TestClearPagePrivate2(struct page *page)
+{
+    return test_and_clear_bit(PG_private_2, &({
+                                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                 page;
+                                             })->flags);
+}
 
+static __always_inline int PageOwnerPriv1(struct page *page)
+{
+    return test_bit(PG_owner_priv_1, &({
+                                          VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                          page;
+                                      })->flags);
+}
+static __always_inline void SetPageOwnerPriv1(struct page *page)
+{
+    set_bit(PG_owner_priv_1, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              })->flags);
+}
+static __always_inline void ClearPageOwnerPriv1(struct page *page)
+{
+    clear_bit(PG_owner_priv_1, &({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                    page;
+                                })->flags);
+}
 
-
+static __always_inline int TestClearPageOwnerPriv1(struct page *page)
+{
+    return test_and_clear_bit(PG_owner_priv_1, &({
+                                                    VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                    page;
+                                                })->flags);
+}
 
 /**
  *   正在回写 页面
  */
-static __always_inline int PageWriteback(struct page *page) {
-    return test_bit(PG_writeback, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
-
-static __always_inline int TestSetPageWriteback(struct page *page) {
-    return test_and_set_bit(PG_writeback, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageWriteback(struct page *page)
+{
+    return test_bit(PG_writeback, &({
+                                       VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                       ({
+                                           VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                           compound_head(page);
+                                       });
+                                   })->flags);
 }
-static __always_inline int TestClearPageWriteback(struct page *page) {
-    return test_and_clear_bit(PG_writeback, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
 
-static __always_inline int PageMappedToDisk(struct page *page) {
-    return test_bit(PG_mappedtodisk, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int TestSetPageWriteback(struct page *page)
+{
+    return test_and_set_bit(PG_writeback, &({
+                                               VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                               ({
+                                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                     compound_head(page));
+                                                   compound_head(page);
+                                               });
+                                           })->flags);
 }
-static __always_inline void SetPageMappedToDisk(struct page *page) {
-    set_bit(PG_mappedtodisk, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int TestClearPageWriteback(struct page *page)
+{
+    return test_and_clear_bit(PG_writeback, &({
+                                                 VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                                 ({
+                                                     VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                       compound_head(page));
+                                                     compound_head(page);
+                                                 });
+                                             })->flags);
 }
-static __always_inline void ClearPageMappedToDisk(struct page *page) {
-    clear_bit(PG_mappedtodisk, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
 
-
-
-static __always_inline int PageReclaim(struct page *page) {
-    return test_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline int PageMappedToDisk(struct page *page)
+{
+    return test_bit(PG_mappedtodisk, &({
+                                          VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                          ({
+                                              VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                              compound_head(page);
+                                          });
+                                      })->flags);
 }
-static __always_inline void SetPageReclaim(struct page *page) {
-    set_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
+static __always_inline void SetPageMappedToDisk(struct page *page)
+{
+    set_bit(PG_mappedtodisk, &({
+                                  VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                      compound_head(page);
+                                  });
+                              })->flags);
 }
-static __always_inline void ClearPageReclaim(struct page *page) {
-    clear_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
-
-static __always_inline int TestClearPageReclaim(struct page *page) {
-    return test_and_clear_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
-    compound_head(page);
-    });
-    })->flags);
-    }
-
-static __always_inline int PageReadahead(struct page *page) {
-    return test_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
+static __always_inline void ClearPageMappedToDisk(struct page *page)
+{
+    clear_bit(PG_mappedtodisk, &({
+                                    VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                    ({
+                                        VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                        compound_head(page);
+                                    });
+                                })->flags);
 }
-static __always_inline void SetPageReadahead(struct page *page) {
-    set_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-}
-static __always_inline void ClearPageReadahead(struct page *page) {
-    clear_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
 
-static __always_inline int TestClearPageReadahead(struct page *page) {
-    return test_and_clear_bit(PG_reclaim, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
-    ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
-    page;
-    });
-    })->flags);
-    }
+static __always_inline int PageReclaim(struct page *page)
+{
+    return test_bit(PG_reclaim, &({
+                                     VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                     ({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                         compound_head(page);
+                                     });
+                                 })->flags);
+}
+static __always_inline void SetPageReclaim(struct page *page)
+{
+    set_bit(PG_reclaim, &({
+                             VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                 compound_head(page);
+                             });
+                         })->flags);
+}
+static __always_inline void ClearPageReclaim(struct page *page)
+{
+    clear_bit(PG_reclaim, &({
+                               VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                   compound_head(page);
+                               });
+                           })->flags);
+}
+
+static __always_inline int TestClearPageReclaim(struct page *page)
+{
+    return test_and_clear_bit(PG_reclaim, &({
+                                               VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                               ({
+                                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                     compound_head(page));
+                                                   compound_head(page);
+                                               });
+                                           })->flags);
+}
+
+static __always_inline int PageReadahead(struct page *page)
+{
+    return test_bit(PG_reclaim, &({
+                                     VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                     ({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                         page;
+                                     });
+                                 })->flags);
+}
+static __always_inline void SetPageReadahead(struct page *page)
+{
+    set_bit(PG_reclaim, &({
+                             VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                 page;
+                             });
+                         })->flags);
+}
+static __always_inline void ClearPageReadahead(struct page *page)
+{
+    clear_bit(PG_reclaim, &({
+                               VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                   page;
+                               });
+                           })->flags);
+}
+
+static __always_inline int TestClearPageReadahead(struct page *page)
+{
+    return test_and_clear_bit(PG_reclaim, &({
+                                               VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                               ({
+                                                   VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                   page;
+                                               });
+                                           })->flags);
+}
 
 #endif //__rtoax_gcc_compile_with_E__
-
 
 #ifdef CONFIG_HIGHMEM
 /*
@@ -1498,12 +1778,12 @@ PAGEFLAG_FALSE(HighMem)
 static __always_inline int PageSwapCache(struct page *page)
 {
 #ifdef CONFIG_THP_SWAP
-	page = compound_head(page);
+    page = compound_head(page);
 #endif
-	return PageSwapBacked(page) && test_bit(PG_swapcache, &page->flags);
-
+    return PageSwapBacked(page) && test_bit(PG_swapcache, &page->flags);
 }
-{/* +++ */}
+{ /* +++ */
+}
 SETPAGEFLAG(SwapCache, swapcache, PF_NO_TAIL)
 CLEARPAGEFLAG(SwapCache, swapcache, PF_NO_TAIL)
 #else
@@ -1511,13 +1791,13 @@ CLEARPAGEFLAG(SwapCache, swapcache, PF_NO_TAIL)
 #endif
 
 PAGEFLAG(Unevictable, unevictable, PF_HEAD)
-	__CLEARPAGEFLAG(Unevictable, unevictable, PF_HEAD)
-	TESTCLEARFLAG(Unevictable, unevictable, PF_HEAD)
+__CLEARPAGEFLAG(Unevictable, unevictable, PF_HEAD)
+TESTCLEARFLAG(Unevictable, unevictable, PF_HEAD)
 
 #ifdef CONFIG_MMU
 PAGEFLAG(Mlocked, mlocked, PF_NO_TAIL)
-	__CLEARPAGEFLAG(Mlocked, mlocked, PF_NO_TAIL)
-	TESTSCFLAG(Mlocked, mlocked, PF_NO_TAIL)
+__CLEARPAGEFLAG(Mlocked, mlocked, PF_NO_TAIL)
+TESTSCFLAG(Mlocked, mlocked, PF_NO_TAIL)
 #else
 
 #endif
@@ -1529,9 +1809,14 @@ PAGEFLAG(Uncached, uncached, PF_NO_COMPOUND)
 #endif
 
 #ifdef CONFIG_MEMORY_FAILURE
-PAGEFLAG(HWPoison, hwpoison, PF_ANY){}
-TESTSCFLAG(HWPoison, hwpoison, PF_ANY){}
-{}
+PAGEFLAG(HWPoison, hwpoison, PF_ANY)
+{
+}
+TESTSCFLAG(HWPoison, hwpoison, PF_ANY)
+{
+}
+{
+}
 #define __PG_HWPOISON (1UL << PG_hwpoison)
 
 extern bool take_page_off_buddy(struct page *page);
@@ -1542,130 +1827,211 @@ extern bool take_page_off_buddy(struct page *page);
 #define __rtoax_gcc_compile_with_E__ 1
 #if __rtoax_gcc_compile_with_E__
 
-static __always_inline void SetPageSwapCache(struct page *page) {
-    set_bit(PG_swapcache, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline void SetPageSwapCache(struct page *page)
+{
+    set_bit(PG_swapcache, &({
+                               VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                   compound_head(page);
+                               });
+                           })->flags);
+}
 
-
-static __always_inline void ClearPageSwapCache(struct page *page) {
-    clear_bit(PG_swapcache, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline void ClearPageSwapCache(struct page *page)
+{
+    clear_bit(PG_swapcache, &({
+                                 VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                 ({
+                                     VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                     compound_head(page);
+                                 });
+                             })->flags);
+}
 
 static __always_inline int PageUnevictable(struct page *page)
 {
-    return test_bit(PG_unevictable, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    )->flags);
+    return test_bit(PG_unevictable, &({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                         compound_head(page);
+                                     })->flags);
 }
 
-static __always_inline void SetPageUnevictable(struct page *page) {
-    set_bit(PG_unevictable, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    )->flags); }
+static __always_inline void SetPageUnevictable(struct page *page)
+{
+    set_bit(PG_unevictable, &({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                 compound_head(page);
+                             })->flags);
+}
 
-static __always_inline void ClearPageUnevictable(struct page *page) {
-    clear_bit(PG_unevictable, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    )->flags); }
+static __always_inline void ClearPageUnevictable(struct page *page)
+{
+    clear_bit(PG_unevictable, &({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                   compound_head(page);
+                               })->flags);
+}
 
+static __always_inline void __ClearPageUnevictable(struct page *page)
+{
+    __clear_bit(PG_unevictable, &({
+                                     VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                     compound_head(page);
+                                 })->flags);
+}
 
-static __always_inline void __ClearPageUnevictable(struct page *page) {
-    __clear_bit(PG_unevictable, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    )->flags); }
+static __always_inline int TestClearPageUnevictable(struct page *page)
+{
+    return test_and_clear_bit(PG_unevictable, &({
+                                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                     compound_head(page));
+                                                   compound_head(page);
+                                               })->flags);
+}
 
+static __always_inline int PageMlocked(struct page *page)
+{
+    return test_bit(PG_mlocked, &({
+                                     VM_BUG_ON_PGFLAGS(0 && PageTail(page), page);
+                                     ({
+                                         VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                         compound_head(page);
+                                     });
+                                 })->flags);
+}
 
-static __always_inline int TestClearPageUnevictable(struct page *page) {
-    return test_and_clear_bit(PG_unevictable, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    )->flags); }
+static __always_inline void SetPageMlocked(struct page *page)
+{
+    set_bit(PG_mlocked, &({
+                             VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                             ({
+                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                 compound_head(page);
+                             });
+                         })->flags);
+}
 
+static __always_inline void ClearPageMlocked(struct page *page)
+{
+    clear_bit(PG_mlocked, &({
+                               VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                               ({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                   compound_head(page);
+                               });
+                           })->flags);
+}
 
+static __always_inline void __ClearPageMlocked(struct page *page)
+{
+    __clear_bit(PG_mlocked, &({
+                                 VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                 ({
+                                     VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                     compound_head(page);
+                                 });
+                             })->flags);
+}
 
+static __always_inline int TestSetPageMlocked(struct page *page)
+{
+    return test_and_set_bit(PG_mlocked, &({
+                                             VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                             ({
+                                                 VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                   compound_head(page));
+                                                 compound_head(page);
+                                             });
+                                         })->flags);
+}
 
-static __always_inline int PageMlocked(struct page *page) {
-    return test_bit(PG_mlocked, &({ VM_BUG_ON_PGFLAGS(0 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline int TestClearPageMlocked(struct page *page)
+{
+    return test_and_clear_bit(PG_mlocked, &({
+                                               VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                               ({
+                                                   VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)),
+                                                                     compound_head(page));
+                                                   compound_head(page);
+                                               });
+                                           })->flags);
+}
 
-static __always_inline void SetPageMlocked(struct page *page) {
-    set_bit(PG_mlocked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline int PageUncached(struct page *page)
+{
+    return test_bit(PG_uncached, &({
+                                      VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page);
+                                      ({
+                                          VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                          page;
+                                      });
+                                  })->flags);
+}
 
-static __always_inline void ClearPageMlocked(struct page *page) {
-    clear_bit(PG_mlocked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline void SetPageUncached(struct page *page)
+{
+    set_bit(PG_uncached, &({
+                              VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                              ({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              });
+                          })->flags);
+}
 
+static __always_inline void ClearPageUncached(struct page *page)
+{
+    clear_bit(PG_uncached, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                    page;
+                                });
+                            })->flags);
+}
 
-static __always_inline void __ClearPageMlocked(struct page *page) {
-    __clear_bit(PG_mlocked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline int PageHWPoison(struct page *page)
+{
+    return test_bit(PG_hwpoison, &({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                      page;
+                                  })->flags);
+}
 
+static __always_inline void SetPageHWPoison(struct page *page)
+{
+    set_bit(PG_hwpoison, &({
+                              VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                              page;
+                          })->flags);
+}
 
-static __always_inline int TestSetPageMlocked(struct page *page) {
-    return test_and_set_bit(PG_mlocked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline void ClearPageHWPoison(struct page *page)
+{
+    clear_bit(PG_hwpoison, &({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                page;
+                            })->flags);
+}
 
-static __always_inline int TestClearPageMlocked(struct page *page) {
-    return test_and_clear_bit(PG_mlocked, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }
-    ); }
-    )->flags); }
+static __always_inline int TestSetPageHWPoison(struct page *page)
+{
+    return test_and_set_bit(PG_hwpoison, &({
+                                              VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                              page;
+                                          })->flags);
+}
 
-
-
-
-
-
-
-
-static __always_inline int PageUncached(struct page *page) {
-    return test_bit(PG_uncached, &({ VM_BUG_ON_PGFLAGS(0 && PageCompound(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    ); }
-    )->flags); }
-
-static __always_inline void SetPageUncached(struct page *page) {
-    set_bit(PG_uncached, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    ); }
-    )->flags); }
-
-static __always_inline void ClearPageUncached(struct page *page) {
-    clear_bit(PG_uncached, &({ VM_BUG_ON_PGFLAGS(1 && PageCompound(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    ); }
-    )->flags); }
-
-
-
-
-
-
-
-static __always_inline int PageHWPoison(struct page *page) {
-    return test_bit(PG_hwpoison, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    )->flags); }
-
-static __always_inline void SetPageHWPoison(struct page *page) {
-    set_bit(PG_hwpoison, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    )->flags); }
-
-static __always_inline void ClearPageHWPoison(struct page *page) {
-    clear_bit(PG_hwpoison, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    )->flags); }
-
-
-static __always_inline int TestSetPageHWPoison(struct page *page) {
-    return test_and_set_bit(PG_hwpoison, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    )->flags); }
-
-static __always_inline int TestClearPageHWPoison(struct page *page) {
-    return test_and_clear_bit(PG_hwpoison, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; }
-    )->flags); }
-
-
-
+static __always_inline int TestClearPageHWPoison(struct page *page)
+{
+    return test_and_clear_bit(PG_hwpoison, &({
+                                                VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                                page;
+                                            })->flags);
+}
 
 #endif //__rtoax_gcc_compile_with_E__
-
 
 #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
 TESTPAGEFLAG(Young, young, PF_ANY)
@@ -1673,27 +2039,56 @@ SETPAGEFLAG(Young, young, PF_ANY)
 TESTCLEARFLAG(Young, young, PF_ANY)
 PAGEFLAG(Idle, idle, PF_ANY)
 #endif
-{}
+{
+}
 
 #if __rtoax_gcc_compile_with_E__
 
+static __always_inline int PageYoung(struct page *page)
+{
+    return test_bit(PG_young, &({
+                                   VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                   page;
+                               })->flags);
+}
 
-static __always_inline int PageYoung(struct page *page) {
-    return test_bit(PG_young, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
+static __always_inline void SetPageYoung(struct page *page)
+{
+    set_bit(PG_young, &({
+                           VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                           page;
+                       })->flags);
+}
 
-static __always_inline void SetPageYoung(struct page *page) {
-    set_bit(PG_young, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
+static __always_inline int TestClearPageYoung(struct page *page)
+{
+    return test_and_clear_bit(PG_young, &({
+                                             VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                             page;
+                                         })->flags);
+}
 
-static __always_inline int TestClearPageYoung(struct page *page) {
-    return test_and_clear_bit(PG_young, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-
-static __always_inline int PageIdle(struct page *page) {
-    return test_bit(PG_idle, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void SetPageIdle(struct page *page) {
-    set_bit(PG_idle, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void ClearPageIdle(struct page *page) {
-    clear_bit(PG_idle, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-
+static __always_inline int PageIdle(struct page *page)
+{
+    return test_bit(PG_idle, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              })->flags);
+}
+static __always_inline void SetPageIdle(struct page *page)
+{
+    set_bit(PG_idle, &({
+                          VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                          page;
+                      })->flags);
+}
+static __always_inline void ClearPageIdle(struct page *page)
+{
+    clear_bit(PG_idle, &({
+                            VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                            page;
+                        })->flags);
+}
 
 #endif //__rtoax_gcc_compile_with_E__
 
@@ -1703,21 +2098,26 @@ static __always_inline void ClearPageIdle(struct page *page) {
  * operations as both should be shielded with the zone lock to prevent
  * any possible races on the setting or clearing of the bit.
  */
-{/*++++ 2021年7月6日*/}
+{ /*++++ 2021年7月6日*/
+}
 //__PAGEFLAG(Reported, reported, PF_NO_COMPOUND)
 static __always_inline int PageReported(struct page *page)
-{ return test_bit(PG_reported, &PF_NO_COMPOUND(page, 0)->flags); }
+{
+    return test_bit(PG_reported, &PF_NO_COMPOUND(page, 0)->flags);
+}
 
 static __always_inline void __SetPageReported(struct page *page)
-{ __set_bit(PG_reported, &PF_NO_COMPOUND(page, 1)->flags); }
+{
+    __set_bit(PG_reported, &PF_NO_COMPOUND(page, 1)->flags);
+}
 
 static __always_inline void __ClearPageReported(struct page *page)
-{ __clear_bit(PG_reported, &PF_NO_COMPOUND(page, 1)->flags); }
+{
+    __clear_bit(PG_reported, &PF_NO_COMPOUND(page, 1)->flags);
+}
 
-
-
-
-{/*++++ 2021年7月6日*/}
+{ /*++++ 2021年7月6日*/
+}
 /*
  * On an anonymous page mapped into a user virtual memory area,
  * page->mapping points to its anon_vma, not to a struct address_space;
@@ -1737,14 +2137,14 @@ static __always_inline void __ClearPageReported(struct page *page)
  *
  * 见`struct page->mapping[0-1]`
  */
-#define PAGE_MAPPING_ANON	    0x1 /* 匿名页面 */
-#define PAGE_MAPPING_MOVABLE	0x2 /* 可迁移页面 */
-#define PAGE_MAPPING_KSM	(PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
-#define PAGE_MAPPING_FLAGS	(PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
+#define PAGE_MAPPING_ANON 0x1 /* 匿名页面 */
+#define PAGE_MAPPING_MOVABLE 0x2 /* 可迁移页面 */
+#define PAGE_MAPPING_KSM (PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
+#define PAGE_MAPPING_FLAGS (PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
 
 static __always_inline int PageMappingFlags(struct page *page)
 {
-	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) != 0;
+    return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) != 0;
 }
 
 /**
@@ -1755,8 +2155,8 @@ static __always_inline int PageMappingFlags(struct page *page)
  */
 static __always_inline int PageAnon(struct page *page)
 {
-	page = compound_head(page);
-	return ((unsigned long)page->mapping & PAGE_MAPPING_ANON) != 0;
+    page = compound_head(page);
+    return ((unsigned long)page->mapping & PAGE_MAPPING_ANON) != 0;
 }
 
 /**
@@ -1766,8 +2166,7 @@ static __always_inline int PageAnon(struct page *page)
  */
 static __always_inline int __PageMovable(struct page *page)
 {
-	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
-				PAGE_MAPPING_MOVABLE;
+    return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) == PAGE_MAPPING_MOVABLE;
 }
 
 #ifdef CONFIG_KSM
@@ -1777,10 +2176,10 @@ static __always_inline int __PageMovable(struct page *page)
  * is found in VM_MERGEABLE vmas.  It's a PageAnon page, pointing not to any
  * anon_vma, but to that page's node of the stable tree.
  */
-static __always_inline int PageKsm(struct page *page)   /* 同页合并 */
+static __always_inline int PageKsm(struct page *page) /* 同页合并 */
 {
-	page = compound_head(page);
-	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) == PAGE_MAPPING_KSM;
+    page = compound_head(page);
+    return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) == PAGE_MAPPING_KSM;
 }
 #else
 //TESTPAGEFLAG_FALSE(Ksm)
@@ -1790,10 +2189,10 @@ u64 stable_page_flags(struct page *page);
 
 static inline int PageUptodate(struct page *page)
 {
-	int ret;
-	page = compound_head(page);
-	ret = test_bit(PG_uptodate, &(page)->flags);
-	/*
+    int ret;
+    page = compound_head(page);
+    ret = test_bit(PG_uptodate, &(page)->flags);
+    /*
 	 * Must ensure that the data we read out of the page is loaded
 	 * _after_ we've loaded page->flags to check for PageUptodate.
 	 * We can skip the barrier if the page is not uptodate, because
@@ -1801,10 +2200,10 @@ static inline int PageUptodate(struct page *page)
 	 *
 	 * See SetPageUptodate() for the other side of the story.
 	 */
-	if (ret)
-		smp_rmb();
+    if (ret)
+        smp_rmb();
 
-	return ret;
+    return ret;
 }
 
 /**
@@ -1812,83 +2211,111 @@ static inline int PageUptodate(struct page *page)
  */
 static __always_inline void __SetPageUptodate(struct page *page)
 {
-	VM_BUG_ON_PAGE(PageTail(page), page);
-	smp_wmb();
-	__set_bit(PG_uptodate, &page->flags);
+    VM_BUG_ON_PAGE(PageTail(page), page);
+    smp_wmb();
+    __set_bit(PG_uptodate, &page->flags);
 }
 
-static __always_inline void SetPageUptodate(struct page *page)  /* TODO */
+static __always_inline void SetPageUptodate(struct page *page) /* TODO */
 {
-	VM_BUG_ON_PAGE(PageTail(page), page);
-	/*
+    VM_BUG_ON_PAGE(PageTail(page), page);
+    /*
 	 * Memory barrier must be issued before setting the PG_uptodate bit,
 	 * so that all previous stores issued in order to bring the page
 	 * uptodate are actually visible before PageUptodate becomes true.
 	 *
 	 * 保证前面所有的设置标志位都已经写完成
 	 */
-	smp_wmb();
-	set_bit(PG_uptodate, &page->flags);
+    smp_wmb();
+    set_bit(PG_uptodate, &page->flags);
 }
 
-CLEARPAGEFLAG(Uptodate, uptodate, PF_NO_TAIL) {/* {}++ */}
+CLEARPAGEFLAG(Uptodate, uptodate, PF_NO_TAIL)
+{ /* {}++ */
+}
 
 #if __rtoax_gcc_compile_with_E__
 
-static __always_inline void ClearPageUptodate(struct page *page) {
-    clear_bit(PG_uptodate, &({ VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
-            ({ VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page)); compound_head(page); }); })->flags);
+static __always_inline void ClearPageUptodate(struct page *page)
+{
+    clear_bit(PG_uptodate, &({
+                                VM_BUG_ON_PGFLAGS(1 && PageTail(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(compound_head(page)), compound_head(page));
+                                    compound_head(page);
+                                });
+                            })->flags);
 }
 #endif //__rtoax_gcc_compile_with_E__
 
 int test_clear_page_writeback(struct page *page);
 int __test_set_page_writeback(struct page *page, bool keep_write);
 
-#define test_set_page_writeback(page)			\
-	__test_set_page_writeback(page, false)
-#define test_set_page_writeback_keepwrite(page)	\
-	__test_set_page_writeback(page, true)
+#define test_set_page_writeback(page) __test_set_page_writeback(page, false)
+#define test_set_page_writeback_keepwrite(page) __test_set_page_writeback(page, true)
 
 static inline void set_page_writeback(struct page *page)
 {
-	test_set_page_writeback(page);
+    test_set_page_writeback(page);
 }
 
 static inline void set_page_writeback_keepwrite(struct page *page)
 {
-	test_set_page_writeback_keepwrite(page);
+    test_set_page_writeback_keepwrite(page);
 }
 
-__PAGEFLAG(Head, head, PF_ANY) CLEARPAGEFLAG(Head, head, PF_ANY){/* {}++ */}
+__PAGEFLAG(Head, head, PF_ANY) CLEARPAGEFLAG(Head, head, PF_ANY)
+{ /* {}++ */
+}
 
 #if __rtoax_gcc_compile_with_E__
 
-static __always_inline int PageHead(struct page *page) {
-    return test_bit(PG_head, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void __SetPageHead(struct page *page) {
-    __set_bit(PG_head, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void __ClearPageHead(struct page *page) {
-    __clear_bit(PG_head, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void ClearPageHead(struct page *page) {
-    clear_bit(PG_head, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
+static __always_inline int PageHead(struct page *page)
+{
+    return test_bit(PG_head, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              })->flags);
+}
+static __always_inline void __SetPageHead(struct page *page)
+{
+    __set_bit(PG_head, &({
+                            VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                            page;
+                        })->flags);
+}
+static __always_inline void __ClearPageHead(struct page *page)
+{
+    __clear_bit(PG_head, &({
+                              VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                              page;
+                          })->flags);
+}
+static __always_inline void ClearPageHead(struct page *page)
+{
+    clear_bit(PG_head, &({
+                            VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                            page;
+                        })->flags);
+}
 
 #endif //__rtoax_gcc_compile_with_E__
 
 static __always_inline void set_compound_head(struct page *page, struct page *head)
 {
-	WRITE_ONCE(page->compound_head, (unsigned long)head + 1);
+    WRITE_ONCE(page->compound_head, (unsigned long)head + 1);
 }
 
 static __always_inline void clear_compound_head(struct page *page)
 {
-	WRITE_ONCE(page->compound_head, 0);
+    WRITE_ONCE(page->compound_head, 0);
 }
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 static inline void ClearPageCompound(struct page *page)
 {
-	BUG_ON(!PageHead(page));
-	ClearPageHead(page);
+    BUG_ON(!PageHead(page));
+    ClearPageHead(page);
 }
 #endif
 
@@ -1909,9 +2336,7 @@ bool page_huge_active(struct page *page);
 #endif
 #if __rtoax_gcc_compile_with_E__
 
-
 #endif //__rtoax_gcc_compile_with_E__
-
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 /*
@@ -1924,8 +2349,8 @@ bool page_huge_active(struct page *page);
  */
 static inline int PageTransHuge(struct page *page)
 {
-	VM_BUG_ON_PAGE(PageTail(page), page);
-	return PageHead(page);
+    VM_BUG_ON_PAGE(PageTail(page), page);
+    return PageHead(page);
 }
 
 /*
@@ -1938,7 +2363,7 @@ static inline int PageTransHuge(struct page *page)
  */
 static inline int PageTransCompound(struct page *page)
 {
-	return PageCompound(page);
+    return PageCompound(page);
 }
 
 /*
@@ -1964,18 +2389,17 @@ static inline int PageTransCompound(struct page *page)
  */
 static inline int PageTransCompoundMap(struct page *page)
 {
-	struct page *head;
+    struct page *head;
 
-	if (!PageTransCompound(page))
-		return 0;
+    if (!PageTransCompound(page))
+        return 0;
 
-	if (PageAnon(page))
-		return atomic_read(&page->_mapcount) < 0;
+    if (PageAnon(page))
+        return atomic_read(&page->_mapcount) < 0;
 
-	head = compound_head(page);
-	/* File THP is PMD mapped and not PTE mapped */
-	return atomic_read(&page->_mapcount) ==
-	       atomic_read(compound_mapcount_ptr(head));
+    head = compound_head(page);
+    /* File THP is PMD mapped and not PTE mapped */
+    return atomic_read(&page->_mapcount) == atomic_read(compound_mapcount_ptr(head));
 }
 
 /*
@@ -1985,7 +2409,7 @@ static inline int PageTransCompoundMap(struct page *page)
  */
 static inline int PageTransTail(struct page *page)
 {
-	return PageTail(page);
+    return PageTail(page);
 }
 
 /*
@@ -2002,30 +2426,61 @@ static inline int PageTransTail(struct page *page)
  * See also __split_huge_pmd_locked() and page_remove_anon_compound_rmap().
  */
 PAGEFLAG(DoubleMap, double_map, PF_SECOND)
-	TESTSCFLAG(DoubleMap, double_map, PF_SECOND)
-{}
+TESTSCFLAG(DoubleMap, double_map, PF_SECOND)
+{
+}
 #if __rtoax_gcc_compile_with_E__
 
-static __always_inline int PageDoubleMap(struct page *page) {
-    return test_bit(PG_double_map,
-        &({ VM_BUG_ON_PGFLAGS(!PageHead(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]); &page[1]; }); })->flags);
+static __always_inline int PageDoubleMap(struct page *page)
+{
+    return test_bit(PG_double_map, &({
+                                        VM_BUG_ON_PGFLAGS(!PageHead(page), page);
+                                        ({
+                                            VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]);
+                                            &page[1];
+                                        });
+                                    })->flags);
 }
-static __always_inline void SetPageDoubleMap(struct page *page) {
-    set_bit(PG_double_map,
-        &({ VM_BUG_ON_PGFLAGS(!PageHead(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]); &page[1]; }); })->flags);
+static __always_inline void SetPageDoubleMap(struct page *page)
+{
+    set_bit(PG_double_map, &({
+                                VM_BUG_ON_PGFLAGS(!PageHead(page), page);
+                                ({
+                                    VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]);
+                                    &page[1];
+                                });
+                            })->flags);
 }
-static __always_inline void ClearPageDoubleMap(struct page *page) {
-    clear_bit(PG_double_map,
-        &({ VM_BUG_ON_PGFLAGS(!PageHead(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]); &page[1]; }); })->flags);
+static __always_inline void ClearPageDoubleMap(struct page *page)
+{
+    clear_bit(PG_double_map, &({
+                                  VM_BUG_ON_PGFLAGS(!PageHead(page), page);
+                                  ({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]);
+                                      &page[1];
+                                  });
+                              })->flags);
 }
 
-static __always_inline int TestSetPageDoubleMap(struct page *page) {
-    return test_and_set_bit(PG_double_map,
-        &({ VM_BUG_ON_PGFLAGS(!PageHead(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]); &page[1]; }); })->flags);
+static __always_inline int TestSetPageDoubleMap(struct page *page)
+{
+    return test_and_set_bit(PG_double_map, &({
+                                                VM_BUG_ON_PGFLAGS(!PageHead(page), page);
+                                                ({
+                                                    VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]);
+                                                    &page[1];
+                                                });
+                                            })->flags);
 }
-static __always_inline int TestClearPageDoubleMap(struct page *page) {
-    return test_and_clear_bit(PG_double_map,
-        &({ VM_BUG_ON_PGFLAGS(!PageHead(page), page); ({ VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]); &page[1]; }); })->flags);
+static __always_inline int TestClearPageDoubleMap(struct page *page)
+{
+    return test_and_clear_bit(PG_double_map, &({
+                                                  VM_BUG_ON_PGFLAGS(!PageHead(page), page);
+                                                  ({
+                                                      VM_BUG_ON_PGFLAGS(PagePoisoned(&page[1]), &page[1]);
+                                                      &page[1];
+                                                  });
+                                              })->flags);
 }
 
 #endif //__rtoax_gcc_compile_with_E__
@@ -2050,38 +2505,37 @@ static __always_inline int TestClearPageDoubleMap(struct page *page) {
  * mistaken for a page type value.
  */
 
-#define PAGE_TYPE_BASE	0xf0000000
+#define PAGE_TYPE_BASE 0xf0000000
 /* Reserve		0x0000007f to catch underflows of page_mapcount */
-#define PAGE_MAPCOUNT_RESERVE	-128
-#define PG_buddy	0x00000080
-#define PG_offline	0x00000100
-#define PG_kmemcg	0x00000200
-#define PG_table	0x00000400
-#define PG_guard	0x00000800
+#define PAGE_MAPCOUNT_RESERVE -128
+#define PG_buddy 0x00000080
+#define PG_offline 0x00000100
+#define PG_kmemcg 0x00000200
+#define PG_table 0x00000400
+#define PG_guard 0x00000800
 
-#define PageType(page, flag)						\
-	((page->page_type & (PAGE_TYPE_BASE | flag)) == PAGE_TYPE_BASE)
+#define PageType(page, flag) ((page->page_type & (PAGE_TYPE_BASE | flag)) == PAGE_TYPE_BASE)
 
 static inline int page_has_type(struct page *page)
 {
-	return (int)page->page_type < PAGE_MAPCOUNT_RESERVE;
+    return (int)page->page_type < PAGE_MAPCOUNT_RESERVE;
 }
 
-#define PAGE_TYPE_OPS(uname, lname)					\
-static __always_inline int Page##uname(struct page *page)		\
-{									\
-	return PageType(page, PG_##lname);				\
-}									\
-static __always_inline void __SetPage##uname(struct page *page)		\
-{									\
-	VM_BUG_ON_PAGE(!PageType(page, 0), page);			\
-	page->page_type &= ~PG_##lname;					\
-}									\
-static __always_inline void __ClearPage##uname(struct page *page)	\
-{									\
-	VM_BUG_ON_PAGE(!Page##uname(page), page);			\
-	page->page_type |= PG_##lname;					\
-}
+#define PAGE_TYPE_OPS(uname, lname)                                   \
+    static __always_inline int Page##uname(struct page *page)         \
+    {                                                                 \
+        return PageType(page, PG_##lname);                            \
+    }                                                                 \
+    static __always_inline void __SetPage##uname(struct page *page)   \
+    {                                                                 \
+        VM_BUG_ON_PAGE(!PageType(page, 0), page);                     \
+        page->page_type &= ~PG_##lname;                               \
+    }                                                                 \
+    static __always_inline void __ClearPage##uname(struct page *page) \
+    {                                                                 \
+        VM_BUG_ON_PAGE(!Page##uname(page), page);                     \
+        page->page_type |= PG_##lname;                                \
+    }
 
 /*
  * PageBuddy() indicates that the page is free and in the buddy system
@@ -2123,15 +2577,17 @@ PAGE_TYPE_OPS(Table, table)
  * Marks guardpages used with debug_pagealloc.
  */
 PAGE_TYPE_OPS(Guard, guard)
-    {/* +++ */}
+{ /* +++ */
+}
 extern bool is_free_buddy_page(struct page *page);
-{/* +++ */}
+{ /* +++ */
+}
 __PAGEFLAG(Isolated, isolated, PF_ANY);
 
-{/* +++ */}
+{ /* +++ */
+}
 
 #if __rtoax_gcc_compile_with_E__
-
 
 static __always_inline int PageBuddy(struct page *page)
 {
@@ -2151,49 +2607,89 @@ static __always_inline void __ClearPageBuddy(struct page *page)
     page->page_type |= 0x00000080;
 }
 
+static __always_inline int PageOffline(struct page *page)
+{
+    return ((page->page_type & (0xf0000000 | 0x00000100)) == 0xf0000000);
+}
+static __always_inline void __SetPageOffline(struct page *page)
+{
+    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page);
+    page->page_type &= ~0x00000100;
+}
+static __always_inline void __ClearPageOffline(struct page *page)
+{
+    VM_BUG_ON_PAGE(!PageOffline(page), page);
+    page->page_type |= 0x00000100;
+}
 
-static __always_inline int PageOffline(struct page *page) {
-    return ((page->page_type & (0xf0000000 | 0x00000100)) == 0xf0000000); }
-static __always_inline void __SetPageOffline(struct page *page) {
-    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page); page->page_type &= ~0x00000100; }
-static __always_inline void __ClearPageOffline(struct page *page) {
-    VM_BUG_ON_PAGE(!PageOffline(page), page); page->page_type |= 0x00000100; }
+static __always_inline int PageKmemcg(struct page *page)
+{
+    return ((page->page_type & (0xf0000000 | 0x00000200)) == 0xf0000000);
+}
+static __always_inline void __SetPageKmemcg(struct page *page)
+{
+    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page);
+    page->page_type &= ~0x00000200;
+}
+static __always_inline void __ClearPageKmemcg(struct page *page)
+{
+    VM_BUG_ON_PAGE(!PageKmemcg(page), page);
+    page->page_type |= 0x00000200;
+}
 
+static __always_inline int PageTable(struct page *page)
+{
+    return ((page->page_type & (0xf0000000 | 0x00000400)) == 0xf0000000);
+}
+static __always_inline void __SetPageTable(struct page *page)
+{
+    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page);
+    page->page_type &= ~0x00000400;
+}
+static __always_inline void __ClearPageTable(struct page *page)
+{
+    VM_BUG_ON_PAGE(!PageTable(page), page);
+    page->page_type |= 0x00000400;
+}
 
+static __always_inline int PageGuard(struct page *page)
+{
+    return ((page->page_type & (0xf0000000 | 0x00000800)) == 0xf0000000);
+}
+static __always_inline void __SetPageGuard(struct page *page)
+{
+    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page);
+    page->page_type &= ~0x00000800;
+}
+static __always_inline void __ClearPageGuard(struct page *page)
+{
+    VM_BUG_ON_PAGE(!PageGuard(page), page);
+    page->page_type |= 0x00000800;
+}
 
-static __always_inline int PageKmemcg(struct page *page) {
-    return ((page->page_type & (0xf0000000 | 0x00000200)) == 0xf0000000); }
-static __always_inline void __SetPageKmemcg(struct page *page) {
-    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page); page->page_type &= ~0x00000200; }
-static __always_inline void __ClearPageKmemcg(struct page *page) {
-    VM_BUG_ON_PAGE(!PageKmemcg(page), page); page->page_type |= 0x00000200; }
-
-
-static __always_inline int PageTable(struct page *page) {
-    return ((page->page_type & (0xf0000000 | 0x00000400)) == 0xf0000000); }
-static __always_inline void __SetPageTable(struct page *page) {
-    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page); page->page_type &= ~0x00000400; }
-static __always_inline void __ClearPageTable(struct page *page) {
-    VM_BUG_ON_PAGE(!PageTable(page), page); page->page_type |= 0x00000400; }
-
-
-static __always_inline int PageGuard(struct page *page) {
-    return ((page->page_type & (0xf0000000 | 0x00000800)) == 0xf0000000); }
-static __always_inline void __SetPageGuard(struct page *page) {
-    VM_BUG_ON_PAGE(!((page->page_type & (0xf0000000 | 0)) == 0xf0000000), page); page->page_type &= ~0x00000800; }
-static __always_inline void __ClearPageGuard(struct page *page) {
-    VM_BUG_ON_PAGE(!PageGuard(page), page); page->page_type |= 0x00000800; }
-
-
-static __always_inline int PageIsolated(struct page *page) {
-    return test_bit(PG_isolated, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void __SetPageIsolated(struct page *page) {
-    __set_bit(PG_isolated, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); }
-static __always_inline void __ClearPageIsolated(struct page *page) {
-    __clear_bit(PG_isolated, &({ VM_BUG_ON_PGFLAGS(PagePoisoned(page), page); page; })->flags); };
+static __always_inline int PageIsolated(struct page *page)
+{
+    return test_bit(PG_isolated, &({
+                                      VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                      page;
+                                  })->flags);
+}
+static __always_inline void __SetPageIsolated(struct page *page)
+{
+    __set_bit(PG_isolated, &({
+                                VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                page;
+                            })->flags);
+}
+static __always_inline void __ClearPageIsolated(struct page *page)
+{
+    __clear_bit(PG_isolated, &({
+                                  VM_BUG_ON_PGFLAGS(PagePoisoned(page), page);
+                                  page;
+                              })->flags);
+};
 
 #endif //__rtoax_gcc_compile_with_E__
-
 
 /*
  * If network-based swap is enabled, sl*b must keep track of whether pages
@@ -2201,30 +2697,30 @@ static __always_inline void __ClearPageIsolated(struct page *page) {
  */
 static inline int PageSlabPfmemalloc(struct page *page)
 {
-	VM_BUG_ON_PAGE(!PageSlab(page), page);
-	return PageActive(page);
+    VM_BUG_ON_PAGE(!PageSlab(page), page);
+    return PageActive(page);
 }
 
 static inline void SetPageSlabPfmemalloc(struct page *page)
 {
-	VM_BUG_ON_PAGE(!PageSlab(page), page);
-	SetPageActive(page);
+    VM_BUG_ON_PAGE(!PageSlab(page), page);
+    SetPageActive(page);
 }
 
 static inline void __ClearPageSlabPfmemalloc(struct page *page)
 {
-	VM_BUG_ON_PAGE(!PageSlab(page), page);
-	__ClearPageActive(page);
+    VM_BUG_ON_PAGE(!PageSlab(page), page);
+    __ClearPageActive(page);
 }
 
 static inline void ClearPageSlabPfmemalloc(struct page *page)
 {
-	VM_BUG_ON_PAGE(!PageSlab(page), page);
-	ClearPageActive(page);
+    VM_BUG_ON_PAGE(!PageSlab(page), page);
+    ClearPageActive(page);
 }
 
 #ifdef CONFIG_MMU
-#define __PG_MLOCKED		(1UL << PG_mlocked)
+#define __PG_MLOCKED (1UL << PG_mlocked)
 #else
 //#define __PG_MLOCKED		0
 #endif
@@ -2233,12 +2729,9 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
  * Flags checked when a page is freed.  Pages being freed should not have
  * these flags set.  It they are, there is a problem.
  */
-#define PAGE_FLAGS_CHECK_AT_FREE				\
-	(1UL << PG_lru		| 1UL << PG_locked	|	\
-	 1UL << PG_private	| 1UL << PG_private_2	|	\
-	 1UL << PG_writeback	| 1UL << PG_reserved	|	\
-	 1UL << PG_slab		| 1UL << PG_active 	|	\
-	 1UL << PG_unevictable	| __PG_MLOCKED)
+#define PAGE_FLAGS_CHECK_AT_FREE                                                                        \
+    (1UL << PG_lru | 1UL << PG_locked | 1UL << PG_private | 1UL << PG_private_2 | 1UL << PG_writeback | \
+     1UL << PG_reserved | 1UL << PG_slab | 1UL << PG_active | 1UL << PG_unevictable | __PG_MLOCKED)
 
 /*
  * Flags checked when a page is prepped for return by the page allocator.
@@ -2248,11 +2741,9 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
  * __PG_HWPOISON is exceptional because it needs to be kept beyond page's
  * alloc-free cycle to prevent from reusing the page.
  */
-#define PAGE_FLAGS_CHECK_AT_PREP	\
-	(((1UL << NR_PAGEFLAGS) - 1) & ~__PG_HWPOISON)
+#define PAGE_FLAGS_CHECK_AT_PREP (((1UL << NR_PAGEFLAGS) - 1) & ~__PG_HWPOISON)
 
-#define PAGE_FLAGS_PRIVATE				\
-	(1UL << PG_private | 1UL << PG_private_2)
+#define PAGE_FLAGS_PRIVATE (1UL << PG_private | 1UL << PG_private_2)
 /**
  * page_has_private - Determine if page has private stuff
  * @page: The page to be checked
@@ -2262,7 +2753,7 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
  */
 static inline int page_has_private(struct page *page)
 {
-	return !!(page->flags & PAGE_FLAGS_PRIVATE);
+    return !!(page->flags & PAGE_FLAGS_PRIVATE);
 }
 
 #undef PF_ANY
@@ -2273,4 +2764,4 @@ static inline int page_has_private(struct page *page)
 #undef PF_SECOND
 #endif /* !__GENERATING_BOUNDS_H */
 
-#endif	/* PAGE_FLAGS_H */
+#endif /* PAGE_FLAGS_H */

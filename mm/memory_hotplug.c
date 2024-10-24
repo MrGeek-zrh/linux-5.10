@@ -1248,6 +1248,7 @@ struct zone *test_pages_in_a_zone(unsigned long start_pfn, unsigned long end_pfn
  *    - 匿名页面(Anonymous pages): 进程私有的内存页面,如堆、栈等
  *    - 文件映射页面(File-backed pages): 映射自文件的页面
  *    这些页面可以被换出到交换分区或写回到磁盘,因此可以迁移
+ *    我觉得LRU链表上的页面都是可移动的
  *
  * 2. 非LRU可移动页面(__PageMovable):
  *    - 由特定子系统(如DAX、RDMA)管理的页面
@@ -1300,7 +1301,7 @@ static int scan_movable_pages(unsigned long start, unsigned long end, unsigned l
 
         if (!PageHuge(page))
             continue;
-        head = compound_head(page); 
+        head = compound_head(page);
 
         /*
          * page_huge_active - 检查一个大页(huge page)是否处于活跃状态
