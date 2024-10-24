@@ -1608,6 +1608,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
 
     do {
         pfn = start_pfn; // 重置页帧号到起始位置
+        // 执行迁移的主循环
         do {
             /* 检查是否有待处理信号 - 允许用户中断长时间操作 */
             if (signal_pending(current)) {
@@ -1630,7 +1631,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
          */
             ret = scan_movable_pages(pfn, // 输入：开始扫描的页帧号
                                      end_pfn, // 输入：结束的页帧号
-                                     &pfn); // 输出：下一个要处理的页帧号
+                                     &pfn); // 输出：找到的第一个可移动的物理页帧
             if (!ret) {
                 /* 
              * 如果找到可移动页面，执行实际的页面迁移
