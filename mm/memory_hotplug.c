@@ -1300,7 +1300,25 @@ static int scan_movable_pages(unsigned long start, unsigned long end, unsigned l
 
         if (!PageHuge(page))
             continue;
-        head = compound_head(page);
+        head = compound_head(page); 
+
+        /*
+         * page_huge_active - 检查一个大页(huge page)是否处于活跃状态
+         * @page: 要检查的页面指针,必须是大页的 head page
+         *
+         * 该函数用于确定一个大页是否正在使用。具体检查逻辑:
+         * 1. 检查该页面的引用计数是否大于0,也就是页面被映射或使用
+         * 2. 如果是透明大页(THP),则判断是否在活跃的映射中 
+         * 3. 如果是普通大页,则看其是否已分配且正在使用
+         *
+         * 在内存热插拔过程中使用此函数来判断大页是否可以被迁移:
+         * - 如果大页处于活跃状态(返回true),则需要先迁移大页
+         * - 如果大页非活跃(返回false),可以直接回收 
+         *
+         * 返回值:
+         * true  - 大页正在使用,处于活跃状态
+         * false - 大页未被使用,可以被释放
+         */
         if (page_huge_active(head))
             goto found;
         skip = compound_nr(head) - (page - head);
