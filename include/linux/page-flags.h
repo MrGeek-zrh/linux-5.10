@@ -2185,6 +2185,27 @@ static __always_inline int PageAnon(struct page *page)
  *
  *  非 LRU 页面指代一些特殊页面，比如 zsmalloc 分配的页面
  */
+/**
+ * __PageMovable - 检查页面是否可移动
+ * @page: 要检查的页面
+ *
+ * 该函数通过检查页面的mapping字段判断页面是否可移动。
+ * 移动性是指页面可以在物理内存中迁移/重定位的能力。
+ *
+ * 可移动页面的特点:
+ * - 不在 LRU 链表上,但实现了迁移回调函数
+ * - 由特定子系统(如 DAX、RDMA)管理的页面
+ * - 内容可以被安全地复制到新位置
+ *
+ * 使用场景:
+ * - 内存热插拔判断页面是否可迁移
+ * - 内存压缩判断页面是否可移动
+ * - 内存回收判断页面处理方式
+ * 
+ * 返回值:
+ * 1 - 页面可移动
+ * 0 - 页面不可移动
+ */
 static __always_inline int __PageMovable(struct page *page)
 {
     return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) == PAGE_MAPPING_MOVABLE;
