@@ -1586,7 +1586,33 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
     node = zone_to_nid(zone);
 
     /* 将目标内存范围标记为隔离状态 */
-    ret = start_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE, MEMORY_OFFLINE | REPORT_FAILURE);
+    /**
+ * start_isolate_page_range - 开始隔离指定范围内的物理内存页
+ * @start_pfn: 要隔离的内存页起始页帧号
+ * @end_pfn: 要隔离的内存页结束页帧号
+ * @migratetype: 页迁移类型,一般为MIGRATE_MOVABLE  
+ * @flags: 控制隔离行为的标志位,常用组合为:
+ *   - MEMORY_OFFLINE: 表示为内存下线做准备 
+ *   - REPORT_FAILURE: 在无法隔离页面时报告错误
+ *
+ * 该函数在内存热插拔过程中负责隔离指定范围内的页面。主要功能包括:
+ *
+ * 1. 将目标页面范围从伙伴系统中隔离出来
+ * 2. 将页面标记为 PG_isolated 状态
+ * 3. 阻止新的内存分配进入该范围
+ * 4. 为后续的页面迁移做准备
+ *
+ * 隔离过程的限制条件:
+ * - 只能隔离已经上线的页面
+ * - 页面必须可以被迁移(不能是内核代码页等)
+ * - 页面当前不能被其他子系统锁定
+ *
+ * 返回值:
+ * 0 - 成功隔离所有页面
+ * -EBUSY - 存在无法隔离的页面
+ * -EINVAL - 参数无效
+ */
+ret = start_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE, MEMORY_OFFLINE | REPORT_FAILURE);
     if (ret) {
         reason = "failure to isolate range";
         goto failed_removal;
