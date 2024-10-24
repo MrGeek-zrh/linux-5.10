@@ -1046,7 +1046,28 @@ static __always_inline void __ClearPageDirty(struct page *page)
 }
 
 /**
- *  在 LRU 链表中
+ * PageLRU - 检查页面是否在 LRU (最近最少使用) 链表上
+ * @page: 要检查的页面
+ * 
+ * LRU(Least Recently Used)是Linux内存回收的核心机制之一。该函数检查一个页面
+ * 是否在系统的LRU链表上。LRU链表上的页面包括:
+ *
+ * 1. 文件页(File-backed pages):
+ *    - 映射自文件的页面
+ *    - 可以直接写回到磁盘文件
+ *
+ * 2. 匿名页(Anonymous pages): 
+ *    - 进程私有内存,如堆栈
+ *    - 需要写入swap分区
+ * 
+ * 页面加入LRU链表意味着:
+ * - 该页面可以被内存回收(页面换出)
+ * - 该页面正在被系统跟踪使用情况
+ * - 该页面可以在内存紧张时被换出到磁盘
+ *
+ * 返回值:
+ * 1 - 页面在LRU链表上
+ * 0 - 页面不在LRU链表上
  */
 static __always_inline int PageLRU(struct page *page)
 {
