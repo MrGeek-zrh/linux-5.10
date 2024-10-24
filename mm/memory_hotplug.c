@@ -1612,7 +1612,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
  * -EBUSY - 存在无法隔离的页面
  * -EINVAL - 参数无效
  */
-ret = start_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE, MEMORY_OFFLINE | REPORT_FAILURE);
+    ret = start_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE, MEMORY_OFFLINE | REPORT_FAILURE);
     if (ret) {
         reason = "failure to isolate range";
         goto failed_removal;
