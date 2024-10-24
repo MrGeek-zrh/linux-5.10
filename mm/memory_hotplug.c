@@ -1285,6 +1285,8 @@ static int scan_movable_pages(unsigned long start, unsigned long end, unsigned l
         if (!pfn_valid(pfn))
             continue;
         page = pfn_to_page(pfn);
+        // 检查页面是否在 LRU (最近最少使用) 链表上
+        // 我觉得在LRU页面上一定都可以被移？不然这里为啥这样写
         if (PageLRU(page))
             goto found;
         if (__PageMovable(page))
