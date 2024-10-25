@@ -100,7 +100,7 @@ __setup("memhp_default_state=", setup_memhp_default_state);
  * 在热插拔流程中需要与 mem_hotplug_done() 配对使用。
  * 被广泛用于内存上线(online_pages)、下线(offline_pages)和添加(add_memory)等操作。
  */
-void mem_hotplug_begin(void)  
+void mem_hotplug_begin(void)
 {
     cpus_read_lock();
     percpu_down_write(&mem_hotplug_lock);
@@ -1606,8 +1606,8 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
 
     mem_hotplug_begin();
 
-    /* 检查目标内存范围是否包含内存空洞 */
-    walk_system_ram_range(start_pfn, nr_pages, &system_ram_pages, count_system_ram_pages_cb);
+    // 确保要下线的内存范围中不存在内存空洞(memory holes)
+    // 内存热插拔要求目标内存范围必须是连续的物理内存
     if (system_ram_pages != nr_pages) {
         ret = -EINVAL;
         reason = "memory holes";
@@ -1615,12 +1615,14 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
     }
 
     /* 检查目标内存是否都在同一个zone内 */
+    // 内存热插拔操作必须以 zone 为单位进行
     zone = test_pages_in_a_zone(start_pfn, end_pfn);
     if (!zone) {
         ret = -EINVAL;
         reason = "multizone range";
         goto failed_removal;
     }
+    // 获取内存区域(zone)所属的NUMA节点ID
     node = zone_to_nid(zone);
 
     /* 将目标内存范围标记为隔离状态 */
@@ -1675,6 +1677,12 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
         // 执行迁移的主循环
         do {
             /* 检查是否有待处理信号 - 允许用户中断长时间操作 */
+            /**
+            内存热插拔是一个耗时的操作，特别是当需要迁移大量页面时
+            在offline_pages()函数中的这个判断（参考行号1680-1681）是为了实现可中断的内存下线操作
+            允许用户通过发送信号（如SIGINT或SIGTERM）来中断长时间运行的内存热插拔操作
+            防止系统在热插拔过程中无法响应
+             */
             if (signal_pending(current)) {
                 ret = -EINTR;
                 reason = "signal backoff";
