@@ -2184,6 +2184,8 @@ static __always_inline int PageAnon(struct page *page)
  *  页面是否 可 移动/迁移，也就是是否属于 LRU 页面
  *
  *  非 LRU 页面指代一些特殊页面，比如 zsmalloc 分配的页面
+ *
+ *  TODO: 这个注释是原作者写的，确定是对的？
  */
 /**
  * __PageMovable - 检查页面是否可移动
