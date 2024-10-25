@@ -83,7 +83,24 @@ static int __init setup_memhp_default_state(char *str)
 }
 __setup("memhp_default_state=", setup_memhp_default_state);
 
-void mem_hotplug_begin(void)
+/**
+ * mem_hotplug_begin - 开始内存热插拔操作序列
+ *
+ * 该函数是内存热插拔操作的起点,通过获取必要的锁来序列化热插拔操作。
+ * 主要目的是:
+ * 1. 序列化内存热插拔操作 - 同时只允许一个内存热插拔操作进行
+ * 2. 防止与其他子系统冲突:
+ *    - 通过 cpus_read_lock() 防止 CPU 热插拔
+ *    - 通过 mem_hotplug_lock 禁止并发内存访问
+ *
+ * 函数通过以下方式保护热插拔操作:
+ * - 获取 CPU 读锁(cpus_read_lock)防止 CPU 热插拔
+ * - 获取内存热插拔写锁(mem_hotplug_lock)实现独占访问
+ *  
+ * 在热插拔流程中需要与 mem_hotplug_done() 配对使用。
+ * 被广泛用于内存上线(online_pages)、下线(offline_pages)和添加(add_memory)等操作。
+ */
+void mem_hotplug_begin(void)  
 {
     cpus_read_lock();
     percpu_down_write(&mem_hotplug_lock);
