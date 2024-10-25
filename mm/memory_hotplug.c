@@ -1726,10 +1726,36 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
      * 处理范围内的大页
      * 将大页分解成基本页面，便于后续处理
      */
+        /**
+         * dissolve_free_huge_pages - 分解指定范围内的大页(huge pages)
+         * @start_pfn: 起始页帧号
+         * @end_pfn: 结束页帧号
+         *
+         * 该函数用于内存热拔插过程中,将一个物理地址范围内的大页分解成基本页面。主要目的:
+         * 
+         * 1. 大页(HugePage)在内存热拔插时需要特殊处理:
+         *    - 对于透明大页(THP),需要先分解成基本页面
+         *    - 对于持久大页(HugeTLB),需要先释放和回收
+         *    
+         * 2. 分解过程包括:
+         *    - 扫描指定范围内的大页
+         *    - 将大页标记为不可用
+         *    - 分解大页的页表映射
+         *    - 将大页的物理页面返回给伙伴系统
+         *
+         * 3. 分解的原因:
+         *    - 热拔插操作要求以基本页面为单位处理
+         *    - 避免大页跨越要移除的内存区域
+         *    - 简化内存迁移的复杂度
+         *
+         * 返回值: 
+         * 0      - 成功分解所有大页
+         * -EBUSY - 存在无法分解的大页
+         */
         ret = dissolve_free_huge_pages(start_pfn, end_pfn);
         if (ret) {
             reason = "failure to dissolve huge pages";
-            goto failed_removal_isolated;
+            goto failed_removal_isolated; 
         }
 
         /* 
