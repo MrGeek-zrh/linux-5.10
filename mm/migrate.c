@@ -1637,41 +1637,6 @@ out:
  *                        const unsigned long *old_nodes,
  *                        const unsigned long *new_nodes);
  */
-/**
- * migrate_pages - 页面迁移核心控制函数
- * @from: 源页面链表，包含所有待迁移的页面
- * @get_new_page: 分配新页面的回调函数
- * @put_new_page: 在迁移失败时释放新页面的回调函数
- * @private: 传递给回调函数的私有数据
- * @mode: 迁移模式
- *   - MIGRATE_ASYNC: 异步迁移，允许迁移失败
- *   - MIGRATE_SYNC: 同步迁移，会等待迁移完成
- * @reason: 迁移原因，如:
- *   - MR_COMPACTION: 内存规整
- *   - MR_MEMORY_HOTPLUG: 内存热插拔
- *
- * 该函数实现了页面迁移的核心逻辑:
- * 1. 遍历待迁移页面链表，对每个页面:
- *    - 分配新页面作为迁移目标
- *    - 更新页表映射关系
- *    - 拷贝页面数据 
- *    - 维护页面元数据
- *
- * 2. 特殊处理:
- *    - 透明大页的迁移(THP)
- *    - 设备专用内存页面
- *    - 被锁定或正在使用的页面
- *
- * 3. 迁移失败处理:
- *    - 回滚已完成的迁移 
- *    - 释放分配的新页面
- *    - 恢复页面映射关系
- *
- * 返回值:
- * 0 - 所有页面迁移成功
- * >0 - 迁移失败的页面数量
- * <0 - 发生错误(如内存不足)
- */
 int migrate_pages(struct list_head *from, new_page_t get_new_page,
             		free_page_t put_new_page, unsigned long private,
             		enum migrate_mode mode, int reason)
