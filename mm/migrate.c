@@ -1691,9 +1691,9 @@ out:
  * - 不能在中断上下文或持有自旋锁时调用
  * - 调用时最好不要禁止内存回收
  */
-int migrate_pages(struct list_head *from, new_page_t get_new_page,
-            		free_page_t put_new_page, unsigned long private,
-            		enum migrate_mode mode, int reason)
+int migrate_pages(struct list_head *from, new_page_t get_new_page, free_page_t put_new_page, unsigned long private,
+                  enum migrate_mode mode, int reason)
+{
     int retry = 1;
     int thp_retry = 1;
     int nr_failed = 0;
