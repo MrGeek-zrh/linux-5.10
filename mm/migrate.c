@@ -1606,9 +1606,94 @@ out:
  *                        const unsigned long *old_nodes,
  *                        const unsigned long *new_nodes);
  */
-int migrate_pages(struct list_head *from, new_page_t get_new_page, free_page_t put_new_page, unsigned long private,
-                  enum migrate_mode mode, int reason)
-{
+/**
+ * migrate_pages - 页面迁移的核心实现函数
+ * @from: 待迁移页面的源链表头
+ *      - 链表中的每个页面都必须已经从原来的管理系统中隔离出来(isolated)
+ *      - 页面可以是匿名页、文件映射页、共享内存页等任何类型
+ * @get_new_page: 获取迁移目标页面的回调函数
+ *      - 函数原型: struct page* (*new_page_t)(struct page *page, unsigned long private)
+ *      - 为每个源页面分配对应的目标页面
+ *      - 通常会考虑NUMA节点亲和性来选择合适的目标位置
+ * @put_new_page: 释放目标页面的回调函数(迁移失败时调用)
+ *      - 函数原型: void (*free_page_t)(struct page *page, unsigned long private) 
+ *      - 负责清理迁移失败时已分配的目标页面
+ *      - 如果为NULL,则使用默认的释放函数
+ * @private: 传递给回调函数的私有数据
+ *      - 用于回调函数的额外参数传递
+ *      - 典型用途是传递迁移策略、NUMA信息等
+ * @mode: 迁移模式标志位
+ *      MIGRATE_ASYNC: 异步迁移模式
+ *          - 不等待迁移完成就返回
+ *          - 允许部分页面迁移失败
+ *          - 适用于内存规整等非关键场景
+ *      MIGRATE_SYNC: 同步迁移模式  
+ *          - 等待所有迁移操作完成
+ *          - 会重试失败的页面迁移
+ *          - 用于内存热插拔等需要确保迁移成功的场景
+ *      MIGRATE_SYNC_NO_COPY: 同步模式但不复制页面内容
+ *          - 只更新页面映射关系
+ *          - 用于已知页面内容可丢弃的场景
+ * @reason: 迁移原因,用于跟踪和调试
+ *      MR_COMPACTION: 内存规整触发的迁移
+ *      MR_MEMORY_HOTPLUG: 内存热插拔触发的迁移
+ *      MR_MEMORY_FAILURE: 内存错误恢复触发的迁移
+ *      MR_SYSCALL: 系统调用触发的迁移
+ *      MR_NUMA: NUMA优化触发的迁移
+ *      
+ * 函数执行流程:
+ * 1. 遍历待迁移页面链表
+ *    - 每次取出一个页面进行处理
+ *    - 透明大页(THP)会作为一个整体迁移
+ *    - 允许通过信号中断长时间的迁移
+ *
+ * 2. 对每个页面执行迁移:
+ *    - 调用get_new_page获取目标页面
+ *    - 建立临时的迁移页表项(migration entry)
+ *    - 复制页面内容(除MIGRATE_SYNC_NO_COPY外)
+ *    - 更新页面相关的各类计数器和标志位
+ *    - 处理页面的引用计数和映射关系
+ *
+ * 3. 特殊情况处理:
+ *    - 设备专用内存页面需要特殊迁移流程
+ *    - 被锁定的页面会推迟迁移
+ *    - 正在回写的页面需要等待IO完成
+ *    - 大页面的迁移需要额外的同步机制
+ *
+ * 4. 错误恢复:
+ *    - 迁移失败时回滚已完成的更改
+ *    - 清理临时的迁移页表项
+ *    - 恢复页面的原始状态
+ *    - 释放已分配的目标页面
+ * 
+ * 5. 完成后的清理工作:
+ *    - 更新各类统计计数
+ *    - 触发相关的内存规整操作
+ *    - 唤醒等待迁移完成的进程
+ *
+ * 注意事项:
+ * - 调用者必须确保源页面已经被正确隔离
+ * - 迁移过程中不能持有页面锁,以避免死锁
+ * - 透明大页的迁移可能会被拆分处理
+ * - 需要考虑并发和同步问题
+ * - 某些页面可能无法迁移(如内核代码页)
+ *
+ * 返回值:
+ * 0        - 所有页面都成功迁移
+ * 正数 N   - N个页面迁移失败 
+ * -ENOMEM  - 无法分配新页面
+ * -EAGAIN  - 暂时无法完成迁移,可重试
+ * -EEXIST  - 页面已经在迁移中
+ * -EINTR   - 被信号中断
+ *
+ * 上下文:
+ * - 可以在进程上下文或软中断上下文中调用
+ * - 不能在中断上下文或持有自旋锁时调用
+ * - 调用时最好不要禁止内存回收
+ */
+int migrate_pages(struct list_head *from, new_page_t get_new_page,
+            		free_page_t put_new_page, unsigned long private,
+            		enum migrate_mode mode, int reason)
     int retry = 1;
     int thp_retry = 1;
     int nr_failed = 0;
