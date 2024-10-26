@@ -1363,7 +1363,9 @@ found:
  *    - 将整个大页作为一个单位加入迁移列表
  *    - 跳过该大页范围内的其他页框,避免重复处理 
  *
- * 2. 被HWPoison标记的页面特殊处理:
+ * 2. 被HWPoison(硬件故障)标记的页面特殊处理:
+ *    HWPoison(Hardware Poisoned)表示该页面已被硬件检测到不可恢复的内存错误,
+ *    如ECC错误等。这种页面被标记为"中毒"状态,表明其数据已损坏且不可用。
  *    - 这些页面因硬件故障无法使用,需要特殊处理
  *    - 如果在LRU链表上要将其隔离
  *    - 如果被映射则尝试解除映射
@@ -1372,7 +1374,8 @@ found:
  * 3. 普通页面的迁移:
  *    - LRU页面(匿名页和文件页)通过isolate_lru_page()隔离
  *    - 非LRU但可移动的页面通过isolate_movable_page()隔离
- *    - 隔离后的页面加入迁移源列表
+ *    - 隔离后的页面加入迁移源列表(source list),这是一个链表结构,用于存储所有需要迁移的页面。
+ *      迁移源列表中的页面已经从原来的管理结构(如LRU链表)中隔离出来,等待被迁移到新的位置。
  *
  * 4. 执行实际的迁移:
  *    - 使用migrate_pages()将source链表中的页面迁移到其他节点
@@ -1600,10 +1603,28 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
     int ret, node;
     char *reason;
 
-    /* 检查参数合法性,只允许对齐到section的内存下线 */
+    /* 检查参数合法性,只允许对齐到section的内存下线
+     * 内存热插拔必须以section为单位进行操作,原因如下:
+     * 1. section是内存管理的基本单位,包含固定数量的页面(通常是128MB)
+     * 2. 硬件层面的内存热插拔也是以section为单位
+     * 3. section对齐可以简化内存管理,避免处理部分section的复杂情况
+     * 4. 系统的内存映射表和其他数据结构都是基于section组织的
+     * 5. 确保内存操作的原子性和一致性
+     */
+    /* 
+     * 检查两个条件:
+     * 1. nr_pages不能为0,因为不能下线0个页面
+     * 2. start_pfn和nr_pages必须都对齐到SECTION边界
+     *    - 使用IS_ALIGNED检查对齐
+     *    - 用位或运算|同时检查两个值
+     *    - PAGES_PER_SECTION是内存section的大小
+     * 如果任一条件不满足,打印警告并返回-EINVAL错误码
+     */
     if (WARN_ON_ONCE(!nr_pages || !IS_ALIGNED(start_pfn | nr_pages, PAGES_PER_SECTION)))
         return -EINVAL;
 
+    // 调用mem_hotplug_begin()函数,开始内存热插拔操作序列。
+    // 这个函数会获取必要的锁,以序列化热插拔操作,防止与其他子系统冲突。
     mem_hotplug_begin();
 
     // 确保要下线的内存范围中不存在内存空洞(memory holes)
@@ -1676,7 +1697,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
         pfn = start_pfn; // 重置页帧号到起始位置
         // 执行迁移的主循环
         do {
-            /* 检查是否有待处理信号 - 允许用户中断长时间操作 */
+            /* 检查是否有待处理信号 - 允许用户中断长时间的热插拔操作 */
             /**
             内存热插拔是一个耗时的操作，特别是当需要迁移大量页面时
             在offline_pages()函数中的这个判断（参考行号1680-1681）是为了实现可中断的内存下线操作
@@ -1699,7 +1720,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
          * @pfn: 输入起始页帧号，输出下一个要处理的页帧号
          * @end_pfn: 结束页帧号
          * 返回: 0 - 找到可移动页面
-         *      -ENOENT - 没有更多可移动页面
+         *      ENOENT - 没有更多可移动页面
          */
             ret = scan_movable_pages(pfn, // 输入：开始扫描的页帧号
                                      end_pfn, // 输入：结束的页帧号
@@ -1755,7 +1776,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
         ret = dissolve_free_huge_pages(start_pfn, end_pfn);
         if (ret) {
             reason = "failure to dissolve huge pages";
-            goto failed_removal_isolated; 
+            goto failed_removal_isolated;
         }
 
         /* 
