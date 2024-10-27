@@ -1637,7 +1637,7 @@ out:
  * @reason: 迁移原因,用于跟踪和调试
  *      MR_COMPACTION: 内存规整触发的迁移
  *      MR_MEMORY_HOTPLUG: 内存热插拔触发的迁移
- *      MR_MEMORY_FAILURE: 内存错误恢复触发的迁移
+ *      MR_MEMORY_FAILURE: 内存错误恢复触发的迁移，这里我觉得完全可以被我复用，只需要修改一下逻辑，将页面迁移到ZONE_NORMAL中去
  *      MR_SYSCALL: 系统调用触发的迁移
  *      MR_NUMA: NUMA优化触发的迁移
  *      
