@@ -1691,23 +1691,27 @@ out:
  * - 不能在中断上下文或持有自旋锁时调用
  * - 调用时最好不要禁止内存回收
  */
-int migrate_pages(struct list_head *from, new_page_t get_new_page, free_page_t put_new_page, unsigned long private,
-                  enum migrate_mode mode, int reason)
+/* 内存页面迁移主函数 */
+int migrate_pages(struct list_head *from,      /* 待迁移页面链表头 */
+			new_page_t get_new_page,  /* 分配新页面回调函数 */  
+			free_page_t put_new_page, /* 释放新页面回调函数 */
+			unsigned long private,     /* 传递给回调函数的私有数据 */
+			enum migrate_mode mode,    /* 迁移模式:同步/异步 */
+			int reason)               /* 迁移原因,用于debug */
 {
-    int retry = 1;
-    int thp_retry = 1;
-    int nr_failed = 0;
-    int nr_succeeded = 0;
-    int nr_thp_succeeded = 0;
-    int nr_thp_failed = 0;
-    int nr_thp_split = 0;
-    int pass = 0;
-    bool is_thp = false;
-    struct page *page;
-    struct page *page2;
-    int swapwrite = current->flags & PF_SWAPWRITE;
-    int rc, nr_subpages;
-
+	int retry = 1;                    /* 普通页面迁移重试标志 */
+	int thp_retry = 1;                /* 透明大页迁移重试标志 */
+	int nr_failed = 0;                /* 记录迁移失败的普通页数 */
+	int nr_succeeded = 0;             /* 记录迁移成功的普通页数 */
+	int nr_thp_succeeded = 0;         /* 记录迁移成功的透明大页数 */
+	int nr_thp_failed = 0;            /* 记录迁移失败的透明大页数 */
+	int nr_thp_split = 0;             /* 记录因迁移而拆分的透明大页数 */
+	int pass = 0;                     /* 当前迁移重试次数 */
+	bool is_thp = false;              /* 当前处理的页面是否为透明大页 */
+	struct page *page;                /* 当前处理的源页面 */
+	struct page *page2;               /* 遍历时的临时页面指针 */
+	int swapwrite = current->flags & PF_SWAPWRITE;  /* 保存当前进程swap标志 */
+	int rc, nr_subpages;              /* 返回值和子页面计数器 */
     if (!swapwrite)
         current->flags |= PF_SWAPWRITE;
 
