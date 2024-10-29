@@ -1413,14 +1413,13 @@ static int do_migrate_range(unsigned long start_pfn, unsigned long end_pfn)
             pfn = page_to_pfn(head) + thp_nr_pages(page) - 1;
 
         /*
-		 * HWPoison pages have elevated reference counts so the migration would
-		 * fail on them. It also doesn't make any sense to migrate them in the
-		 * first place. Still try to unmap such a page in case it is still mapped
-		 * (e.g. current hwpoison implementation doesn't unmap KSM pages but keep
-		 * the unmap as the catch all safety net).
+		 * 硬件中毒页面需要特殊处理:
+		 * - 它们有特殊的引用计数,使迁移必定失败
+		 * - 迁移这些页面也没有意义,因为它们已经不可用
+		 * - 唯一需要做的就是尝试解除它们的映射关系
 		 */
         if (PageHWPoison(page)) {
-            if (WARN_ON(PageLRU(page)))
+            if (WARN_ON(PageLRU(page))) 
                 isolate_lru_page(page);
             if (page_mapped(page))
                 try_to_unmap(page, TTU_IGNORE_MLOCK);
