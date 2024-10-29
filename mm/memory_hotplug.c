@@ -1419,7 +1419,7 @@ static int do_migrate_range(unsigned long start_pfn, unsigned long end_pfn)
 		 * - 唯一需要做的就是尝试解除它们的映射关系
 		 */
         if (PageHWPoison(page)) {
-            if (WARN_ON(PageLRU(page))) 
+            if (WARN_ON(PageLRU(page)))
                 isolate_lru_page(page);
             if (page_mapped(page))
                 try_to_unmap(page, TTU_IGNORE_MLOCK);

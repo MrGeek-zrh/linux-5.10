@@ -87,8 +87,8 @@ static int memory_subsys_offline(struct device *dev);
  */
 static struct bus_type memory_subsys = {
     .name = MEMORY_CLASS_NAME,
-    .dev_name = MEMORY_CLASS_NAME, 
-    .online = memory_subsys_online,  /* 处理内存块上线 */
+    .dev_name = MEMORY_CLASS_NAME,
+    .online = memory_subsys_online, /* 处理内存块上线 */
     .offline = memory_subsys_offline, /* 处理内存块下线 */
 };
 
@@ -483,6 +483,20 @@ static ssize_t hard_offline_page_store(struct device *dev, struct device_attribu
 /**
  * /sys/devices/system/memory/soft_offline_page
  * /sys/devices/system/memory/hard_offline_page
+ */
+/**
+ * 用于软下线内存页面的sysfs接口:
+ * 1. 只有管理员权限可以执行
+ * 2. 接收页帧号(PFN) 作为输入
+ * 3. 尝试安全地迁移页面内容
+ * 4. 用于预防性维护,避免使用有潜在问题的页面
+ *
+ * // Expands to
+    struct device_attribute dev_attr_soft_offline_page = {
+        .attr = { .name = "soft_offline_page", .mode = 0200 },
+        .store = soft_offline_page_store,
+    }
+    当用户向 /sys/devices/system/memory/soft_offline_page 写入数据时,该 store 函数会被调用
  */
 static DEVICE_ATTR_WO(soft_offline_page);
 static DEVICE_ATTR_WO(hard_offline_page);
