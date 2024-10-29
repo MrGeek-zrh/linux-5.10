@@ -1227,6 +1227,12 @@ struct zone *test_pages_in_a_zone(unsigned long start_pfn, unsigned long end_pfn
     struct zone *zone = NULL;
     struct page *page;
     int i;
+    /*
+     * 遍历一个物理内存范围,检查页面是否在同一个zone中
+     * start_pfn: 起始页帧号
+     * sec_end_pfn: 该section结束的页帧号(对齐到section边界)
+     * 每轮循环处理一个section内的所有页面
+     */
     for (pfn = start_pfn, sec_end_pfn = SECTION_ALIGN_UP(start_pfn + 1); pfn < end_pfn;
          pfn = sec_end_pfn, sec_end_pfn += PAGES_PER_SECTION) {
         /* Make sure the memory section is present first */
