@@ -453,16 +453,49 @@ static DEVICE_ATTR_WO(probe);
  */
 
 /* Soft offline a page */
+/*
+ * soft_offline_page_store - 软下线一个内存页面
+ * @dev: 设备结构体
+ * @attr: 设备属性结构体
+ * @buf: 包含需要下线页面的PFN的用户空间缓冲区
+ * @count: buf的大小
+ * 
+ * 该函数实现通过/sys/devices/system/memory/soft_offline_page接口
+ * 软下线一个指定的内存页面。软下线不会杀死进程,而是尝试安全地迁移页面内容。
+ * 主要用于预防性维护,避免使用可能存在潜在问题的页面。
+ *
+ * 处理流程:
+ * 1. 检查调用者权限,必须具有CAP_SYS_ADMIN特权
+ * 2. 从用户空间获取要下线的页面PFN 
+ * 3. 将PFN转换为实际的页帧号
+ * 4. 调用soft_offline_page()执行实际的软下线操作
+ *
+ * 返回值:
+ * count - 软下线成功
+ * -EPERM - 权限不足
+ * -EINVAL - 无效的PFN值
+ * 其他负值 - soft_offline_page()返回的错误码
+ */
 static ssize_t soft_offline_page_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
     int ret;
     u64 pfn;
+
+    /* 检查调用进程是否具有管理员权限 */
     if (!capable(CAP_SYS_ADMIN))
         return -EPERM;
+
+    /* 将用户输入的字符串转换为PFN值 */
     if (kstrtoull(buf, 0, &pfn) < 0)
         return -EINVAL;
+
+    /* 获取实际的页帧号,buf中的值需要右移PAGE_SHIFT位 */
     pfn >>= PAGE_SHIFT;
+
+    /* 尝试软下线该页面 */
     ret = soft_offline_page(pfn, 0);
+
+    /* 成功返回写入的字节数,失败返回错误码 */
     return ret == 0 ? count : ret;
 }
 
