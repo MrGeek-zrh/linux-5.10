@@ -1692,138 +1692,161 @@ out:
  * - 调用时最好不要禁止内存回收
  */
 /* 内存页面迁移主函数 */
-int migrate_pages(struct list_head *from,      /* 待迁移页面链表头 */
-			new_page_t get_new_page,  /* 分配新页面回调函数 */  
-			free_page_t put_new_page, /* 释放新页面回调函数 */
-			unsigned long private,     /* 传递给回调函数的私有数据 */
-			enum migrate_mode mode,    /* 迁移模式:同步/异步 */
-			int reason)               /* 迁移原因,用于debug */
+int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
+                  new_page_t get_new_page, /* 分配新页面回调函数 */
+                  free_page_t put_new_page, /* 释放新页面回调函数 */
+                  unsigned long private, /* 传递给回调函数的私有数据 */
+                  enum migrate_mode mode, /* 迁移模式:同步/异步 */
+                  int reason) /* 迁移原因,用于debug */
 {
-	int retry = 1;                    /* 普通页面迁移重试标志 */
-	int thp_retry = 1;                /* 透明大页迁移重试标志 */
-	int nr_failed = 0;                /* 记录迁移失败的普通页数 */
-	int nr_succeeded = 0;             /* 记录迁移成功的普通页数 */
-	int nr_thp_succeeded = 0;         /* 记录迁移成功的透明大页数 */
-	int nr_thp_failed = 0;            /* 记录迁移失败的透明大页数 */
-	int nr_thp_split = 0;             /* 记录因迁移而拆分的透明大页数 */
-	int pass = 0;                     /* 当前迁移重试次数 */
-	bool is_thp = false;              /* 当前处理的页面是否为透明大页 */
-	struct page *page;                /* 当前处理的源页面 */
-	struct page *page2;               /* 遍历时的临时页面指针 */
-	int swapwrite = current->flags & PF_SWAPWRITE;  /* 保存当前进程swap标志 */
-	int rc, nr_subpages;              /* 返回值和子页面计数器 */
+    // retry用于控制普通页面的迁移重试
+    int retry = 1;
+
+    // thp_retry用于控制透明大页(THP)的迁移重试
+    int thp_retry = 1;
+
+    // nr_failed统计迁移失败的普通页面数量
+    int nr_failed = 0;
+
+    // nr_succeeded统计迁移成功的普通页面数量
+    int nr_succeeded = 0;
+
+    // nr_thp_succeeded统计迁移成功的透明大页数量
+    int nr_thp_succeeded = 0;
+
+    // nr_thp_failed统计迁移失败的透明大页数量
+    int nr_thp_failed = 0;
+
+    // nr_thp_split统计需要拆分的透明大页数量
+    int nr_thp_split = 0;
+
+    // pass记录当前是第几轮迁移尝试
+    int pass = 0;
+
+    // is_thp标记当前处理的页面是否为透明大页
+    bool is_thp = false;
+
+    // page/page2为遍历链表使用的指针
+    struct page *page;
+    struct page *page2;
+
+    // swapwrite保存当前进程的swap标志位
+    int swapwrite = current->flags & PF_SWAPWRITE;
+
+    // rc用于保存函数返回值,nr_subpages记录页面的子页数量
+    int rc, nr_subpages;
+
+    // 如果进程未设置swap标志位,则临时设置它
     if (!swapwrite)
         current->flags |= PF_SWAPWRITE;
 
-    /**
-     *  
-     */
+    // 最多尝试迁移10轮,只要还有页面需要重试就继续
     for (pass = 0; pass < 10 && (retry || thp_retry); pass++) {
+        // 重置重试标志
         retry = 0;
         thp_retry = 0;
 
+        // 遍历待迁移页面链表
         list_for_each_entry_safe(page, page2, from, lru)
         {
         retry:
-            /*
-			 * THP statistics is based on the source huge page.
-			 * Capture required information that might get lost
-			 * during migration.
-			 */
+            // 记录页面类型信息,用于统计
             is_thp = PageTransHuge(page) && !PageHuge(page);
             nr_subpages = thp_nr_pages(page);
 
-            /**
-             *  
-             */
+            // 定期让出CPU,防止长时间占用
             cond_resched();
 
-            /**
-             *  
-             */
+            // 处理大页迁移
             if (PageHuge(page))
                 rc = unmap_and_move_huge_page(get_new_page, put_new_page, private, page, pass > 2, mode, reason);
+            // 处理普通页面迁移
             else
                 rc = unmap_and_move(get_new_page, put_new_page, private, page, pass > 2, mode, reason);
 
-            /**
-             *  
-             */
+            // 根据迁移结果进行相应处理
             switch (rc) {
                 case -ENOMEM:
-                    /*
-				 * THP migration might be unsupported or the
-				 * allocation could've failed so we should
-				 * retry on the same page with the THP split
-				 * to base pages.
-				 *
-				 * Head page is retried immediately and tail
-				 * pages are added to the tail of the list so
-				 * we encounter them after the rest of the list
-				 * is processed.
-				 */
+                    // 处理内存不足的情况
                     if (is_thp) {
+                        // 尝试拆分透明大页后重试
                         lock_page(page);
                         rc = split_huge_page_to_list(page, from);
                         unlock_page(page);
                         if (!rc) {
+                            // 拆分成功,重新处理当前页面
                             list_safe_reset_next(page, page2, lru);
                             nr_thp_split++;
                             goto retry;
                         }
-
+                        // 拆分失败记录统计信息
                         nr_thp_failed++;
                         nr_failed += nr_subpages;
                         goto out;
                     }
+                    // 普通页面内存不足,直接记录失败
                     nr_failed++;
                     goto out;
+
                 case -EAGAIN:
+                    // 需要重试的情况
                     if (is_thp) {
+                        // 透明大页标记重试
                         thp_retry++;
                         break;
                     }
+                    // 普通页面标记重试
                     retry++;
                     break;
+
                 case MIGRATEPAGE_SUCCESS:
+                    // 迁移成功的情况
                     if (is_thp) {
+                        // 统计透明大页成功数
                         nr_thp_succeeded++;
                         nr_succeeded += nr_subpages;
                         break;
                     }
+                    // 统计普通页面成功数
                     nr_succeeded++;
                     break;
+
                 default:
-                    /*
-				 * Permanent failure (-EBUSY, -ENOSYS, etc.):
-				 * unlike -EAGAIN case, the failed page is
-				 * removed from migration page list and not
-				 * retried in the next outer loop.
-				 */
+                    // 其他错误情况(EBUSY,ENOSYS等)
                     if (is_thp) {
+                        // 统计透明大页失败数
                         nr_thp_failed++;
                         nr_failed += nr_subpages;
                         break;
                     }
+                    // 统计普通页面失败数
                     nr_failed++;
                     break;
             }
         }
     }
+
+    // 累加最终的失败页面数
     nr_failed += retry + thp_retry;
     nr_thp_failed += thp_retry;
     rc = nr_failed;
+
 out:
+    // 更新全局的页面迁移统计信息
     count_vm_events(PGMIGRATE_SUCCESS, nr_succeeded);
     count_vm_events(PGMIGRATE_FAIL, nr_failed);
     count_vm_events(THP_MIGRATION_SUCCESS, nr_thp_succeeded);
     count_vm_events(THP_MIGRATION_FAIL, nr_thp_failed);
     count_vm_events(THP_MIGRATION_SPLIT, nr_thp_split);
+
+    // 记录迁移跟踪信息用于调试
     trace_mm_migrate_pages(nr_succeeded, nr_failed, nr_thp_succeeded, nr_thp_failed, nr_thp_split, mode, reason);
 
+    // 恢复进程的原始swap标志位
     if (!swapwrite)
         current->flags &= ~PF_SWAPWRITE;
 
+    // 返回失败页面数作为结果
     return rc;
 }
 

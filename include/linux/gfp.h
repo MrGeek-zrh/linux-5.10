@@ -16,33 +16,33 @@ struct vm_area_struct;
  */
 
 /* Plain integer GFP bitmasks. Do not use this directly. */
-#define ___GFP_DMA		0x01u
-#define ___GFP_HIGHMEM		0x02u
-#define ___GFP_DMA32		0x04u
-#define ___GFP_MOVABLE		0x08u   /* 可移动 */
-#define ___GFP_RECLAIMABLE	0x10u   /* 可回收 */
-#define ___GFP_HIGH		0x20u   //表示进程具有很高的优先级，允许访问预留内存
-#define ___GFP_IO		0x40u
-#define ___GFP_FS		0x80u
-#define ___GFP_ZERO		0x100u
-#define ___GFP_ATOMIC		0x200u
-#define ___GFP_DIRECT_RECLAIM	0x400u
-#define ___GFP_KSWAPD_RECLAIM	0x800u
-#define ___GFP_WRITE		0x1000u
-#define ___GFP_NOWARN		0x2000u
-#define ___GFP_RETRY_MAYFAIL	0x4000u
-#define ___GFP_NOFAIL		0x8000u
-#define ___GFP_NORETRY		0x10000u
-#define ___GFP_MEMALLOC		0x20000u
-#define ___GFP_COMP		0x40000u
-#define ___GFP_NOMEMALLOC	0x80000u
-#define ___GFP_HARDWALL		0x100000u
-#define ___GFP_THISNODE		0x200000u
-#define ___GFP_ACCOUNT		0x400000u
+#define ___GFP_DMA 0x01u
+#define ___GFP_HIGHMEM 0x02u
+#define ___GFP_DMA32 0x04u
+#define ___GFP_MOVABLE 0x08u /* 可移动 */
+#define ___GFP_RECLAIMABLE 0x10u /* 可回收 */
+#define ___GFP_HIGH 0x20u //表示进程具有很高的优先级，允许访问预留内存
+#define ___GFP_IO 0x40u
+#define ___GFP_FS 0x80u
+#define ___GFP_ZERO 0x100u
+#define ___GFP_ATOMIC 0x200u
+#define ___GFP_DIRECT_RECLAIM 0x400u
+#define ___GFP_KSWAPD_RECLAIM 0x800u
+#define ___GFP_WRITE 0x1000u
+#define ___GFP_NOWARN 0x2000u
+#define ___GFP_RETRY_MAYFAIL 0x4000u
+#define ___GFP_NOFAIL 0x8000u
+#define ___GFP_NORETRY 0x10000u
+#define ___GFP_MEMALLOC 0x20000u
+#define ___GFP_COMP 0x40000u
+#define ___GFP_NOMEMALLOC 0x80000u
+#define ___GFP_HARDWALL 0x100000u
+#define ___GFP_THISNODE 0x200000u
+#define ___GFP_ACCOUNT 0x400000u
 #ifdef CONFIG_LOCKDEP
-#define ___GFP_NOLOCKDEP	0x800000u
+#define ___GFP_NOLOCKDEP 0x800000u
 #else
-#define ___GFP_NOLOCKDEP	0
+#define ___GFP_NOLOCKDEP 0
 #endif
 /* If the above are modified, __GFP_BITS_SHIFT may need updating */
 
@@ -56,14 +56,14 @@ struct vm_area_struct;
 /**
  *  该标志请求分配发生在可进程 DMA 的内存区段中
  */
-#define __GFP_DMA	((__force gfp_t)___GFP_DMA)
+#define __GFP_DMA ((__force gfp_t)___GFP_DMA)
 /**
  *  分配的内存可位于高端内存
  */
-#define __GFP_HIGHMEM	((__force gfp_t)___GFP_HIGHMEM)
-#define __GFP_DMA32	((__force gfp_t)___GFP_DMA32)
-#define __GFP_MOVABLE	((__force gfp_t)___GFP_MOVABLE)  /* ZONE_MOVABLE allowed */
-#define GFP_ZONEMASK	(__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)/* ZONE 的掩码 */
+#define __GFP_HIGHMEM ((__force gfp_t)___GFP_HIGHMEM)
+#define __GFP_DMA32 ((__force gfp_t)___GFP_DMA32)
+#define __GFP_MOVABLE ((__force gfp_t)___GFP_MOVABLE) /* ZONE_MOVABLE allowed */
+#define GFP_ZONEMASK (__GFP_DMA | __GFP_HIGHMEM | __GFP_DMA32 | __GFP_MOVABLE) /* ZONE 的掩码 */
 
 /**
  * DOC: Page mobility and placement hints
@@ -92,11 +92,11 @@ struct vm_area_struct;
  *
  * %__GFP_ACCOUNT causes the allocation to be accounted to kmemcg.
  */
-#define __GFP_RECLAIMABLE ((__force gfp_t)___GFP_RECLAIMABLE/* 0x10 */)   /* 可回收 */
-#define __GFP_WRITE	((__force gfp_t)___GFP_WRITE)
-#define __GFP_HARDWALL   ((__force gfp_t)___GFP_HARDWALL)
-#define __GFP_THISNODE	((__force gfp_t)___GFP_THISNODE)
-#define __GFP_ACCOUNT	((__force gfp_t)___GFP_ACCOUNT) /* memory control */
+#define __GFP_RECLAIMABLE ((__force gfp_t)___GFP_RECLAIMABLE /* 0x10 */) /* 可回收 */
+#define __GFP_WRITE ((__force gfp_t)___GFP_WRITE)
+#define __GFP_HARDWALL ((__force gfp_t)___GFP_HARDWALL)
+#define __GFP_THISNODE ((__force gfp_t)___GFP_THISNODE)
+#define __GFP_ACCOUNT ((__force gfp_t)___GFP_ACCOUNT) /* memory control */
 
 /**
  * DOC: Watermark modifiers
@@ -129,12 +129,12 @@ struct vm_area_struct;
  *  不能直接回收页面或等待，调用者通常在中断上下文中
  *  __alloc_pages_slowpath()
  */
-#define __GFP_ATOMIC	((__force gfp_t)___GFP_ATOMIC)  //
+#define __GFP_ATOMIC ((__force gfp_t)___GFP_ATOMIC) //
 /**
  *  表示进程具有很高的优先级，允许访问预留内存
  */
-#define __GFP_HIGH	((__force gfp_t)___GFP_HIGH)    //
-#define __GFP_MEMALLOC	((__force gfp_t)___GFP_MEMALLOC)
+#define __GFP_HIGH ((__force gfp_t)___GFP_HIGH) //
+#define __GFP_MEMALLOC ((__force gfp_t)___GFP_MEMALLOC)
 #define __GFP_NOMEMALLOC ((__force gfp_t)___GFP_NOMEMALLOC)
 
 /**
@@ -208,21 +208,21 @@ struct vm_area_struct;
  * loop around allocator.
  * Using this flag for costly allocations is _highly_ discouraged.
  */
-#define __GFP_IO	((__force gfp_t)___GFP_IO)
-#define __GFP_FS	((__force gfp_t)___GFP_FS)
-#define __GFP_DIRECT_RECLAIM	((__force gfp_t)___GFP_DIRECT_RECLAIM) /* Caller can reclaim, 可以回收 */
-#define __GFP_KSWAPD_RECLAIM	((__force gfp_t)___GFP_KSWAPD_RECLAIM) /* kswapd can wake */
-#define __GFP_RECLAIM ((__force gfp_t)(___GFP_DIRECT_RECLAIM|___GFP_KSWAPD_RECLAIM))
-#define __GFP_RETRY_MAYFAIL	((__force gfp_t)___GFP_RETRY_MAYFAIL)
+#define __GFP_IO ((__force gfp_t)___GFP_IO)
+#define __GFP_FS ((__force gfp_t)___GFP_FS)
+#define __GFP_DIRECT_RECLAIM ((__force gfp_t)___GFP_DIRECT_RECLAIM) /* Caller can reclaim, 可以回收 */
+#define __GFP_KSWAPD_RECLAIM ((__force gfp_t)___GFP_KSWAPD_RECLAIM) /* kswapd can wake */
+#define __GFP_RECLAIM ((__force gfp_t)(___GFP_DIRECT_RECLAIM | ___GFP_KSWAPD_RECLAIM))
+#define __GFP_RETRY_MAYFAIL ((__force gfp_t)___GFP_RETRY_MAYFAIL)
 /**
  *  努力满足分配请求，不允许失败
  *  不鼓励使用这个标志
  */
-#define __GFP_NOFAIL	((__force gfp_t)___GFP_NOFAIL)
+#define __GFP_NOFAIL ((__force gfp_t)___GFP_NOFAIL)
 /**
  *  如果所请求的内存不可获得，就立即返回
  */
-#define __GFP_NORETRY	((__force gfp_t)___GFP_NORETRY)
+#define __GFP_NORETRY ((__force gfp_t)___GFP_NORETRY)
 
 /**
  * DOC: Action modifiers
@@ -240,15 +240,15 @@ struct vm_area_struct;
  *  该标志很少使用
  *  它可以避免内核在无法满足分配请求时产生警告。
  */
-#define __GFP_NOWARN	((__force gfp_t)___GFP_NOWARN)
+#define __GFP_NOWARN ((__force gfp_t)___GFP_NOWARN)
 /**
  *
  */
-#define __GFP_COMP	((__force gfp_t)___GFP_COMP)
+#define __GFP_COMP ((__force gfp_t)___GFP_COMP)
 /**
  *
  */
-#define __GFP_ZERO	((__force gfp_t)___GFP_ZERO)
+#define __GFP_ZERO ((__force gfp_t)___GFP_ZERO)
 
 /* Disable lockdep for GFP context tracking */
 #define __GFP_NOLOCKDEP ((__force gfp_t)___GFP_NOLOCKDEP)
@@ -328,48 +328,46 @@ struct vm_area_struct;
 /**
  *  用于在中断例程或其他运行与进程上下文之外的代码中分配内存，不会休眠
  */
-#define GFP_ATOMIC	/* 不睡眠, 必须分配成功 */(__GFP_HIGH|__GFP_ATOMIC|__GFP_KSWAPD_RECLAIM)
+#define GFP_ATOMIC /* 不睡眠, 必须分配成功 */ (__GFP_HIGH | __GFP_ATOMIC | __GFP_KSWAPD_RECLAIM)
 
 /**
  *  内核内存的通常分配方式，可能睡眠
  */
-#define GFP_KERNEL	(__GFP_RECLAIM | __GFP_IO | __GFP_FS)
+#define GFP_KERNEL (__GFP_RECLAIM | __GFP_IO | __GFP_FS)
 #define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
 /* 不允许直接内存回收:开启物理 IO 或者 文件系统回调 */
-#define GFP_NOWAIT	(__GFP_KSWAPD_RECLAIM)
+#define GFP_NOWAIT (__GFP_KSWAPD_RECLAIM)
 
 /**
  *  分配过程，禁止任何的 IO 初始化
  *  主要在文件系统和虚拟内存代码中使用，内存分配可休眠，但不应该发生递归的文件系统调用
  */
-#define GFP_NOIO	(__GFP_RECLAIM)
+#define GFP_NOIO (__GFP_RECLAIM)
 
 /**
  *  具有此标志的分配不允许执行任何文件系统调用
  *  主要在文件系统和虚拟内存代码中使用，内存分配可休眠，但不应该发生递归的文件系统调用
  */
-#define GFP_NOFS	(__GFP_RECLAIM | __GFP_IO)
+#define GFP_NOFS (__GFP_RECLAIM | __GFP_IO)
 
 /**
  *  用于为用户空间页分配内存，可能会休眠
  */
-#define GFP_USER	(__GFP_RECLAIM | __GFP_IO | __GFP_FS | __GFP_HARDWALL)
+#define GFP_USER (__GFP_RECLAIM | __GFP_IO | __GFP_FS | __GFP_HARDWALL)
 
 /**
  *  该标志请求分配发生在可进程 DMA 的内存区段中
  */
-#define GFP_DMA		__GFP_DMA
-#define GFP_DMA32	__GFP_DMA32
+#define GFP_DMA __GFP_DMA
+#define GFP_DMA32 __GFP_DMA32
 
 /**
  *  类似于 GFP_USER ，不过如果有高端内存的话，就从那里分配
  */
-#define GFP_HIGHUSER	(GFP_USER | __GFP_HIGHMEM)
-#define GFP_HIGHUSER_MOVABLE	(GFP_HIGHUSER | __GFP_MOVABLE)
-#define GFP_TRANSHUGE_LIGHT	((GFP_HIGHUSER_MOVABLE | __GFP_COMP | \
-			 __GFP_NOMEMALLOC | __GFP_NOWARN) & ~__GFP_RECLAIM)
-#define GFP_TRANSHUGE	(GFP_TRANSHUGE_LIGHT | __GFP_DIRECT_RECLAIM)
-
+#define GFP_HIGHUSER (GFP_USER | __GFP_HIGHMEM)
+#define GFP_HIGHUSER_MOVABLE (GFP_HIGHUSER | __GFP_MOVABLE)
+#define GFP_TRANSHUGE_LIGHT ((GFP_HIGHUSER_MOVABLE | __GFP_COMP | __GFP_NOMEMALLOC | __GFP_NOWARN) & ~__GFP_RECLAIM)
+#define GFP_TRANSHUGE (GFP_TRANSHUGE_LIGHT | __GFP_DIRECT_RECLAIM)
 
 /**
  *  只剩下 __GFP_RECLAIMABLE 和 __GFP_MOVABLE,
@@ -377,21 +375,21 @@ struct vm_area_struct;
  *
  *  从分配掩码 获取 页面 迁移类型
  */
-static inline int gfp_migratetype(const gfp_t gfp_flags)    /* 获取迁移类型 */
+static inline int gfp_migratetype(const gfp_t gfp_flags) /* 获取迁移类型 */
 {
 /* Convert GFP flags to their corresponding migrate type */
-#define GFP_MOVABLE_MASK /* 0x18 */ (__GFP_RECLAIMABLE/* 0x10 */|__GFP_MOVABLE/* 0x8 */)
+#define GFP_MOVABLE_MASK /* 0x18 */ (__GFP_RECLAIMABLE /* 0x10 */ | __GFP_MOVABLE /* 0x8 */)
 #define GFP_MOVABLE_SHIFT 3
 
-	VM_WARN_ON((gfp_flags & GFP_MOVABLE_MASK) == GFP_MOVABLE_MASK);
-	BUILD_BUG_ON((1UL << GFP_MOVABLE_SHIFT) != ___GFP_MOVABLE);
-	BUILD_BUG_ON((___GFP_MOVABLE >> GFP_MOVABLE_SHIFT) != MIGRATE_MOVABLE);
+    VM_WARN_ON((gfp_flags & GFP_MOVABLE_MASK) == GFP_MOVABLE_MASK);
+    BUILD_BUG_ON((1UL << GFP_MOVABLE_SHIFT) != ___GFP_MOVABLE);
+    BUILD_BUG_ON((___GFP_MOVABLE >> GFP_MOVABLE_SHIFT) != MIGRATE_MOVABLE);
 
-	if (unlikely(page_group_by_mobility_disabled))
-		return MIGRATE_UNMOVABLE;
+    if (unlikely(page_group_by_mobility_disabled))
+        return MIGRATE_UNMOVABLE;
 
-	/* Group based on mobility *//* 迁移类型 */
-	return (gfp_flags & GFP_MOVABLE_MASK/* 0x18 */) >> GFP_MOVABLE_SHIFT/* 3 */;
+    /* Group based on mobility */ /* 迁移类型 */
+    return (gfp_flags & GFP_MOVABLE_MASK /* 0x18 */) >> GFP_MOVABLE_SHIFT /* 3 */;
 
 #undef GFP_MOVABLE_MASK
 #undef GFP_MOVABLE_SHIFT
@@ -402,7 +400,7 @@ static inline int gfp_migratetype(const gfp_t gfp_flags)    /* 获取迁移类�
  */
 static inline bool gfpflags_allow_blocking(const gfp_t gfp_flags)
 {
-	return !!(gfp_flags & __GFP_DIRECT_RECLAIM);
+    return !!(gfp_flags & __GFP_DIRECT_RECLAIM);
 }
 
 /**
@@ -424,7 +422,7 @@ static inline bool gfpflags_allow_blocking(const gfp_t gfp_flags)
  */
 static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
 {
-	return (gfp_flags & (__GFP_DIRECT_RECLAIM | __GFP_MEMALLOC)) == __GFP_DIRECT_RECLAIM;
+    return (gfp_flags & (__GFP_DIRECT_RECLAIM | __GFP_MEMALLOC)) == __GFP_DIRECT_RECLAIM;
 }
 
 #ifdef CONFIG_HIGHMEM
@@ -478,7 +476,7 @@ static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
  * GFP_ZONES_SHIFT must be <= 2 on 32 bit platforms.
  */
 
-#if defined(CONFIG_ZONE_DEVICE) && (MAX_NR_ZONES-1) <= 4
+#if defined(CONFIG_ZONE_DEVICE) && (MAX_NR_ZONES - 1) <= 4
 /* ZONE_DEVICE is not a valid GFP zone specifier */
 #define GFP_ZONES_SHIFT 2
 #else
@@ -489,16 +487,13 @@ static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
  * @brief
  *
  */
-#define GFP_ZONE_TABLE ( \
-	(ZONE_NORMAL << 0 * GFP_ZONES_SHIFT)				       \
-	| (OPT_ZONE_DMA << ___GFP_DMA * GFP_ZONES_SHIFT)		       \
-	| (OPT_ZONE_HIGHMEM << ___GFP_HIGHMEM * GFP_ZONES_SHIFT)	       \
-	| (OPT_ZONE_DMA32 << ___GFP_DMA32 * GFP_ZONES_SHIFT)		       \
-	| (ZONE_NORMAL << ___GFP_MOVABLE * GFP_ZONES_SHIFT)		       \
-	| (OPT_ZONE_DMA << (___GFP_MOVABLE | ___GFP_DMA) * GFP_ZONES_SHIFT)    \
-	| (ZONE_MOVABLE << (___GFP_MOVABLE | ___GFP_HIGHMEM) * GFP_ZONES_SHIFT)\
-	| (OPT_ZONE_DMA32 << (___GFP_MOVABLE | ___GFP_DMA32) * GFP_ZONES_SHIFT)\
-)
+#define GFP_ZONE_TABLE                                                                                             \
+    ((ZONE_NORMAL << 0 * GFP_ZONES_SHIFT) | (OPT_ZONE_DMA << ___GFP_DMA * GFP_ZONES_SHIFT) |                       \
+     (OPT_ZONE_HIGHMEM << ___GFP_HIGHMEM * GFP_ZONES_SHIFT) | (OPT_ZONE_DMA32 << ___GFP_DMA32 * GFP_ZONES_SHIFT) | \
+     (ZONE_NORMAL << ___GFP_MOVABLE * GFP_ZONES_SHIFT) |                                                           \
+     (OPT_ZONE_DMA << (___GFP_MOVABLE | ___GFP_DMA) * GFP_ZONES_SHIFT) |                                           \
+     (ZONE_MOVABLE << (___GFP_MOVABLE | ___GFP_HIGHMEM) * GFP_ZONES_SHIFT) |                                       \
+     (OPT_ZONE_DMA32 << (___GFP_MOVABLE | ___GFP_DMA32) * GFP_ZONES_SHIFT))
 
 /*
  * GFP_ZONE_BAD is a bitmap for all combinations of __GFP_DMA, __GFP_DMA32
@@ -506,37 +501,32 @@ static inline bool gfpflags_normal_context(const gfp_t gfp_flags)
  * entry starting with bit 0. Bit is set if the combination is not
  * allowed.
  */
-#define GFP_ZONE_BAD ( \
-	1 << (___GFP_DMA | ___GFP_HIGHMEM)				      \
-	| 1 << (___GFP_DMA | ___GFP_DMA32)				      \
-	| 1 << (___GFP_DMA32 | ___GFP_HIGHMEM)				      \
-	| 1 << (___GFP_DMA | ___GFP_DMA32 | ___GFP_HIGHMEM)		      \
-	| 1 << (___GFP_MOVABLE | ___GFP_HIGHMEM | ___GFP_DMA)		      \
-	| 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_DMA)		      \
-	| 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_HIGHMEM)		      \
-	| 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_DMA | ___GFP_HIGHMEM)  \
-)
+#define GFP_ZONE_BAD                                                                                                \
+    (1 << (___GFP_DMA | ___GFP_HIGHMEM) | 1 << (___GFP_DMA | ___GFP_DMA32) | 1 << (___GFP_DMA32 | ___GFP_HIGHMEM) | \
+     1 << (___GFP_DMA | ___GFP_DMA32 | ___GFP_HIGHMEM) | 1 << (___GFP_MOVABLE | ___GFP_HIGHMEM | ___GFP_DMA) |      \
+     1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_DMA) | 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_HIGHMEM) |    \
+     1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_DMA | ___GFP_HIGHMEM))
 
 /**
  *  根据掩码 获取 ZONE
  */
-static inline enum zone_type gfp_zone(gfp_t flags)  /* 从 flags 获取来自哪个 zone */
+static inline enum zone_type gfp_zone(gfp_t flags) /* 从 flags 获取来自哪个 zone */
 {
-	enum zone_type z;
-	/**
+    enum zone_type z;
+    /**
 	 * @brief 允许的 zone mask
 	 *
 	 * GFP_ZONEMASK = (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
 	 */
-	int bit = (__force int) (flags & GFP_ZONEMASK);
+    int bit = (__force int)(flags & GFP_ZONEMASK);
 
     /**
      *
      */
-	z = (GFP_ZONE_TABLE >> (bit * GFP_ZONES_SHIFT)) & ((1 << GFP_ZONES_SHIFT) - 1);
-	VM_BUG_ON((GFP_ZONE_BAD >> bit) & 1);
+    z = (GFP_ZONE_TABLE >> (bit * GFP_ZONES_SHIFT)) & ((1 << GFP_ZONES_SHIFT) - 1);
+    VM_BUG_ON((GFP_ZONE_BAD >> bit) & 1);
 
-	return z;
+    return z;
 }
 
 /*
@@ -561,12 +551,12 @@ static inline enum zone_type gfp_zone(gfp_t flags)  /* 从 flags 获取来自哪
 static inline int gfp_zonelist(gfp_t flags) /* 使用哪个 zonelist */
 {
 #ifdef CONFIG_NUMA
-	if (unlikely(flags & __GFP_THISNODE))
-		// 1
-		return ZONELIST_NOFALLBACK;
+    if (unlikely(flags & __GFP_THISNODE))
+        // 1
+        return ZONELIST_NOFALLBACK;
 #endif
-	// 0
-	return ZONELIST_FALLBACK;
+    // 0
+    return ZONELIST_FALLBACK;
 }
 
 /*
@@ -580,54 +570,53 @@ static inline int gfp_zonelist(gfp_t flags) /* 使用哪个 zonelist */
  */
 static inline struct zonelist *node_zonelist(int nid, gfp_t flags)
 {
-	// ZONELIST_FALLBACK = 0
-	// ZONELIST_NOFALLBACK = 1
-	return NODE_DATA(nid)->node_zonelists + gfp_zonelist(flags);
+    // ZONELIST_FALLBACK = 0
+    // ZONELIST_NOFALLBACK = 1
+    return NODE_DATA(nid)->node_zonelists + gfp_zonelist(flags);
 }
 
 #ifndef HAVE_ARCH_FREE_PAGE
-static inline void arch_free_page(struct page *page, int order) { }
+static inline void arch_free_page(struct page *page, int order)
+{
+}
 #endif
 #ifndef HAVE_ARCH_ALLOC_PAGE
-static inline void arch_alloc_page(struct page *page, int order) { }
+static inline void arch_alloc_page(struct page *page, int order)
+{
+}
 #endif
 #ifndef HAVE_ARCH_MAKE_PAGE_ACCESSIBLE
 static inline int arch_make_page_accessible(struct page *page)
 {
-	return 0;
+    return 0;
 }
 #endif
 
-struct page *
-__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order, int preferred_nid,
-							nodemask_t *nodemask);
+struct page *__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order, int preferred_nid, nodemask_t *nodemask);
 
 /**
- *  在特定的节点上分配内存
- */
-static inline struct page * /* 分配 page */
-__alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)    /* TODO */
+ *  在特定的节点上分配内存/* 分配 page */
+static inline struct page *__alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid) /* TODO */
 {
     /**
      *  最终调用函数
      */
-	return __alloc_pages_nodemask(gfp_mask, order, preferred_nid, NULL);
+    return __alloc_pages_nodemask(gfp_mask, order, preferred_nid, NULL);
 }
 
 /*
  * Allocate pages, preferring the node given as nid. The node must be valid and
  * online. For more general interface, see alloc_pages_node().
  */
-static inline struct page *
-__alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order) /* TODO */
+static inline struct page *__alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order) /* TODO */
 {
-	VM_BUG_ON(nid < 0 || nid >= MAX_NUMNODES);
-	VM_WARN_ON((gfp_mask & __GFP_THISNODE) && !node_online(nid));
+    VM_BUG_ON(nid < 0 || nid >= MAX_NUMNODES);
+    VM_WARN_ON((gfp_mask & __GFP_THISNODE) && !node_online(nid));
 
     /**
      *  分配物理页
      */
-	return __alloc_pages(gfp_mask, order, nid);
+    return __alloc_pages(gfp_mask, order, nid);
 }
 
 /*
@@ -640,13 +629,13 @@ __alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order) /* TODO */
  */
 static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order)
 {
-	if (nid == NUMA_NO_NODE)
-		nid = numa_mem_id();
+    if (nid == NUMA_NO_NODE)
+        nid = numa_mem_id();
 
     /**
      *  内部分配函数
      */
-	return __alloc_pages_node(nid, gfp_mask, order);
+    return __alloc_pages_node(nid, gfp_mask, order);
 }
 
 #ifdef CONFIG_NUMA
@@ -655,27 +644,24 @@ extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);
 /**
  *  分配页
  */
-static inline struct page *
-alloc_pages(gfp_t gfp_mask, unsigned int order)/* 分配 pages */
+static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order) /* 分配 pages */
 {
     /**
      *
      */
-	return alloc_pages_current(gfp_mask, order);
+    return alloc_pages_current(gfp_mask, order);
 }
 
 /**
  *  为 vma 分配 page
  */
-extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order,
-                        			struct vm_area_struct *vma, unsigned long addr,
-                        			int node, bool hugepage);
+extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order, struct vm_area_struct *vma, unsigned long addr, int node,
+                                    bool hugepage);
 
 /**
  *  分配大页
  */
-#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
-	        alloc_pages_vma(gfp_mask, order, vma, addr, numa_node_id(), true)
+#define alloc_hugepage_vma(gfp_mask, vma, addr, order) alloc_pages_vma(gfp_mask, order, vma, addr, numa_node_id(), true)
 #else
 //static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 //{
@@ -686,29 +672,26 @@ extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order,
 //#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
 //	alloc_pages(gfp_mask, order)
 #endif
-#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)   /* 分配一个 page */
+#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0) /* 分配一个 page */
 
 /**
  *  分配一个页面，并把 old page 赋值到这个页面
  */
-#define alloc_page_vma(gfp_mask, vma, addr)			\
-	alloc_pages_vma(gfp_mask, 0, vma, addr, numa_node_id(), false)
+#define alloc_page_vma(gfp_mask, vma, addr) alloc_pages_vma(gfp_mask, 0, vma, addr, numa_node_id(), false)
 
 extern unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);
 extern unsigned long get_zeroed_page(gfp_t gfp_mask);
 
 void *alloc_pages_exact(size_t size, gfp_t gfp_mask);
 void free_pages_exact(void *virt, size_t size);
-void * __meminit alloc_pages_exact_nid(int nid, size_t size, gfp_t gfp_mask);
+void *__meminit alloc_pages_exact_nid(int nid, size_t size, gfp_t gfp_mask);
 
 /**
  *  获取一页
  */
-#define __get_free_page(gfp_mask) \
-		__get_free_pages((gfp_mask), 0)
+#define __get_free_page(gfp_mask) __get_free_pages((gfp_mask), 0)
 
-#define __get_dma_pages(gfp_mask, order) \
-		__get_free_pages((gfp_mask) | GFP_DMA, (order))
+#define __get_dma_pages(gfp_mask, order) __get_free_pages((gfp_mask) | GFP_DMA, (order))
 
 extern void __free_pages(struct page *page, unsigned int order);
 extern void free_pages(unsigned long addr, unsigned int order);
@@ -717,8 +700,7 @@ extern void free_unref_page_list(struct list_head *list);
 
 struct page_frag_cache;
 extern void __page_frag_cache_drain(struct page *page, unsigned int count);
-extern void *page_frag_alloc(struct page_frag_cache *nc,
-			     unsigned int fragsz, gfp_t gfp_mask);
+extern void *page_frag_alloc(struct page_frag_cache *nc, unsigned int fragsz, gfp_t gfp_mask);
 extern void page_frag_free(void *addr);
 
 /**
@@ -754,16 +736,14 @@ extern bool pm_suspended_storage(void);
 #else
 static inline bool pm_suspended_storage(void)
 {
-	return false;
+    return false;
 }
 #endif /* CONFIG_PM_SLEEP */
 
 #ifdef CONFIG_CONTIG_ALLOC
 /* The below functions must be run on a range from a single zone. */
-extern int alloc_contig_range(unsigned long start, unsigned long end,
-			      unsigned migratetype, gfp_t gfp_mask);
-extern struct page *alloc_contig_pages(unsigned long nr_pages, gfp_t gfp_mask,
-				       int nid, nodemask_t *nodemask);
+extern int alloc_contig_range(unsigned long start, unsigned long end, unsigned migratetype, gfp_t gfp_mask);
+extern struct page *alloc_contig_pages(unsigned long nr_pages, gfp_t gfp_mask, int nid, nodemask_t *nodemask);
 #endif
 void free_contig_range(unsigned long pfn, unsigned int nr_pages);
 

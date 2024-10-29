@@ -96,7 +96,7 @@ __setup("memhp_default_state=", setup_memhp_default_state);
  * 函数通过以下方式保护热插拔操作:
  * - 获取 CPU 读锁(cpus_read_lock)防止 CPU 热插拔
  * - 获取内存热插拔写锁(mem_hotplug_lock)实现独占访问
- *  
+ *
  * 在热插拔流程中需要与 mem_hotplug_done() 配对使用。
  * 被广泛用于内存上线(online_pages)、下线(offline_pages)和添加(add_memory)等操作。
  */
@@ -1255,8 +1255,8 @@ struct zone *test_pages_in_a_zone(unsigned long start_pfn, unsigned long end_pfn
 /**
  * scan_movable_pages - 扫描物理内存范围中的可移动页面
  * @start: 起始页帧号
- * @end: 结束页帧号 
- * @movable_pfn: 返回找到的第一个可移动页面的页帧号 
+ * @end: 结束页帧号
+ * @movable_pfn: 返回找到的第一个可移动页面的页帧号
  *
  * 扫描指定的物理内存范围[start,end),寻找可移动或可迁移的页面。
  * Linux中的可移动页面指的是那些内容可以被迁移到其他物理页框的页面,主要包括:
@@ -1328,12 +1328,12 @@ static int scan_movable_pages(unsigned long start, unsigned long end, unsigned l
          *
          * 该函数用于确定一个大页是否正在使用。具体检查逻辑:
          * 1. 检查该页面的引用计数是否大于0,也就是页面被映射或使用
-         * 2. 如果是透明大页(THP),则判断是否在活跃的映射中 
+         * 2. 如果是透明大页(THP),则判断是否在活跃的映射中
          * 3. 如果是普通大页,则看其是否已分配且正在使用
          *
          * 在内存热插拔过程中使用此函数来判断大页是否可以被迁移:
          * - 如果大页处于活跃状态(返回true),则需要先迁移大页
-         * - 如果大页非活跃(返回false),可以直接回收 
+         * - 如果大页非活跃(返回false),可以直接回收
          *
          * 返回值:
          * true  - 大页正在使用,处于活跃状态
@@ -1354,14 +1354,14 @@ found:
  * do_migrate_range - 迁移指定物理地址范围内的所有可移动页面
  * @start_pfn: 起始页帧号(PFN)
  * @end_pfn: 结束页帧号(PFN)
- * 
+ *
  * 此函数在内存热插拔子系统中负责具体的页面迁移工作。当需要下线一段物理内存时,
  * 必须先将其中的活跃页面迁移到其他位置。此函数会遍历指定范围内的所有页面,
  * 将可以迁移的页面筛选出来并迁移走,主要处理:
  *
  * 1. 大页(HugePage)的迁移:
  *    - 将整个大页作为一个单位加入迁移列表
- *    - 跳过该大页范围内的其他页框,避免重复处理 
+ *    - 跳过该大页范围内的其他页框,避免重复处理
  *
  * 2. 被HWPoison(硬件故障)标记的页面特殊处理:
  *    HWPoison(Hardware Poisoned)表示该页面已被硬件检测到不可恢复的内存错误,
@@ -1565,25 +1565,25 @@ static int count_system_ram_pages_cb(unsigned long start_pfn, unsigned long nr_p
 
 /*
  * offline_pages - 将一段物理内存下线
- * @start_pfn: 要下线的内存起始页帧号 
+ * @start_pfn: 要下线的内存起始页帧号
  * @nr_pages: 要下线的页面数量
  *
  * 该函数实现了内存热插拔中的内存下线功能。它会尝试将指定范围[start_pfn, start_pfn + nr_pages)
  * 内的所有物理内存页下线,使其不再被系统使用。主要步骤包括:
  *
  * 1. 参数合法性检查,确保只能对齐到section边界的内存进行下线
- * 2. 检查目标内存范围是否包含内存空洞,有洞则拒绝下线 
+ * 2. 检查目标内存范围是否包含内存空洞,有洞则拒绝下线
  * 3. 检查目标内存是否都在同一个zone内,不允许跨zone下线
  * 4. 将目标内存范围标记为隔离状态,确保不会有新的内存分配
  * 5. 通知所有内存热插拔通知链上的观察者即将下线
  * 6. 迁移目标范围内的所有可移动页面到其他地方
  * 7. 释放目标范围内的大页(如果有)
- * 8. 确认所有页面都已经隔离 
+ * 8. 确认所有页面都已经隔离
  * 9. 将内存标记为offline状态并从伙伴系统中移除
  * 10. 更新各种计数器和统计信息
  * 11. 如果node变空,则停止该node上的kswapd和kcompactd
  * 12. 通知观察者内存已经下线
- * 
+ *
  * 如果以上任何步骤失败,都会回滚之前的操作并返回错误码。
  * 该函数主要被内存热插拔子系统使用,用于支持内存设备的动态移除。
  *
@@ -1611,7 +1611,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
      * 4. 系统的内存映射表和其他数据结构都是基于section组织的
      * 5. 确保内存操作的原子性和一致性
      */
-    /* 
+    /*
      * 检查两个条件:
      * 1. nr_pages不能为0,因为不能下线0个页面
      * 2. start_pfn和nr_pages必须都对齐到SECTION边界
@@ -1648,31 +1648,31 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
 
     /* 将目标内存范围标记为隔离状态 */
     /**
- * start_isolate_page_range - 开始隔离指定范围内的物理内存页
- * @start_pfn: 要隔离的内存页起始页帧号
- * @end_pfn: 要隔离的内存页结束页帧号
- * @migratetype: 页迁移类型,一般为MIGRATE_MOVABLE  
- * @flags: 控制隔离行为的标志位,常用组合为:
- *   - MEMORY_OFFLINE: 表示为内存下线做准备 
- *   - REPORT_FAILURE: 在无法隔离页面时报告错误
- *
- * 该函数在内存热插拔过程中负责隔离指定范围内的页面。主要功能包括:
- *
- * 1. 将目标页面范围从伙伴系统中隔离出来
- * 2. 将页面标记为 PG_isolated 状态
- * 3. 阻止新的内存分配进入该范围
- * 4. 为后续的页面迁移做准备
- *
- * 隔离过程的限制条件:
- * - 只能隔离已经上线的页面
- * - 页面必须可以被迁移(不能是内核代码页等)
- * - 页面当前不能被其他子系统锁定
- *
- * 返回值:
- * 0 - 成功隔离所有页面
- * -EBUSY - 存在无法隔离的页面
- * -EINVAL - 参数无效
- */
+    * start_isolate_page_range - 开始隔离指定范围内的物理内存页
+    * @start_pfn: 要隔离的内存页起始页帧号
+    * @end_pfn: 要隔离的内存页结束页帧号
+    * @migratetype: 页迁移类型,一般为MIGRATE_MOVABLE
+    * @flags: 控制隔离行为的标志位,常用组合为:
+    *   - MEMORY_OFFLINE: 表示为内存下线做准备
+    *   - REPORT_FAILURE: 在无法隔离页面时报告错误
+    *
+    * 该函数在内存热插拔过程中负责隔离指定范围内的页面。主要功能包括:
+    *
+    * 1. 将目标页面范围从伙伴系统中隔离出来
+    * 2. 将页面标记为 PG_isolated 状态
+    * 3. 阻止新的内存分配进入该范围
+    * 4. 为后续的页面迁移做准备
+    *
+    * 隔离过程的限制条件:
+    * - 只能隔离已经上线的页面
+    * - 页面必须可以被迁移(不能是内核代码页等)
+    * - 页面当前不能被其他子系统锁定
+    *
+    * 返回值:
+    * 0 - 成功隔离所有页面
+    * -EBUSY - 存在无法隔离的页面
+    * -EINVAL - 参数无效
+    */
     ret = start_isolate_page_range(start_pfn, end_pfn, MIGRATE_MOVABLE, MEMORY_OFFLINE | REPORT_FAILURE);
     if (ret) {
         reason = "failure to isolate range";
@@ -1715,18 +1715,18 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
             /* 将所有CPU上的LRU缓存中的页面都刷回各自的LRU链表 */
             lru_add_drain_all();
 
-            /* 
-         * 扫描指定范围内的可移动页面
-         * @pfn: 输入起始页帧号，输出下一个要处理的页帧号
-         * @end_pfn: 结束页帧号
-         * 返回: 0 - 找到可移动页面
-         *      ENOENT - 没有更多可移动页面
-         */
+            /*
+            * 扫描指定范围内的可移动页面
+            * @pfn: 输入起始页帧号，输出下一个要处理的页帧号
+            * @end_pfn: 结束页帧号
+            * 返回: 0 - 找到可移动页面
+            * ENOENT - 没有更多可移动页面
+            */
             ret = scan_movable_pages(pfn, // 输入：开始扫描的页帧号
                                      end_pfn, // 输入：结束的页帧号
                                      &pfn); // 输出：找到的第一个可移动的物理页帧
             if (!ret) {
-                /* 
+                /*
              * 如果找到可移动页面，执行实际的页面迁移
              * 将[pfn, end_pfn)范围内的页面迁移到其他地方
              */
@@ -1734,7 +1734,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
             }
         } while (!ret); // 继续扫描直到没有可移动页面
 
-        /* 
+        /*
      * 如果扫描返回值不是 -ENOENT（表示正常完成扫描）
      * 说明遇到了无法迁移的页面，需要终止操作
      */
@@ -1743,7 +1743,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
             goto failed_removal_isolated;
         }
 
-        /* 
+        /*
      * 处理范围内的大页
      * 将大页分解成基本页面，便于后续处理
      */
@@ -1753,11 +1753,11 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
          * @end_pfn: 结束页帧号
          *
          * 该函数用于内存热拔插过程中,将一个物理地址范围内的大页分解成基本页面。主要目的:
-         * 
+         *
          * 1. 大页(HugePage)在内存热拔插时需要特殊处理:
          *    - 对于透明大页(THP),需要先分解成基本页面
          *    - 对于持久大页(HugeTLB),需要先释放和回收
-         *    
+         *
          * 2. 分解过程包括:
          *    - 扫描指定范围内的大页
          *    - 将大页标记为不可用
@@ -1769,7 +1769,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
          *    - 避免大页跨越要移除的内存区域
          *    - 简化内存迁移的复杂度
          *
-         * 返回值: 
+         * 返回值:
          * 0      - 成功分解所有大页
          * -EBUSY - 存在无法分解的大页
          */
@@ -1779,7 +1779,7 @@ int __ref offline_pages(unsigned long start_pfn, unsigned long nr_pages)
             goto failed_removal_isolated;
         }
 
-        /* 
+        /*
      * 最后检查一次是否所有页面都已经被正确隔离
      * 如果还有未隔离的页面，清空zone中的所有页面后重试
      */
