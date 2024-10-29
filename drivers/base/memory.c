@@ -69,13 +69,27 @@ static int memory_subsys_online(struct device *dev);
 static int memory_subsys_offline(struct device *dev);
 
 /**
- * /sys/devices/system/memory/
+ * memory_subsys - 内存总线,用于管理内存热插拔设备
+ *
+ * 主要功能:
+ * 1. 提供 /sys/devices/system/memory/ 目录结构
+ * 2. 作为内存块设备的总线,实现热插拔设备管理
+ * 3. 暴露用户空间接口,包括:
+ *    - /sys/devices/system/memory/memory[N]/  
+ *    - block_size_bytes - 内存块大小
+ *    - state - 内存块状态 
+ *    - phys_index - 物理内存段编号
+ *    - removable - 是否支持热移除
+ * 4. 实现内存热插拔:
+ *    - 处理内存上下线
+ *    - 管理块状态转换
+ *    - 协同热插拔子系统工作
  */
 static struct bus_type memory_subsys = {
     .name = MEMORY_CLASS_NAME,
-    .dev_name = MEMORY_CLASS_NAME,
-    .online = memory_subsys_online,
-    .offline = memory_subsys_offline,
+    .dev_name = MEMORY_CLASS_NAME, 
+    .online = memory_subsys_online,  /* 处理内存块上线 */
+    .offline = memory_subsys_offline, /* 处理内存块下线 */
 };
 
 /*
