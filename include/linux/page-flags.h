@@ -205,6 +205,7 @@ struct page; /* forward declaration */
 /**
  *
  * compound:化合物
+ * 如果当前页是复合页，则返回其头部页的page指针；否则返回传入的页指针
  */
 static inline struct page *compound_head(struct page *page)
 {

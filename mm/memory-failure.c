@@ -1725,6 +1725,35 @@ static int get_any_page(struct page *page, unsigned long pfn, int flags)
     return ret;
 }
 
+/*
+ * isolate_page - 隔离一个内存页面以准备进行迁移或其他操作
+ * @page: 要隔离的页面
+ * @pagelist: 存放被隔离页面的链表头
+ *
+ * 该函数实现页面的隔离操作,将页面从其当前管理系统中移除并加入待处理链表。
+ * 主要处理三类页面:
+ *
+ * 1. 大页(HugePage):
+ *    - 调用isolate_huge_page()处理
+ *    - 整个大页作为一个单位进行隔离
+ * 
+ * 2. LRU页面:
+ *    - 通过isolate_lru_page()从LRU链表中隔离
+ *    - 包括匿名页和文件页
+ *
+ * 3. 非LRU可移动页面:
+ *    - 使用isolate_movable_page()隔离
+ *    - 主要是一些特殊用途的可移动页面
+ *
+ * 隔离成功后:
+ * - 页面被加入pagelist链表
+ * - 更新相关统计计数
+ * - 增加页面引用计数以确保安全
+ *
+ * 返回值:
+ * true  - 页面成功隔离
+ * false - 隔离失败
+ */
 static bool isolate_page(struct page *page, struct list_head *pagelist)
 {
     bool isolated = false;
@@ -1771,7 +1800,7 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
  * 3. 对于不可迁移的页面会返回错误
  *
  * 具体处理流程:
- * 1. 如果是大页(huge page):
+ * 1. 如果是hugetlb 大页:
  *    - 对整个大页进行迁移
  *    - 迁移失败则返回错误
  * 
@@ -1786,23 +1815,19 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
  */
 static int __soft_offline_page(struct page *page)
 {
-    int ret = 0;
-    unsigned long pfn = page_to_pfn(page);
-    struct page *hpage = compound_head(page);
-    char const *msg_page[] = { "page", "hugepage" };
-    bool huge = PageHuge(page);
-    LIST_HEAD(pagelist);
+    int ret;
+    struct page *hpage = compound_head(page); // 获取页面的compound head,用于处理大页
+    bool huge = PageHuge(page); // 判断是否是hugetlb大页
+    LIST_HEAD(pagelist); // 初始化page迁移使用的链表
     struct migration_target_control mtc = {
-        .nid = NUMA_NO_NODE,
-        .gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_RETRY_MAYFAIL,
+        .nid = NUMA_NO_NODE, // 目标NUMA节点,NUMA_NO_NODE表示不限制目标节点
+        .gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_RETRY_MAYFAIL, // 内存分配标志
     };
 
     /*
-	 * Check PageHWPoison again inside page lock because PageHWPoison
-	 * is set by memory_failure() outside page lock. Note that
-	 * memory_failure() also double-checks PageHWPoison inside page lock,
-	 * so there's no race between soft_offline_page() and memory_failure().
-	 */
+     * 检查页面是否已经被标记为硬件中毒
+     * 这种页面已经不可用,不需要再进行软下线
+     */
     lock_page(page);
     if (!PageHuge(page))
         wait_on_page_writeback(page);
@@ -1813,33 +1838,41 @@ static int __soft_offline_page(struct page *page)
         return 0;
     }
 
+    /*
+	 * 这个函数中不会存在THP大页了，因为调用这个函数的函数中已经对THP进行拆分了
+     * 对于非hugetlb大页,先尝试将页面从页面缓存中失效
+     * 这适用于未映射的非脏页面缓存页
+     */
     if (!PageHuge(page))
-        /*
-		 * Try to invalidate first. This should work for
-		 * non dirty unmapped page cache pages.
-		 */
         ret = invalidate_inode_page(page);
     unlock_page(page);
 
-    /*
-	 * RED-PEN would be better to keep it isolated here, but we
-	 * would need to fix isolation locking first.
-	 */
     if (ret) {
         pr_info("soft_offline: %#lx: invalidated\n", pfn);
+        // 标记页面为poisoned并减少引用计数
         page_handle_poison(page, false, true);
         return 0;
     }
 
+    /*
+     * 尝试将页面从其当前位置隔离出来,准备迁移
+     * huge=true时是hugetlb页面的处理
+     */
     if (isolate_page(hpage, &pagelist)) {
+        /* 
+         * 执行实际的页面迁移
+         * MR_MEMORY_FAILURE表示这是由于内存错误引起的迁移
+         */
         ret = migrate_pages(&pagelist, alloc_migration_target, NULL, (unsigned long)&mtc, MIGRATE_SYNC,
                             MR_MEMORY_FAILURE);
         if (!ret) {
-            bool release = !huge;
+            bool release = !huge; // hugetlb页面特殊处理引用计数
 
+            // 迁移成功,标记页面为poisoned
             if (!page_handle_poison(page, huge, release))
                 ret = -EBUSY;
         } else {
+            // 迁移失败,将页面放回原来的位置
             if (!list_empty(&pagelist))
                 putback_movable_pages(&pagelist);
 
@@ -1849,6 +1882,7 @@ static int __soft_offline_page(struct page *page)
                 ret = -EIO;
         }
     } else {
+        // 页面隔离失败
         pr_info("soft offline: %#lx: %s isolation failed: %d, page count %d, type %lx (%pGp)\n", pfn, msg_page[huge],
                 ret, page_count(page), page->flags, &page->flags);
         ret = -EBUSY;
@@ -1882,9 +1916,11 @@ static int soft_offline_in_use_page(struct page *page)
 {
     struct page *hpage = compound_head(page);
 
+    //如果不是hugetlbfs，但是THP,先尝试分割成基本页面
     if (!PageHuge(page) && PageTransHuge(hpage))
         if (try_to_split_thp_page(page, "soft offline") < 0)
             return -EBUSY;
+    // 对于普通页面或分割后的页面,或者是hugetlbfs大页，执行实际的迁移
     return __soft_offline_page(page);
 }
 
