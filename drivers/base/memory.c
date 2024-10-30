@@ -490,6 +490,7 @@ static ssize_t soft_offline_page_store(struct device *dev, struct device_attribu
         return -EINVAL;
 
     /* 获取实际的页帧号,buf中的值需要右移PAGE_SHIFT位 */
+    // 所以用户输入的是页面的物理地址？
     pfn >>= PAGE_SHIFT;
 
     /* 尝试软下线该页面 */
