@@ -1850,6 +1850,25 @@ out:
     return rc;
 }
 
+/*
+ * alloc_migration_target - 为源页面分配新的目标页面
+ * @page: 需要迁移的源页面
+ * @private: 包含迁移控制参数的私有数据
+ *
+ * 该函数为页面迁移分配目标页面。它处理不同类型页面的分配:
+ * - 普通页面: 在指定节点上分配相同大小的页面
+ * - 大页(HugePage): 分配同样大小的大页 
+ * - 透明大页(THP): 分配THP大小的页面
+ * 
+ * 分配过程中会考虑:
+ * - 源页面所在的内存区域(ZONE)
+ * - NUMA节点亲和性 
+ * - 页面迁移约束(GFP掩码)
+ * 
+ * 返回值:
+ * - 成功时返回新分配的页面指针
+ * - 失败时返回NULL
+ */
 struct page *alloc_migration_target(struct page *page, unsigned long private)
 {
     struct migration_target_control *mtc;
@@ -1859,12 +1878,15 @@ struct page *alloc_migration_target(struct page *page, unsigned long private)
     int nid;
     int zidx;
 
+    // 获取迁移控制参数
     mtc = (struct migration_target_control *)private;
-    gfp_mask = mtc->gfp_mask;
+    gfp_mask = mtc->gfp_mask; 
     nid = mtc->nid;
+    // 如果未指定目标节点,使用源页面所在节点
     if (nid == NUMA_NO_NODE)
         nid = page_to_nid(page);
 
+    // 处理大页(HugePage)的分配
     if (PageHuge(page)) {
         struct hstate *h = page_hstate(compound_head(page));
 
@@ -1872,25 +1894,30 @@ struct page *alloc_migration_target(struct page *page, unsigned long private)
         return alloc_huge_page_nodemask(h, nid, mtc->nmask, gfp_mask);
     }
 
+    // 处理透明大页(THP)的分配 
     if (PageTransHuge(page)) {
-        /*
-		 * clear __GFP_RECLAIM to make the migration callback
-		 * consistent with regular THP allocations.
-		 */
+        /* 
+         * 清除__GFP_RECLAIM标志以保持与普通THP分配一致,
+         * 因为THP分配通常不允许回收
+         */
         gfp_mask &= ~__GFP_RECLAIM;
         gfp_mask |= GFP_TRANSHUGE;
         order = HPAGE_PMD_ORDER;
     }
+
+    // 根据源页面所在zone设置适当的GFP掩码
     zidx = zone_idx(page_zone(page));
     if (is_highmem_idx(zidx) || zidx == ZONE_MOVABLE)
         gfp_mask |= __GFP_HIGHMEM;
 
+    // 分配新页面
     new_page = __alloc_pages_nodemask(gfp_mask, order, nid, mtc->nmask);
 
+    // 如果分配的是THP,进行必要的初始化
     if (new_page && PageTransHuge(new_page))
         prep_transhuge_page(new_page);
 
-    return new_page;
+    return new_page; 
 }
 
 #ifdef CONFIG_NUMA
