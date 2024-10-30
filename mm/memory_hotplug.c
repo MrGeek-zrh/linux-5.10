@@ -59,7 +59,19 @@ void get_online_mems(void)
     percpu_down_read(&mem_hotplug_lock);
 }
 
-void put_online_mems(void)
+/*
+ * put_online_mems - 释放内存热插拔读锁
+ * 
+ * 该函数与get_online_mems()配对使用,在内存热插拔操作完成后释放读锁。
+ * 作为热插拔操作序列的结束点,主要用于:
+ * 1. 允许其他线程执行热插拔操作 
+ * 2. 确保内存访问安全性
+ * 3. 维护内存一致性
+ *
+ * 由于使用percpu读写锁实现,支持多个读者并发访问,但写操作互斥。
+ * 在memory_hotplug.c中被广泛使用,是热插拔锁定机制的重要组成部分。
+ */
+void put_online_mems(void)  
 {
     percpu_up_read(&mem_hotplug_lock);
 }
