@@ -1833,6 +1833,28 @@ static int __soft_offline_page(struct page *page)
     return ret;
 }
 
+/*
+ * soft_offline_in_use_page - 软下线一个正在使用中的页面
+ * @page: 待下线的内存页指针
+ *
+ * 该函数处理正在使用中页面的软下线流程,为了安全地迁移页面内容,主要步骤:
+ *
+ * 1. 检查是否是透明大页(THP):
+ *    - 如果是非huge THP,先尝试分割成基本页面
+ *    - 分割失败则返回错误,因为不能安全迁移整个大页
+ *  
+ * 2. 对于普通页面或分割后的页面:
+ *    - 调用__soft_offline_page执行实际的迁移
+ *    - 该过程会将页面内容复制到新位置
+ *    - 更新所有映射到该页面的页表项
+ *
+ * 这个函数是内存软下线的核心,它确保了页面内容可以安全迁移,
+ * 而不会破坏系统的正常运行。
+ *
+ * 返回值:
+ * 0      - 成功将页面软下线
+ * -EBUSY - 页面当前无法迁移(如THP分割失败)
+ */
 static int soft_offline_in_use_page(struct page *page)
 {
     struct page *hpage = compound_head(page);
