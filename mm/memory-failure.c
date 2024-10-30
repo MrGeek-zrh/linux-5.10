@@ -1872,19 +1872,45 @@ static int soft_offline_free_page(struct page *page)
  * -EIO - 页面不在线或不支持软下线
  * 其他负值 - 其他错误情况
  */
+/*
+ * soft_offline_page - Soft offline a page
+ * @pfn: The page frame number (PFN) to be soft-offlined 
+ * @flags: Flags to control the offline behavior
+ *
+ * 该函数实现内存页面的软下线功能,主要包括:
+ * 1. 尝试安全地将目标页面下线,但不会杀死使用该页面的进程
+ * 2. 如果页面正在使用,尝试将内容迁移到新的物理页面
+ * 3. 支持重试机制,以处理复杂的内存访问情况
+ *
+ * 具体处理流程:
+ * 1. 检查PFN和页面的有效性
+ * 2. 如果页面已经被标记为硬件中毒,则直接返回
+ * 3. 尝试获取并锁定页面
+ * 4. 对在用页面执行软下线操作
+ * 5. 如果是空闲页面则直接软下线
+ *
+ * 返回值:
+ * 0 - 成功下线页面
+ * -ENXIO - 无效的PFN
+ * -EIO - 页面不在线或不支持软下线
+ * 其他负值 - 其他错误情况
+ */
 int soft_offline_page(unsigned long pfn, int flags)
 {
     int ret;
     struct page *page;
     bool try_again = true;
 
+    /* 检查PFN是否有效 */
     if (!pfn_valid(pfn))
         return -ENXIO;
     /* Only online pages can be soft-offlined (esp., not ZONE_DEVICE). */
+    /* 获取页面结构,仅支持在线页面的软下线 */  
     page = pfn_to_online_page(pfn);
     if (!page)
         return -EIO;
 
+    /* 如果页面已被标记为硬件中毒则无需再下线 */
     if (PageHWPoison(page)) {
         pr_info("soft offline: %#lx page already poisoned\n", pfn);
         if (flags & MF_COUNT_INCREASED)
@@ -1893,13 +1919,17 @@ int soft_offline_page(unsigned long pfn, int flags)
     }
 
 retry:
-    get_online_mems();
+    /* 锁定内存热插拔以防止并发操作 */
+    get_online_mems(); 
+    /* 尝试获取页面的引用 */
     ret = get_any_page(page, pfn, flags);
     put_online_mems();
 
     if (ret > 0)
+        /* 如果页面正在使用,尝试迁移内容 */
         ret = soft_offline_in_use_page(page);
     else if (ret == 0)
+        /* 如果是空闲页面,直接执行软下线,如果失败且允许重试则重试 */
         if (soft_offline_free_page(page) && try_again) {
             try_again = false;
             goto retry;
