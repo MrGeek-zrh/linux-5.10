@@ -1761,6 +1761,29 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
  * If the page is a non-dirty unmapped page-cache page, it simply invalidates.
  * If the page is mapped, it migrates the contents over.
  */
+/*
+ * __soft_offline_page - 执行页面软下线操作的核心实现
+ * @page: 需要软下线的页面
+ *
+ * 该函数实现了内存软下线的主要逻辑。软下线是一种安全的内存维护方式,它会:
+ * 1. 尝试将页面内容迁移到其他物理内存位置
+ * 2. 不会强制杀死使用这些页面的进程
+ * 3. 对于不可迁移的页面会返回错误
+ *
+ * 具体处理流程:
+ * 1. 如果是大页(huge page):
+ *    - 对整个大页进行迁移
+ *    - 迁移失败则返回错误
+ * 
+ * 2. 对于普通页面:
+ *    - 如果是非脏的未映射页面缓存,直接使页面失效
+ *    - 如果是映射的或脏的页面,尝试迁移内容
+ *    - 迁移成功后将页面标记为poisoned状态
+ *
+ * 返回值:
+ * 0      - 软下线成功完成
+ * -EBUSY - 页面当前不能被迁移
+ */
 static int __soft_offline_page(struct page *page)
 {
     int ret = 0;
