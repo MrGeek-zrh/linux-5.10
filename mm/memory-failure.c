@@ -1670,7 +1670,33 @@ static int __get_any_page(struct page *p, unsigned long pfn, int flags)
     }
     return ret;
 }
-
+/*
+ * get_any_page - 安全地获取任意内存页面的引用计数
+ * @page: 需要获取引用的页面
+ * @pfn: 页面的页帧号
+ * @flags: 控制标志,如MF_COUNT_INCREASED等
+ *
+ * 该函数在内存热插拔过程中用于安全地获取页面引用。为了安全地对页面进行操作,
+ * 首先需要增加页面的引用计数,防止其他进程同时释放该页面。主要处理的页面类型包括:
+ * 
+ * 1. 大页(HugePage):
+ *    - 如果是free hugepage,可以直接返回0
+ *    - 对活跃的大页增加引用计数
+ *
+ * 2. 普通页面:
+ *    - 尝试获取引用计数,如果失败可能说明页面正好被释放
+ *    - 如果页面不在LRU链表上,尝试通过shake_page清理后再获取
+ *
+ * 3. 处理竞态:
+ *    - 如果首次获取引用失败,会重试一次
+ *    - 使用try_get_page等安全的方式增加引用计数
+ *
+ * 返回值:
+ * 1 - 成功获取页面引用
+ * 0 - 页面是空闲的,不需要引用
+ * -EIO - 页面引用计数异常
+ * -EBUSY - 获取引用时发生竞态
+ */
 static int get_any_page(struct page *page, unsigned long pfn, int flags)
 {
     int ret = __get_any_page(page, pfn, flags);
@@ -1872,29 +1898,6 @@ static int soft_offline_free_page(struct page *page)
  * -EIO - 页面不在线或不支持软下线
  * 其他负值 - 其他错误情况
  */
-/*
- * soft_offline_page - Soft offline a page
- * @pfn: The page frame number (PFN) to be soft-offlined 
- * @flags: Flags to control the offline behavior
- *
- * 该函数实现内存页面的软下线功能,主要包括:
- * 1. 尝试安全地将目标页面下线,但不会杀死使用该页面的进程
- * 2. 如果页面正在使用,尝试将内容迁移到新的物理页面
- * 3. 支持重试机制,以处理复杂的内存访问情况
- *
- * 具体处理流程:
- * 1. 检查PFN和页面的有效性
- * 2. 如果页面已经被标记为硬件中毒,则直接返回
- * 3. 尝试获取并锁定页面
- * 4. 对在用页面执行软下线操作
- * 5. 如果是空闲页面则直接软下线
- *
- * 返回值:
- * 0 - 成功下线页面
- * -ENXIO - 无效的PFN
- * -EIO - 页面不在线或不支持软下线
- * 其他负值 - 其他错误情况
- */
 int soft_offline_page(unsigned long pfn, int flags)
 {
     int ret;
@@ -1905,7 +1908,7 @@ int soft_offline_page(unsigned long pfn, int flags)
     if (!pfn_valid(pfn))
         return -ENXIO;
     /* Only online pages can be soft-offlined (esp., not ZONE_DEVICE). */
-    /* 获取页面结构,仅支持在线页面的软下线 */  
+    /* 获取页面结构,仅支持在线页面的软下线 */
     page = pfn_to_online_page(pfn);
     if (!page)
         return -EIO;
@@ -1920,7 +1923,7 @@ int soft_offline_page(unsigned long pfn, int flags)
 
 retry:
     /* 锁定内存热插拔以防止并发操作 */
-    get_online_mems(); 
+    get_online_mems();
     /* 尝试获取页面的引用 */
     ret = get_any_page(page, pfn, flags);
     put_online_mems();
