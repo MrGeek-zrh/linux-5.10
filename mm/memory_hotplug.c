@@ -71,7 +71,7 @@ void get_online_mems(void)
  * 由于使用percpu读写锁实现,支持多个读者并发访问,但写操作互斥。
  * 在memory_hotplug.c中被广泛使用,是热插拔锁定机制的重要组成部分。
  */
-void put_online_mems(void)  
+void put_online_mems(void)
 {
     percpu_up_read(&mem_hotplug_lock);
 }

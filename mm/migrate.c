@@ -1880,7 +1880,7 @@ struct page *alloc_migration_target(struct page *page, unsigned long private)
 
     // 获取迁移控制参数
     mtc = (struct migration_target_control *)private;
-    gfp_mask = mtc->gfp_mask; 
+    gfp_mask = mtc->gfp_mask;
     nid = mtc->nid;
     // 如果未指定目标节点,使用源页面所在节点
     if (nid == NUMA_NO_NODE)
@@ -1894,7 +1894,7 @@ struct page *alloc_migration_target(struct page *page, unsigned long private)
         return alloc_huge_page_nodemask(h, nid, mtc->nmask, gfp_mask);
     }
 
-    // 处理透明大页(THP)的分配 
+    // 处理透明大页(THP)的分配
     if (PageTransHuge(page)) {
         /* 
          * 清除__GFP_RECLAIM标志以保持与普通THP分配一致,
@@ -1917,7 +1917,7 @@ struct page *alloc_migration_target(struct page *page, unsigned long private)
     if (new_page && PageTransHuge(new_page))
         prep_transhuge_page(new_page);
 
-    return new_page; 
+    return new_page;
 }
 
 #ifdef CONFIG_NUMA
