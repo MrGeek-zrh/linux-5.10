@@ -529,6 +529,21 @@ struct vm_area_struct { /* VMA */
 	 *
 	 *
 	 */
+    /*
+     * 指向匿名虚拟内存区域(VMA)的anon_vma结构,用于反向映射(RMAP)系统:
+     * 1. 每个使用匿名页面的VMA都关联一个anon_vma结构
+     * 2. fork()时子进程继承父进程的anon_vma,形成层级结构:
+     *    - 父进程VMA指向父anon_vma 
+     *    - 子进程VMA同时关联父子anon_vma
+     * 3. 用途:
+     *    - 在页面回收时快速定位映射了某个页面的所有进程
+     *    - 支持写时复制(COW)机制的实现
+     *    - 用于垃圾回收器扫描进程的匿名页面
+     * 4. 通过page_table_lock同步:
+     *    - 保护anon_vma结构的并发访问
+     *    - 与页表操作保持一致性
+     * 5. 对于文件映射,该指针为NULL,反向映射通过mapping字段实现
+     */
     struct anon_vma *anon_vma; /* Serialized by page_table_lock */
 
     /**
