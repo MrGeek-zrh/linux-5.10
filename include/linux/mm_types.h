@@ -514,6 +514,14 @@ struct vm_area_struct { /* VMA */
 	 * 它是一个链表头，节点为:
 	 *  anon_vma_chain->same_vma
 	 */
+    /*
+     * anon_vma_chain维护VMA和anon_vma之间的反向映射关系链表:
+     * 1. 每个VMA通过该字段链接到对应的anon_vma(父链表头)，用于页面反向映射
+     * 2. anon_vma_chain->same_vma将同一个VMA的不同anon_vma串在一起
+     * 3. 典型场景:COW(写时复制)过程中父子进程共享同一个页面时使用
+     * 4. 需要同时受mmap_lock和ptl(page_table_lock)保护,以保证操作的原子性
+     * 5. 在内存回收时用于遍历查找所有映射了特定页面的VMA
+     */
     struct list_head anon_vma_chain; /* Serialized by mmap_lock & page_table_lock */
 
     /**
