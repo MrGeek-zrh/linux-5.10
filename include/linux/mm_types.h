@@ -127,7 +127,7 @@ struct page {
              *  3. 交换高速缓存页面，`swapper_spaces`
              *  4. KSM页面对应 `struct stable_node`结构
              *
-             * 因为 `struct address_space` 为 8bytes 对齐，所以可将 mapping 成员的低两位用作：
+             * 因为 `struct address_space` 为 8bytes 对齐(sizeof(long))，所以可将 mapping 成员的低两位用作：
              *
              * bit[0] 页面是否为 匿名页面，见`PageAnon()`,`PAGE_MAPPING_ANON`
              * bit[1] 页面是否为 非 LRU 页面
@@ -1064,9 +1064,7 @@ enum vm_fault_reason {
             { VM_FAULT_HWPOISON, "HWPOISON" }, { VM_FAULT_HWPOISON_LARGE, "HWPOISON_LARGE" },                         \
             { VM_FAULT_SIGSEGV, "SIGSEGV" }, { VM_FAULT_NOPAGE, "NOPAGE" }, { VM_FAULT_LOCKED, "LOCKED" },            \
             { VM_FAULT_RETRY, "RETRY" }, { VM_FAULT_FALLBACK, "FALLBACK" }, { VM_FAULT_DONE_COW, "DONE_COW" },        \
-    {                                                                                                                 \
-        VM_FAULT_NEEDDSYNC, "NEEDDSYNC"                                                                               \
-    }
+            { VM_FAULT_NEEDDSYNC, "NEEDDSYNC" }
 
 /**
  * vDSO
