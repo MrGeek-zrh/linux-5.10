@@ -3171,8 +3171,6 @@ static int __init hugetlb_init(void)
 		mutex_init(&hugetlb_fault_mutex_table[i]);
 	return 0;
 }
-    return 0;
-}
 subsys_initcall(hugetlb_init);
 
 /* Overwritten by architectures with more huge page sizes */
