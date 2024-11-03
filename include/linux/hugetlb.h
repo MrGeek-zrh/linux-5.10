@@ -200,15 +200,23 @@ enum {
 };
 
 #ifdef CONFIG_HUGETLBFS
+/*
+ * struct hugetlbfs_sb_info - hugetlbfs superblock的私有数据信息
+ * 作用: 保存hugetlbfs文件系统的管理信息和运行时状态
+ * 主要用于:
+ * 1. inode数量的管理和控制 
+ * 2. 存储hugetlb页面状态信息(hstate)
+ * 3. 管理文件系统安全权限
+ */
 struct hugetlbfs_sb_info {
-    long max_inodes; /* inodes allowed */
-    long free_inodes; /* inodes free */
-    spinlock_t stat_lock;
-    struct hstate *hstate;
-    struct hugepage_subpool *spool;
-    kuid_t uid;
-    kgid_t gid;
-    umode_t mode;
+    long max_inodes;       /* 最大允许的inode数量 */
+    long free_inodes;      /* 当前可用(空闲)的inode数量 */ 
+    spinlock_t stat_lock;  /* 保护hugetlbfs统计信息的自旋锁 */
+    struct hstate *hstate; /* 指向管理大页状态的hstate结构体 */
+    struct hugepage_subpool *spool; /* 大页子池指针 */ 
+    kuid_t uid;           /* 文件系统所有者的用户ID */
+    kgid_t gid;           /* 文件系统所有者的组ID */
+    umode_t mode;         /* 文件系统的访问权限模式 */
 };
 
 static inline struct hugetlbfs_sb_info *HUGETLBFS_SB(struct super_block *sb)
