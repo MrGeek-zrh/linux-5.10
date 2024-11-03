@@ -2411,37 +2411,19 @@ static void __init hugetlb_hstate_alloc_pages(struct hstate *h)
     kfree(node_alloc_noretry);
 }
 
-/*
- * Initialize huge page states (hstate).
- *
- * 对hugetlb页面状态进行初始化: 
- *
- * 1. 遍历所有hstate 
- * 2. 更新最小hugetlb页阶(minimum_order),如果有更小的order则更新
- * 3. 对于非巨型页面(non-gigantic pages):
- *    - 调用hugetlb_hstate_alloc_pages()分配hugepage
- *    - gigantic pages在启动早期已初始化 
- * 4. 确保至少找到一个可用的order(minimum_order != UINT_MAX)
- * 
- * 注:gigantic pages (巨型页) size >= MAX_ORDER pages大小
- *    non-gigantic pages 是通常的hugepages
- */
 static void __init hugetlb_init_hstates(void)
 {
     struct hstate *h;
 
     for_each_hstate(h)
     {
-        /* 更新最小支持的huge page order */
         if (minimum_order > huge_page_order(h))
             minimum_order = huge_page_order(h);
 
-        /* 非巨型页才在这里分配,因为巨型页在early boot已初始化 */
+        /* oversize hugepages were init'ed in early boot */
         if (!hstate_is_gigantic(h))
             hugetlb_hstate_alloc_pages(h);
     }
-
-    /* hugetlb必须至少支持一种页面尺寸,所以minimum_order必须被设置 */
     VM_BUG_ON(minimum_order == UINT_MAX);
 }
 
