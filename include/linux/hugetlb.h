@@ -288,29 +288,43 @@ unsigned long hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
 #define HSTATE_NAME_LEN 32
 /* Defines one hugetlb page size */
 struct hstate { /* hugetlb 页 size */
-	int next_nid_to_alloc;
+struct hstate {
+	/* NUMA节点分配和释放的下一个节点ID */
+	int next_nid_to_alloc;  
 	int next_nid_to_free;
-	unsigned int order; /* 大页内存的 order */
+	
+	/* 大页的order,决定大页大小 = PAGE_SIZE << order */
+	unsigned int order;
+	
+	/* 大页掩码,用于地址对齐 */
 	unsigned long mask;
-	unsigned long max_huge_pages;
-	unsigned long nr_huge_pages;
-	unsigned long free_huge_pages;
-	unsigned long resv_huge_pages;
-	unsigned long surplus_huge_pages;
-	unsigned long nr_overcommit_huge_pages;
-	struct list_head hugepage_activelist;
-	struct list_head hugepage_freelists[MAX_NUMNODES];
-	unsigned int nr_huge_pages_node[MAX_NUMNODES];
-	unsigned int free_huge_pages_node[MAX_NUMNODES];
-	unsigned int surplus_huge_pages_node[MAX_NUMNODES];
+	
+	/* 系统级大页统计 */
+	unsigned long max_huge_pages;    /* 系统最大可以分配的大页数 */
+	unsigned long nr_huge_pages;     /* 当前系统中大页总数 */  
+	unsigned long free_huge_pages;   /* 空闲大页数 */
+	unsigned long resv_huge_pages;   /* 预留的大页数 */
+	unsigned long surplus_huge_pages;/* 超出预留的大页数 */
+	unsigned long nr_overcommit_huge_pages; /* 允许超额分配的大页数 */
+	
+	/* 大页链表,用于跟踪活跃和空闲大页 */
+	struct list_head hugepage_activelist;  /* 活跃大页链表 */
+	struct list_head hugepage_freelists[MAX_NUMNODES]; /* 每个NUMA节点的空闲大页链表 */
+	
+	/* 每个NUMA节点的大页统计 */
+	unsigned int nr_huge_pages_node[MAX_NUMNODES];     /* 每个节点的大页总数 */
+	unsigned int free_huge_pages_node[MAX_NUMNODES];   /* 每个节点的空闲大页数 */
+	unsigned int surplus_huge_pages_node[MAX_NUMNODES];/* 每个节点超出预留的大页数 */
+	
 #ifdef CONFIG_CGROUP_HUGETLB
-	/* cgroup control files */
-	struct cftype cgroup_files_dfl[7];
-	struct cftype cgroup_files_legacy[9];
+	/* cgroup相关的控制文件 */
+	struct cftype cgroup_files_dfl[7];      /* cgroup v2控制文件 */
+	struct cftype cgroup_files_legacy[9];   /* cgroup v1控制文件 */
 #endif
+
+	/* 大页类型的名称 */
 	char name[HSTATE_NAME_LEN];
 };
-
 struct huge_bootmem_page {
 	struct list_head list;
 	struct hstate *hstate;
