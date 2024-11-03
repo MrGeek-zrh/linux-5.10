@@ -3141,36 +3141,34 @@ bool __init __attribute((weak)) arch_hugetlb_valid_size(unsigned long size)
  *
  * 该函数通常在系统初始化阶段调用,用于支持不同大小的巨页。
  */
-void __init hugetlb_add_hstate(unsigned int order)  /* 添加一个新的大页状态 */
+void __init hugetlb_add_hstate(unsigned int order) /* 添加一个新的大页状态 */
 {
-    struct hstate *h;  /* 大页状态描述符指针 */
-    unsigned long i;   /* 循环计数器 */
+    struct hstate *h; /* 大页状态描述符指针 */
+    unsigned long i; /* 循环计数器 */
 
     /* 如果已存在相同大小的hstate,直接返回 */
-    if (size_to_hstate(PAGE_SIZE << order)) {  
+    if (size_to_hstate(PAGE_SIZE << order)) {
         return;
     }
-    BUG_ON(hugetlb_max_hstate >= HUGE_MAX_HSTATE);  /* 检查hstate数量是否超限 */
-    BUG_ON(order == 0);  /* order不能为0 */ 
-    h = &hstates[hugetlb_max_hstate++];  /* 获取新的hstate */
-    h->order = order;  /* 设置巨页大小的order值 */
-    h->mask = ~((1ULL << (order + PAGE_SHIFT)) - 1);  /* 设置掩码 */
-    h->nr_huge_pages = 0;   /* 初始化大页总数为0 */  
-    h->free_huge_pages = 0;  /* 初始化空闲大页数为0 */
+    BUG_ON(hugetlb_max_hstate >= HUGE_MAX_HSTATE); /* 检查hstate数量是否超限 */
+    BUG_ON(order == 0); /* order不能为0 */
+    h = &hstates[hugetlb_max_hstate++]; /* 获取新的hstate */
+    h->order = order; /* 设置巨页大小的order值 */
+    h->mask = ~((1ULL << (order + PAGE_SHIFT)) - 1); /* 设置掩码 */
+    h->nr_huge_pages = 0; /* 初始化大页总数为0 */
+    h->free_huge_pages = 0; /* 初始化空闲大页数为0 */
 
     /* 为每个NUMA节点初始化空闲大页链表 */
     for (i = 0; i < MAX_NUMNODES; ++i)
         INIT_LIST_HEAD(&h->hugepage_freelists[i]);
 
-    INIT_LIST_HEAD(&h->hugepage_activelist);  /* 初始化活跃大页链表 */
-    h->next_nid_to_alloc = first_memory_node;  /* 设置下一个分配节点 */
-    h->next_nid_to_free = first_memory_node;   /* 设置下一个释放节点 */ 
-    /* 设置hstate名称,格式为hugepages-xxxkB */ 
+    INIT_LIST_HEAD(&h->hugepage_activelist); /* 初始化活跃大页链表 */
+    h->next_nid_to_alloc = first_memory_node; /* 设置下一个分配节点 */
+    h->next_nid_to_free = first_memory_node; /* 设置下一个释放节点 */
+    /* 设置hstate名称,格式为hugepages-xxxkB */
     snprintf(h->name, HSTATE_NAME_LEN, "hugepages-%lukB", huge_page_size(h) / 1024);
 
-    parsed_hstate = h;  /* 将新hstate设为当前解析的hstate */
-}
-    parsed_hstate = h;
+    parsed_hstate = h; /* 将新hstate设为当前解析的hstate */
 }
 
 /*
