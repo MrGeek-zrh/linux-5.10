@@ -3107,32 +3107,72 @@ static void __init hugetlb_register_all_nodes(void)
 
 #endif
 
+/**
+ * hugetlb_init - 初始化内核中的大页(hugetlb)子系统
+ * 
+ * 该函数在系统启动时完成巨页(HugeTLB)子系统的初始化。函数执行流程如下:
+ *
+ * 1. 首先检查架构是否支持大页:
+ *    - 通过 hugepages_supported() 检查架构支持情况
+ *    - 如果不支持但命令行参数指定了hugetlb参数,会打印警告
+ *
+ * 2. 初始化默认巨页状态:
+ *    - hugetlb_add_hstate(HUGETLB_PAGE_ORDER) 添加默认大小巨页状态 
+ *    - 如果未从命令行解析到默认巨页大小:
+ *      . 将default_hstate_idx设置为HPAGE_SIZE状态的索引
+ *      . 如果隐式指定了默认大小巨页数量,设置 default_state.max_huge_pages
+ *      . 如果和显式设置冲突,打印警告
+ *
+ * 3. 进行必要的检查和状态初始化:
+ *    - hugetlb_cma_check() 检查CMA(连续内存分配器)配置
+ *    - hugetlb_init_hstates() 初始化所有巨页状态
+ *    - gather_bootmem_prealloc() 收集启动预分配内存信息 
+ *    - report_hugepages() 报告当前巨页使用情况
+ *
+ * 4. 初始化内核接口:
+ *    - hugetlb_sysfs_init() 初始化sysfs目录和文件
+ *    - hugetlb_register_all_nodes() 在NUMA节点注册巨页支持
+ *    - hugetlb_cgroup_file_init() 初始化cgroup相关文件
+ *
+ * 5. 初始化页面错误(page fault)处理:
+ *    - 在SMP系统上:每CPU 8个互斥锁,对齐到2的幂次
+ *    - 单CPU系统:只需一个互斥锁
+ *    - 分配fault_mutex_table数组，用于并发处理页错误 
+ *    - 初始化所有fault_mutex互斥锁
+ *
+ * 必须在内存子系统初始化后、任何巨页操作发生前调用这个函数。
+ *
+ * 代码详细说明:
+ * @i: 用于初始化互斥锁的循环计数器
+ * 
+ * 主要使用的数据结构:
+ * - struct mutex:互斥锁,用于页错误处理同步
+ * - struct hstate:hugetlb状态,存储巨页配置信息
+ *
+ * 返回值: 
+ * - 成功返回0
+ * - 失败返回负数错误码 
+ */
 static int __init hugetlb_init(void)
 {
+	/* 循环计数器,用于初始化fault_mutex_table */
 	int i;
 
+	/* 检查架构是否支持大页 */
 	if (!hugepages_supported()) {
+		/* 如果不支持但设置了相关命令行参数,打印警告 */
 		if (hugetlb_max_hstate || default_hstate_max_huge_pages)
 			pr_warn("HugeTLB: huge pages not supported, ignoring associated command-line parameters\n");
 		return 0;
 	}
 
-	/*
-	 * Make sure HPAGE_SIZE (HUGETLB_PAGE_ORDER) hstate exists.  Some
-	 * architectures depend on setup being done here.
-	 */
+	/* 添加HPAGE_SIZE大小的巨页状态,某些架构依赖此项初始化 */
 	hugetlb_add_hstate(HUGETLB_PAGE_ORDER);
 	if (!parsed_default_hugepagesz) {
-		/*
-		 * If we did not parse a default huge page size, set
-		 * default_hstate_idx to HPAGE_SIZE hstate. And, if the
-		 * number of huge pages for this default size was implicitly
-		 * specified, set that here as well.
-		 * Note that the implicit setting will overwrite an explicit
-		 * setting.  A warning will be printed in this case.
-		 */
+		/* 没有从命令行解析到默认大小,使用HPAGE_SIZE作为默认值 */
 		default_hstate_idx = hstate_index(size_to_hstate(HPAGE_SIZE));
 		if (default_hstate_max_huge_pages) {
+			/* 如果已经显式设置了默认大小的页面数,打印警告 */
 			if (default_hstate.max_huge_pages) {
 				char buf[32];
 
@@ -3143,30 +3183,43 @@ static int __init hugetlb_init(void)
 				pr_warn("HugeTLB: Using hugepages=%lu for number of default huge pages\n",
 					default_hstate_max_huge_pages);
 			}
+			/* 设置默认巨页数量 */
 			default_hstate.max_huge_pages =
 				default_hstate_max_huge_pages;
 		}
 	}
 
+	/* 检查CMA配置是否正确 */
 	hugetlb_cma_check();
+	/* 初始化所有巨页状态 */ 
 	hugetlb_init_hstates();
+	/* 收集启动预分配内存 */
 	gather_bootmem_prealloc();
+	/* 报告巨页状况 */
 	report_hugepages();
 
+	/* 初始化sysfs接口 */
 	hugetlb_sysfs_init();
+	/* 在所有NUMA节点注册巨页支持 */
 	hugetlb_register_all_nodes();
+	/* 初始化cgroup */
 	hugetlb_cgroup_file_init();
 
 #ifdef CONFIG_SMP
+	/* 多CPU系统:每CPU 8个互斥锁,对齐到2的幂次 */
 	num_fault_mutexes = roundup_pow_of_two(8 * num_possible_cpus());
 #else
+	/* 单CPU系统只需一个互斥锁 */
 	num_fault_mutexes = 1;
 #endif
+	/* 分配fault_mutex_table数组 */
 	hugetlb_fault_mutex_table =
 		kmalloc_array(num_fault_mutexes, sizeof(struct mutex),
 			      GFP_KERNEL);
+	/* 分配失败则触发BUG */
 	BUG_ON(!hugetlb_fault_mutex_table);
 
+	/* 初始化所有的fault_mutex */
 	for (i = 0; i < num_fault_mutexes; i++)
 		mutex_init(&hugetlb_fault_mutex_table[i]);
 	return 0;
