@@ -3232,6 +3232,34 @@ bool __init __attribute((weak)) arch_hugetlb_valid_size(unsigned long size)
 	return size == HPAGE_SIZE;
 }
 
+/**
+ * hugetlb_add_hstate - 添加一个新的巨页状态(hstate)到系统
+ * @order: 巨页大小的order值,以PAGE_SIZE为单位(如:order=9表示2MB巨页)
+ *
+ * 该函数用于向系统动态添加一个新的巨页状态描述符(hstate)。
+ * 每一个hstate描述一种特定大小的巨页类型。主要执行:
+ *
+ * 1. 检查是否已存在相同大小的hstate
+ *    - 如果已存在,直接返回
+ *    - 如果order为0,触发BUG
+ *    - 如果hstate数量超限,触发BUG
+ * 
+ * 2. 创建新的hstate结构:
+ *    - 分配一个hstate结构体并初始化
+ *    - 设置巨页大小的order值和掩码
+ *    - 初始化计数器:nr_huge_pages和free_huge_pages 
+ *
+ * 3. 初始化空闲和活跃页面链表:
+ *    - 为每个NUMA节点初始化hugepage_freelists
+ *    - 初始化hugepage_activelist
+ *    - 设置分配和释放NUMA节点索引
+ *
+ * 4. 设置名称,格式形如"hugepages-2048kB"
+ *
+ * 5. 将新hstate设为当前解析的hstate
+ *
+ * 该函数通常在系统初始化阶段调用,用于支持不同大小的巨页。
+ */
 void __init hugetlb_add_hstate(unsigned int order)
 {
 	struct hstate *h;
@@ -3243,7 +3271,7 @@ void __init hugetlb_add_hstate(unsigned int order)
 	BUG_ON(hugetlb_max_hstate >= HUGE_MAX_HSTATE);
 	BUG_ON(order == 0);
 	h = &hstates[hugetlb_max_hstate++];
-	h->order = order;
+	h->order = order; 
 	h->mask = ~((1ULL << (order + PAGE_SHIFT)) - 1);
 	h->nr_huge_pages = 0;
 	h->free_huge_pages = 0;
