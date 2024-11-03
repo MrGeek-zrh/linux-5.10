@@ -3033,57 +3033,94 @@ static int __init hugetlb_init(void)
     int i;
 
     if (!hugepages_supported()) {
+/**
+ *  hugeTLB大页初始化函数
+ *
+ * 主要进行以下初始化工作:
+ * 1. 检查系统是否支持大页
+ * 2. 添加默认大小(HPAGE_SIZE)的大页状态 
+ * 3. 设置默认大页状态和最大页面数(如未从命令行解析)
+ * 4. 初始化hugeTLB各个组件:
+ *    - cma检查和大页状态初始化
+ *    - 收集引导内存预分配的大页
+ *    - 初始化sysfs和节点注册
+ *    - 初始化cgroup文件
+ * 5. 设置大页fault互斥锁表:
+ *    - SMP系统: 8 * CPU数量个互斥锁
+ *    - UP系统:  1个互斥锁
+ *
+ * 返回:
+ *  成功返回0,失败返回负数
+ */
+static int __init hugetlb_init(void)
+{
+    int i;
+
+    /* 检查系统是否支持大页,如果不支持直接返回
+       如果之前已经解析命令行参数设置了hugetlb相关值,则打印警告 */
+    if (!hugepages_supported()) {
         if (hugetlb_max_hstate || default_hstate_max_huge_pages)
             pr_warn("HugeTLB: huge pages not supported, ignoring associated command-line parameters\n");
         return 0;
     }
 
     /*
-	 * 确保 HPAGE_SIZE 对应的 hstate 存在
-	 * 因为部分架构依赖于这里的初始化
-	 */
+     * 确保 HPAGE_SIZE 对应的 hstate 存在
+     * 因为部分架构依赖于这里的初始化
+     */
     hugetlb_add_hstate(HUGETLB_PAGE_ORDER);
     if (!parsed_default_hugepagesz) {
-        /* 未解析到默认 huge page size,设置为 HPAGE_SIZE */
+        /* 未解析到默认 huge page size,设置为 HPAGE_SIZE */ 
         default_hstate_idx = hstate_index(size_to_hstate(HPAGE_SIZE));
         if (default_hstate_max_huge_pages) {
             /* 有隐式指定默认 huge page 数量 */
             if (default_hstate.max_huge_pages) {
                 char buf[32];
 
-                string_get_size(huge_page_size(&default_hstate), 1, STRING_UNITS_2, buf, 32);
-                pr_warn("HugeTLB: Ignoring hugepages=%lu associated with %s page size\n", default_hstate.max_huge_pages,
-                        buf);
+                /* 获取可读的 page size 字符串 */
+                string_get_size(huge_page_size(&default_hstate), 1, STRING_UNITS_2,
+                    buf, 32);
+                pr_warn("HugeTLB: Ignoring hugepages=%lu associated with %s page size\n",
+                    default_hstate.max_huge_pages, buf);
                 pr_warn("HugeTLB: Using hugepages=%lu for number of default huge pages\n",
-                        default_hstate_max_huge_pages);
+                    default_hstate_max_huge_pages);
             }
+            /* 设置默认状态的最大页数 */
             default_hstate.max_huge_pages = default_hstate_max_huge_pages;
         }
     }
 
     /* 执行其他初始化工作 */
-    hugetlb_cma_check();
-    hugetlb_init_hstates();
-    gather_bootmem_prealloc();
-    report_hugepages();
+    hugetlb_cma_check();        /* 检查是否支持CMA */
+    hugetlb_init_hstates();     /* 初始化各个hstate */ 
+    gather_bootmem_prealloc();  /* 收集引导内存预分配的大页 */
+    report_hugepages();         /* 报告大页使用情况 */
 
-    hugetlb_sysfs_init();
-    hugetlb_register_all_nodes();
-    hugetlb_cgroup_file_init();
+    /* 初始化sysfs,节点相关 */ 
+    hugetlb_sysfs_init();                /* 创建sysfs入口 */
+    hugetlb_register_all_nodes();        /* 注册所有节点 */
+    hugetlb_cgroup_file_init();          /* cgroup初始化 */
 
-    /* 设置 huge page fault 互斥锁表 */
+    /* 设置 huge page fault 互斥锁表
+     * SMP系统: 8 * CPU数量个互斥锁
+     * UP系统: 1个互斥锁 
+     */ 
 #ifdef CONFIG_SMP
     num_fault_mutexes = roundup_pow_of_two(8 * num_possible_cpus());
-#else
+#else  
     num_fault_mutexes = 1;
 #endif
 
-    /* 分配并初始化互斥锁数组 */
-    hugetlb_fault_mutex_table = kmalloc_array(num_fault_mutexes, sizeof(struct mutex), GFP_KERNEL);
+    /* 分配并初始化互斥锁数组,分配失败时BUG */
+    hugetlb_fault_mutex_table = kmalloc_array(num_fault_mutexes,
+        sizeof(struct mutex), GFP_KERNEL);
     BUG_ON(!hugetlb_fault_mutex_table);
 
+    /* 初始化每个互斥锁 */
     for (i = 0; i < num_fault_mutexes; i++)
         mutex_init(&hugetlb_fault_mutex_table[i]);
+    return 0;
+}
     return 0;
 }
 subsys_initcall(hugetlb_init);
