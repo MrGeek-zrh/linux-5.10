@@ -30,16 +30,24 @@ typedef struct {
 #include <linux/shm.h>
 #include <asm/tlbflush.h>
 
+/*
+ * struct hugepage_subpool - 管理大页子池的数据结构
+ * @lock: 保护子池数据的自旋锁
+ * @count: 引用计数 
+ * @max_hpages: 子池允许分配的最大大页数量,-1表示无限制
+ * @used_hpages: 已使用的大页数量,包含已分配和预留的页面
+ * @hstate: 指向hugeTLB状态对象,描述大页的大小等属性
+ * @min_hpages: 子池需要维护的最小大页数量,-1表示无限制
+ * @rsv_hpages: 从全局池中预留的大页数量,用于保证最小大页数量要求
+ */
 struct hugepage_subpool {
-    spinlock_t lock;
+    spinlock_t lock;  
     long count;
-    long max_hpages; /* Maximum huge pages or -1 if no maximum. */
-    long used_hpages; /* Used count against maximum, includes */
-    /* both alloced and reserved pages. */
+    long max_hpages;  /* 最大可分配大页数,-1表示无限制 */
+    long used_hpages; /* 已使用大页总数,包含分配和预留 */  
     struct hstate *hstate;
-    long min_hpages; /* Minimum huge pages or -1 if no minimum. */
-    long rsv_hpages; /* Pages reserved against global pool to */
-    /* sasitfy minimum size. */
+    long min_hpages;  /* 最小需要维护的大页数,-1表示无限制 */
+    long rsv_hpages;  /* 从全局池预留的大页数量 */
 };
 
 struct resv_map {
