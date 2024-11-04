@@ -485,7 +485,7 @@ struct address_space {
     /**
 	 * 优先搜索树的树根
 	 * tree of private and shared mappings
-	 * 优先树：保存了映射到同一文件区域的所有vma结构
+	 * 优先树：保存了线性映射到同一文件区域的所有vma结构
 	 */
     struct rb_root_cached i_mmap;
     struct rw_semaphore i_mmap_rwsem;

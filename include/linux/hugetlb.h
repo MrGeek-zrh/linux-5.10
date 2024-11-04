@@ -209,14 +209,14 @@ enum {
  * 3. 管理文件系统安全权限
  */
 struct hugetlbfs_sb_info {
-    long max_inodes;       /* 最大允许的inode数量 */
-    long free_inodes;      /* 当前可用(空闲)的inode数量 */ 
-    spinlock_t stat_lock;  /* 保护hugetlbfs统计信息的自旋锁 */
+    long max_inodes; /* 最大允许的inode数量 */
+    long free_inodes; /* 当前可用(空闲)的inode数量 */
+    spinlock_t stat_lock; /* 保护hugetlbfs统计信息的自旋锁 */
     struct hstate *hstate; /* 指向管理大页状态的hstate结构体 */
-    struct hugepage_subpool *spool; /* 大页子池指针 */ 
-    kuid_t uid;           /* 文件系统所有者的用户ID */
-    kgid_t gid;           /* 文件系统所有者的组ID */
-    umode_t mode;         /* 文件系统的访问权限模式 */
+    struct hugepage_subpool *spool; /* 大页子池指针 */
+    kuid_t uid; /* 文件系统所有者的用户ID */
+    kgid_t gid; /* 文件系统所有者的组ID */
+    umode_t mode; /* 文件系统的访问权限模式 */
 };
 
 static inline struct hugetlbfs_sb_info *HUGETLBFS_SB(struct super_block *sb)
@@ -281,6 +281,7 @@ struct hstate { /* hugetlb 页 size */
     int next_nid_to_free;
 
     /* 大页的order,决定大页大小 = PAGE_SIZE << order */
+    // 也就是当前hstate实例对应的大页的类型（大小）
     unsigned int order;
 
     /* 大页掩码,用于地址对齐 */
