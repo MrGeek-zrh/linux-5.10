@@ -50,20 +50,28 @@ struct hugepage_subpool {
     long rsv_hpages;  /* 从全局池预留的大页数量 */
 };
 
+/*
+ * struct resv_map - 管理大页预留映射的数据结构
+ * 作用:
+ * 1. 跟踪文件映射中大页的预留和分配状态
+ * 2. 管理预留区域的生命周期
+ * 3. 支持cgroup资源控制
+ */
 struct resv_map {
-    struct kref refs;
-    spinlock_t lock;
-    struct list_head regions;
-    long adds_in_progress;
-    struct list_head region_cache;
-    long region_cache_count;
+    struct kref refs;           /* 引用计数 */
+    spinlock_t lock;           /* 保护resv_map数据的自旋锁 */
+    struct list_head regions;   /* 预留区域链表 */
+    long adds_in_progress;      /* 正在进行的添加操作计数 */
+    struct list_head region_cache;  /* 缓存的region结构链表 */
+    long region_cache_count;    /* 缓存的region数量 */
 #ifdef CONFIG_CGROUP_HUGETLB
     /*
-	 * On private mappings, the counter to uncharge reservations is stored
-	 * here. If these fields are 0, then either the mapping is shared, or
-	 * cgroup accounting is disabled for this resv_map.
-	 */
-    struct page_counter *reservation_counter;
+     * 私有映射的预留计数器:
+     * - reservation_counter为0表示共享映射或未启用cgroup
+     * - pages_per_hpage记录每个大页包含的基页数
+     * - css指向cgroup子系统状态
+     */
+    struct page_counter *reservation_counter;  
     unsigned long pages_per_hpage;
     struct cgroup_subsys_state *css;
 #endif
