@@ -1842,8 +1842,7 @@ static int __soft_offline_page(struct page *page)
     }
 
     /*
-     * 对于非hugetlb大页,先尝试将页面从页面缓存中失效
-     * 这适用于未映射的非脏页面缓存页
+     * 未使用的或非脏页面缓存页，可以直接从地址空间中删除，迁移的时候不需要考虑这类页面
      */
     if (!PageHuge(page))
         ret = invalidate_inode_page(page);

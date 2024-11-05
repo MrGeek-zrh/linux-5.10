@@ -317,7 +317,7 @@ struct page {
          *  通常情况下，page_count(page) == page_mapcount(page)
          *          即   page->_refcount = page->_mapcount + 1
 		 */
-        // 当前page映射到用户空间的次数
+        // 当前page映射到用户空间页表的次数？
         atomic_t _mapcount;
 
         /*
