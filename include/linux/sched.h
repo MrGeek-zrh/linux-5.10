@@ -2211,35 +2211,35 @@ extern struct pid *cad_pid;
 /*
  * Per process flags
  */
-#define PF_VCPU			0x00000001	/* I'm a virtual CPU */
-#define PF_IDLE			0x00000002	/* Linux-4.10引入，解决空闲注入驱动问题，I am an IDLE thread */
-#define PF_EXITING		0x00000004	/* Getting shut down */
-#define PF_IO_WORKER		0x00000010	/* Task is an IO worker */
-#define PF_WQ_WORKER		0x00000020	/* 是否为工作队列线程，只能由工作队列机制创建，I'm a workqueue worker */
-#define PF_FORKNOEXEC		0x00000040	/* 暂时还不能运行，Forked but didn't exec */
-#define PF_MCE_PROCESS		0x00000080      /* Process policy on mce errors */
-#define PF_SUPERPRIV		0x00000100	/* Used super-user privileges */
-#define PF_DUMPCORE		0x00000200	/* Dumped core */
-#define PF_SIGNALED		0x00000400	/* Killed by a signal */
-#define PF_MEMALLOC		0x00000800	/* Allocating memory, 标志进程可以使用 系统预留 内存，不关系ZONE水位 */
-#define PF_NPROC_EXCEEDED	0x00001000	/* set_user() noticed that RLIMIT_NPROC was exceeded(超出) */
-#define PF_USED_MATH		0x00002000	/* If unset the fpu must be initialized before use */
-#define PF_USED_ASYNC		0x00004000	/* Used async_schedule*(), used by module init */
-#define PF_NOFREEZE		0x00008000	/* This thread should not be frozen */
-#define PF_FROZEN		0x00010000	/* Frozen for system suspend */
-#define PF_KSWAPD		0x00020000	/* I am kswapd kswapd 线程 */
-#define PF_MEMALLOC_NOFS	0x00040000	/* All allocation requests will inherit GFP_NOFS */
-#define PF_MEMALLOC_NOIO	0x00080000	/* All allocation requests will inherit GFP_NOIO */
-#define PF_LOCAL_THROTTLE	0x00100000	/* Throttle writes only against the bdi I write to,
-						 * I am cleaning dirty pages from some other bdi. */
-#define PF_KTHREAD		0x00200000	/* I am a kernel thread */
-#define PF_RANDOMIZE		0x00400000	/* Randomize virtual address space */
-#define PF_SWAPWRITE		0x00800000	/* Allowed to write to swap 允许写交换分区 */
-#define PF_NO_SETAFFINITY	0x04000000	/* Userland is not allowed to meddle with cpus_mask */
-#define PF_MCE_EARLY		0x08000000      /* Early kill for mce process policy */
-#define PF_MEMALLOC_NOCMA	0x10000000	/* All allocation request will have _GFP_MOVABLE cleared */
-#define PF_FREEZER_SKIP		0x40000000	/* Freezer should not count it as freezable */
-#define PF_SUSPEND_TASK		0x80000000      /* This thread called freeze_processes() and should not be frozen */
+#define PF_VCPU			0x00000001	/* 虚拟CPU标志,表示该进程是一个虚拟CPU */
+#define PF_IDLE			0x00000002	/* 空闲线程标志,Linux-4.10引入,用于解决空闲注入驱动问题 */
+#define PF_EXITING		0x00000004	/* 进程正在退出标志 */
+#define PF_IO_WORKER		0x00000010	/* IO工作线程标志,表示该进程是一个IO工作线程 */
+#define PF_WQ_WORKER		0x00000020	/* 工作队列线程标志,表示该进程是工作队列创建的线程 */
+#define PF_FORKNOEXEC		0x00000040	/* fork后尚未exec的进程标志,此时进程暂时不能运行 */
+#define PF_MCE_PROCESS		0x00000080      /* MCE错误处理进程标志,用于机器检查错误策略 */
+#define PF_SUPERPRIV		0x00000100	/* 超级用户权限标志,表示进程使用过超级用户权限 */
+#define PF_DUMPCORE		0x00000200	/* core dump标志,表示进程已经生成了core dump */
+#define PF_SIGNALED		0x00000400	/* 信号终止标志,表示进程被信号杀死 */
+#define PF_MEMALLOC		0x00000800	/* 内存分配标志,允许进程使用系统预留内存,忽略内存域水位 */
+#define PF_NPROC_EXCEEDED	0x00001000	/* 进程数超限标志,表示已超出RLIMIT_NPROC限制 */
+#define PF_USED_MATH		0x00002000	/* FPU使用标志,若未设置则在使用前必须初始化FPU */
+#define PF_USED_ASYNC		0x00004000	/* 异步调度标志,用于模块初始化时的异步调度 */
+#define PF_NOFREEZE		0x00008000	/* 禁止冻结标志,标记该线程不应被冻结 */
+#define PF_FROZEN		0x00010000	/* 已冻结标志,表示进程已被系统挂起冻结 */
+#define PF_KSWAPD		0x00020000	/* kswapd标志,表示这是内存回收的kswapd内核线程 */
+#define PF_MEMALLOC_NOFS	0x00040000	/* 无文件系统分配标志,所有内存分配请求将继承GFP_NOFS标志 */
+#define PF_MEMALLOC_NOIO	0x00080000	/* 无IO分配标志,所有内存分配请求将继承GFP_NOIO标志 */ 
+#define PF_LOCAL_THROTTLE	0x00100000	/* 本地写限流标志,仅对当前正在写入的块设备进行限流,
+                                                   * 表示正在清理其他块设备的脏页 */
+#define PF_KTHREAD		0x00200000	/* 内核线程标志,表示这是一个内核线程 */
+#define PF_RANDOMIZE		0x00400000	/* 地址空间随机化标志,启用虚拟地址空间随机化 */
+#define PF_SWAPWRITE		0x00800000	/* 交换分区写入标志,允许进程写入交换分区 */
+#define PF_NO_SETAFFINITY	0x04000000	/* CPU亲和性保护标志,禁止用户空间修改进程的CPU亲和性掩码 */
+#define PF_MCE_EARLY		0x08000000      /* MCE提前终止标志,用于MCE进程的提前终止策略 */
+#define PF_MEMALLOC_NOCMA	0x10000000	/* 禁用CMA分配标志,所有内存分配请求将清除_GFP_MOVABLE标志 */  
+#define PF_FREEZER_SKIP		0x40000000	/* 跳过冻结标志,冻结器不应将该进程计入可冻结对象 */
+#define PF_SUSPEND_TASK		0x80000000      /* 挂起任务标志,表示该线程调用了freeze_processes()因此不应被冻结 */
 
 /*
  * Only the _current_ task can read/write to tsk->flags, but other
