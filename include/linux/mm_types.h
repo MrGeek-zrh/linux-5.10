@@ -227,17 +227,27 @@ struct page {
             };
         };
 
-        /* TODO */
-        struct { /* Tail pages of compound(复合) page */
-            unsigned long compound_head; /* Bit zero is set */
+        // 复合页相关字段
+        // ⾸⻚ page 中的 flags 会被设置为 PG_head
+        struct {
+            // 指向首⻚的 struct page 结构体
+            // 每一个尾页都会通过该字段指向首页
+            // 如果compound head字段的最低位被设为了1，说明当前页是尾页；不然是首页
+            // 如果是尾页，(struct page *)(head - 1)就能获得首页的page指针
+            unsigned long compound_head;
 
-            /* First tail page only */
+            //  下面是首页专用字段
+            // 用 于释放复合页 的析构函数,首页中才会定义
             unsigned char compound_dtor;
+            //  当前复合页的阶
             unsigned char compound_order;
+            // TODO:该复合页 被多少个vm_eare_struct 结构映射了？
             atomic_t compound_mapcount;
+            // 复合页包含的4kB页面数量
             unsigned int compound_nr; /* 1 << compound_order */
         };
 
+        // TODO:这个结构的作用？
         struct { /* Second tail page of compound page */
             unsigned long _compound_pad_1; /* compound_head */
             atomic_t hpage_pinned_refcount;
@@ -309,6 +319,7 @@ struct page {
          *  通常情况下，page_count(page) == page_mapcount(page)
          *          即   page->_refcount = page->_mapcount + 1
 		 */
+        // 当前page映射到用户空间的次数
         atomic_t _mapcount;
 
         /*

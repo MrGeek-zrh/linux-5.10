@@ -41,13 +41,13 @@ typedef struct {
  * @rsv_hpages: 从全局池中预留的大页数量,用于保证最小大页数量要求
  */
 struct hugepage_subpool {
-    spinlock_t lock;  
+    spinlock_t lock;
     long count;
-    long max_hpages;  /* 最大可分配大页数,-1表示无限制 */
-    long used_hpages; /* 已使用大页总数,包含分配和预留 */  
+    long max_hpages; /* 最大可分配大页数,-1表示无限制 */
+    long used_hpages; /* 已使用大页总数,包含分配和预留 */
     struct hstate *hstate;
-    long min_hpages;  /* 最小需要维护的大页数,-1表示无限制 */
-    long rsv_hpages;  /* 从全局池预留的大页数量 */
+    long min_hpages; /* 最小需要维护的大页数,-1表示无限制 */
+    long rsv_hpages; /* 从全局池预留的大页数量 */
 };
 
 /*
@@ -58,12 +58,12 @@ struct hugepage_subpool {
  * 3. 支持cgroup资源控制
  */
 struct resv_map {
-    struct kref refs;           /* 引用计数 */
-    spinlock_t lock;           /* 保护resv_map数据的自旋锁 */
-    struct list_head regions;   /* 预留区域链表 */
-    long adds_in_progress;      /* 正在进行的添加操作计数 */
-    struct list_head region_cache;  /* 缓存的region结构链表 */
-    long region_cache_count;    /* 缓存的region数量 */
+    struct kref refs; /* 引用计数 */
+    spinlock_t lock; /* 保护resv_map数据的自旋锁 */
+    struct list_head regions; /* 预留区域链表 */
+    long adds_in_progress; /* 正在进行的添加操作计数 */
+    struct list_head region_cache; /* 缓存的region结构链表 */
+    long region_cache_count; /* 缓存的region数量 */
 #ifdef CONFIG_CGROUP_HUGETLB
     /*
      * 私有映射的预留计数器:
@@ -71,7 +71,7 @@ struct resv_map {
      * - pages_per_hpage记录每个大页包含的基页数
      * - css指向cgroup子系统状态
      */
-    struct page_counter *reservation_counter;  
+    struct page_counter *reservation_counter;
     unsigned long pages_per_hpage;
     struct cgroup_subsys_state *css;
 #endif
@@ -292,9 +292,9 @@ unsigned long hugetlb_get_unmapped_area(struct file *file, unsigned long addr, u
  */
 /* Defines one hugetlb page size */
 struct hstate { /* hugetlb 页 size */
-    /* NUMA节点分配和释放的下一个节点ID */
+    /*下一个可分配内存 NUMA NODE */
     int next_nid_to_alloc;
-    int next_nid_to_free;
+    int next_nid_to_free; // 下一个可以回收内存的 NUMA NODE 节点
 
     /* 大页的order,决定大页大小 = PAGE_SIZE << order */
     // 也就是当前hstate实例对应的大页的类型（大小）
@@ -304,16 +304,19 @@ struct hstate { /* hugetlb 页 size */
     unsigned long mask;
 
     /* 系统级大页统计 */
-    unsigned long max_huge_pages; /* 系统最大可以分配的大页数 */
-    unsigned long nr_huge_pages; /* 当前系统中大页总数 */
+    unsigned long max_huge_pages; /* 系统最大可以分配的当前类型的大页数 */
+    unsigned long nr_huge_pages; /* 当前系统中该类型的大页的总数 */
     unsigned long free_huge_pages; /* 空闲大页数 */
     unsigned long resv_huge_pages; /* 预留的大页数 */
     unsigned long surplus_huge_pages; /* 超出预留的大页数 */
     unsigned long nr_overcommit_huge_pages; /* 允许超额分配的大页数 */
 
     /* 大页链表,用于跟踪活跃和空闲大页 */
+    // TODO:
     struct list_head hugepage_activelist; /* 活跃大页链表 */
-    struct list_head hugepage_freelists[MAX_NUMNODES]; /* 每个NUMA节点的空闲大页链表 */
+    /* 每个NUMA节点的空闲大页链表.这个应该是为当前这种类型的大页预留的连续的物理内存区域吧。 */
+    // 就是这样
+    struct list_head hugepage_freelists[MAX_NUMNODES];
 
     /* 每个NUMA节点的大页统计 */
     unsigned int nr_huge_pages_node[MAX_NUMNODES]; /* 每个节点的大页总数 */

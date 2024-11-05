@@ -22,56 +22,53 @@ struct dentry;
  * Bits in bdi_writeback.state
  */
 enum wb_state {
-	WB_registered,		/* bdi_register() was done */
-	WB_writeback_running,	/* Writeback is in progress */
-	WB_has_dirty_io,	/* Dirty inodes on ->b_{dirty|io|more_io} */
-	WB_start_all,		/* nr_pages == 0 (all) work pending */
+    WB_registered, /* bdi_register() was done */
+    WB_writeback_running, /* Writeback is in progress */
+    WB_has_dirty_io, /* Dirty inodes on ->b_{dirty|io|more_io} */
+    WB_start_all, /* nr_pages == 0 (all) work pending */
 };
 
 enum wb_congested_state {
-	WB_async_congested,	/* The async (write) queue is getting full */
-	WB_sync_congested,	/* The sync queue is getting full */
+    WB_async_congested, /* The async (write) queue is getting full */
+    WB_sync_congested, /* The sync queue is getting full */
 };
 
-enum wb_stat_item {
-	WB_RECLAIMABLE,
-	WB_WRITEBACK,
-	WB_DIRTIED,
-	WB_WRITTEN,
-	NR_WB_STAT_ITEMS
-};
+enum wb_stat_item { WB_RECLAIMABLE, WB_WRITEBACK, WB_DIRTIED, WB_WRITTEN, NR_WB_STAT_ITEMS };
 
-#define WB_STAT_BATCH (8*(1+ilog2(nr_cpu_ids)))
+#define WB_STAT_BATCH (8 * (1 + ilog2(nr_cpu_ids)))
 
 /*
  * why some writeback work was initiated
  */
 enum wb_reason {
-	WB_REASON_BACKGROUND,
-	WB_REASON_VMSCAN,
-	WB_REASON_SYNC,
-	WB_REASON_PERIODIC,
-	WB_REASON_LAPTOP_TIMER,
-	WB_REASON_FS_FREE_SPACE,
-	/*
+    WB_REASON_BACKGROUND,
+    WB_REASON_VMSCAN,
+    WB_REASON_SYNC,
+    WB_REASON_PERIODIC,
+    WB_REASON_LAPTOP_TIMER,
+    WB_REASON_FS_FREE_SPACE,
+    /*
 	 * There is no bdi forker thread any more and works are done
 	 * by emergency worker, however, this is TPs userland visible
 	 * and we'll be exposing exactly the same information,
 	 * so it has a mismatch name.
 	 */
-	WB_REASON_FORKER_THREAD,
-	WB_REASON_FOREIGN_FLUSH,
+    WB_REASON_FORKER_THREAD,
+    WB_REASON_FOREIGN_FLUSH,
 
-	WB_REASON_MAX,
+    WB_REASON_MAX,
 };
 
 struct wb_completion {
-	atomic_t		cnt;
-	wait_queue_head_t	*waitq;
+    atomic_t cnt;
+    wait_queue_head_t *waitq;
 };
 
-#define __WB_COMPLETION_INIT(_waitq)	\
-	(struct wb_completion){ .cnt = ATOMIC_INIT(1), .waitq = (_waitq) }
+#define __WB_COMPLETION_INIT(_waitq)             \
+    (struct wb_completion)                       \
+    {                                            \
+        .cnt = ATOMIC_INIT(1), .waitq = (_waitq) \
+    }
 
 /*
  * If one wants to wait for one or more wb_writeback_works, each work's
@@ -80,10 +77,9 @@ struct wb_completion {
  * can wait for the completion of all using wb_wait_for_completion().  Work
  * items which are waited upon aren't freed automatically on completion.
  */
-#define WB_COMPLETION_INIT(bdi)		__WB_COMPLETION_INIT(&(bdi)->wb_waitq)
+#define WB_COMPLETION_INIT(bdi) __WB_COMPLETION_INIT(&(bdi)->wb_waitq)
 
-#define DEFINE_WB_COMPLETION(cmpl, bdi)	\
-	struct wb_completion cmpl = WB_COMPLETION_INIT(bdi)
+#define DEFINE_WB_COMPLETION(cmpl, bdi) struct wb_completion cmpl = WB_COMPLETION_INIT(bdi)
 
 /*
  * Each wb (bdi_writeback) can perform writeback operations, is measured
@@ -105,112 +101,112 @@ struct wb_completion {
  * that a new wb for the combination can be created.
  */
 struct bdi_writeback {
-	struct backing_dev_info *bdi;	/* our parent bdi */
+    struct backing_dev_info *bdi; /* our parent bdi */
 
-	unsigned long state;		/* Always use atomic bitops on this */
-	unsigned long last_old_flush;	/* last old data flush */
+    unsigned long state; /* Always use atomic bitops on this */
+    unsigned long last_old_flush; /* last old data flush */
 
-	struct list_head b_dirty;	/* dirty inodes */
-	struct list_head b_io;		/* parked for writeback */
-	struct list_head b_more_io;	/* parked for more writeback */
-	struct list_head b_dirty_time;	/* time stamps are dirty */
-	spinlock_t list_lock;		/* protects the b_* lists */
+    struct list_head b_dirty; /* dirty inodes */
+    struct list_head b_io; /* parked for writeback */
+    struct list_head b_more_io; /* parked for more writeback */
+    struct list_head b_dirty_time; /* time stamps are dirty */
+    spinlock_t list_lock; /* protects the b_* lists */
 
-	struct percpu_counter stat[NR_WB_STAT_ITEMS];
+    struct percpu_counter stat[NR_WB_STAT_ITEMS];
 
-	unsigned long congested;	/* WB_[a]sync_congested flags */
+    unsigned long congested; /* WB_[a]sync_congested flags */
 
-	unsigned long bw_time_stamp;	/* last time write bw is updated */
-	unsigned long dirtied_stamp;
-	unsigned long written_stamp;	/* pages written at bw_time_stamp */
-	unsigned long write_bandwidth;	/* the estimated write bandwidth */
-	unsigned long avg_write_bandwidth; /* further smoothed write bw, > 0 */
+    unsigned long bw_time_stamp; /* last time write bw is updated */
+    unsigned long dirtied_stamp;
+    unsigned long written_stamp; /* pages written at bw_time_stamp */
+    unsigned long write_bandwidth; /* the estimated write bandwidth */
+    unsigned long avg_write_bandwidth; /* further smoothed write bw, > 0 */
 
-	/*
+    /*
 	 * The base dirty throttle rate, re-calculated on every 200ms.
 	 * All the bdi tasks' dirty rate will be curbed under it.
 	 * @dirty_ratelimit tracks the estimated @balanced_dirty_ratelimit
 	 * in small steps and is much more smooth/stable than the latter.
 	 */
-	unsigned long dirty_ratelimit;
-	unsigned long balanced_dirty_ratelimit;
+    unsigned long dirty_ratelimit;
+    unsigned long balanced_dirty_ratelimit;
 
-	struct fprop_local_percpu completions;
-	int dirty_exceeded;
-	enum wb_reason start_all_reason;
+    struct fprop_local_percpu completions;
+    int dirty_exceeded;
+    enum wb_reason start_all_reason;
 
-	spinlock_t work_lock;		/* protects work_list & dwork scheduling */
-	struct list_head work_list;
-	struct delayed_work dwork;	/* work item used for writeback */
+    spinlock_t work_lock; /* protects work_list & dwork scheduling */
+    struct list_head work_list;
+    struct delayed_work dwork; /* work item used for writeback */
 
-	unsigned long dirty_sleep;	/* last wait */
+    unsigned long dirty_sleep; /* last wait */
 
-	struct list_head bdi_node;	/* anchored at bdi->wb_list */
+    struct list_head bdi_node; /* anchored at bdi->wb_list */
 
 #ifdef CONFIG_CGROUP_WRITEBACK
-	struct percpu_ref refcnt;	/* used only for !root wb's */
-	struct fprop_local_percpu memcg_completions;
-	struct cgroup_subsys_state *memcg_css; /* the associated memcg */
-	struct cgroup_subsys_state *blkcg_css; /* and blkcg */
-	struct list_head memcg_node;	/* anchored at memcg->cgwb_list */
-	struct list_head blkcg_node;	/* anchored at blkcg->cgwb_list */
+    struct percpu_ref refcnt; /* used only for !root wb's */
+    struct fprop_local_percpu memcg_completions;
+    struct cgroup_subsys_state *memcg_css; /* the associated memcg */
+    struct cgroup_subsys_state *blkcg_css; /* and blkcg */
+    struct list_head memcg_node; /* anchored at memcg->cgwb_list */
+    struct list_head blkcg_node; /* anchored at blkcg->cgwb_list */
 
-	union {
-		struct work_struct release_work;
-		struct rcu_head rcu;
-	};
+    union {
+        struct work_struct release_work;
+        struct rcu_head rcu;
+    };
 #endif
 };
 
 struct backing_dev_info {
-	u64 id;
-	struct rb_node rb_node; /* keyed by ->id */
-	struct list_head bdi_list;
-	unsigned long ra_pages;	/* max readahead in PAGE_SIZE units */
-	unsigned long io_pages;	/* max allowed IO size */
+    u64 id;
+    struct rb_node rb_node; /* keyed by ->id */
+    struct list_head bdi_list;
+    unsigned long ra_pages; /* max readahead in PAGE_SIZE units */
+    unsigned long io_pages; /* max allowed IO size */
 
-	struct kref refcnt;	/* Reference counter for the structure */
-	unsigned int capabilities; /* Device capabilities */
-	unsigned int min_ratio;
-	unsigned int max_ratio, max_prop_frac;
+    struct kref refcnt; /* Reference counter for the structure */
+    unsigned int capabilities; /* Device capabilities */
+    unsigned int min_ratio;
+    unsigned int max_ratio, max_prop_frac;
 
-	/*
+    /*
 	 * Sum of avg_write_bw of wbs with dirty inodes.  > 0 if there are
 	 * any dirty wbs, which is depended upon by bdi_has_dirty().
 	 */
-	atomic_long_t tot_write_bandwidth;
+    atomic_long_t tot_write_bandwidth;
 
-	struct bdi_writeback wb;  /* the root writeback info for this bdi */
-	struct list_head wb_list; /* list of all wbs */
+    struct bdi_writeback wb; /* the root writeback info for this bdi */
+    struct list_head wb_list; /* list of all wbs */
 #ifdef CONFIG_CGROUP_WRITEBACK
-	struct radix_tree_root cgwb_tree; /* radix tree of active cgroup wbs */
-	struct mutex cgwb_release_mutex;  /* protect shutdown of wb structs */
-	struct rw_semaphore wb_switch_rwsem; /* no cgwb switch while syncing */
+    struct radix_tree_root cgwb_tree; /* radix tree of active cgroup wbs */
+    struct mutex cgwb_release_mutex; /* protect shutdown of wb structs */
+    struct rw_semaphore wb_switch_rwsem; /* no cgwb switch while syncing */
 #endif
-	wait_queue_head_t wb_waitq;
+    wait_queue_head_t wb_waitq;
 
-	struct device *dev;
-	char dev_name[64];
-	struct device *owner;
+    struct device *dev;
+    char dev_name[64];
+    struct device *owner;
 
-	struct timer_list laptop_mode_wb_timer;
+    struct timer_list laptop_mode_wb_timer;
 
 #ifdef CONFIG_DEBUG_FS
-	struct dentry *debug_dir;
+    struct dentry *debug_dir;
 #endif
 };
 
 enum {
-	BLK_RW_ASYNC	= 0,
-	BLK_RW_SYNC	= 1,
+    BLK_RW_ASYNC = 0,
+    BLK_RW_SYNC = 1,
 };
 
 void clear_bdi_congested(struct backing_dev_info *bdi, int sync);
 void set_bdi_congested(struct backing_dev_info *bdi, int sync);
 
 struct wb_lock_cookie {
-	bool locked;
-	unsigned long flags;
+    bool locked;
+    unsigned long flags;
 };
 
 #ifdef CONFIG_CGROUP_WRITEBACK
@@ -221,9 +217,9 @@ struct wb_lock_cookie {
  */
 static inline bool wb_tryget(struct bdi_writeback *wb)
 {
-	if (wb != &wb->bdi->wb)
-		return percpu_ref_tryget(&wb->refcnt);
-	return true;
+    if (wb != &wb->bdi->wb)
+        return percpu_ref_tryget(&wb->refcnt);
+    return true;
 }
 
 /**
@@ -232,8 +228,8 @@ static inline bool wb_tryget(struct bdi_writeback *wb)
  */
 static inline void wb_get(struct bdi_writeback *wb)
 {
-	if (wb != &wb->bdi->wb)
-		percpu_ref_get(&wb->refcnt);
+    if (wb != &wb->bdi->wb)
+        percpu_ref_get(&wb->refcnt);
 }
 
 /**
@@ -242,16 +238,16 @@ static inline void wb_get(struct bdi_writeback *wb)
  */
 static inline void wb_put(struct bdi_writeback *wb)
 {
-	if (WARN_ON_ONCE(!wb->bdi)) {
-		/*
+    if (WARN_ON_ONCE(!wb->bdi)) {
+        /*
 		 * A driver bug might cause a file to be removed before bdi was
 		 * initialized.
 		 */
-		return;
-	}
+        return;
+    }
 
-	if (wb != &wb->bdi->wb)
-		percpu_ref_put(&wb->refcnt);
+    if (wb != &wb->bdi->wb)
+        percpu_ref_put(&wb->refcnt);
 }
 
 /**
@@ -262,14 +258,14 @@ static inline void wb_put(struct bdi_writeback *wb)
  */
 static inline bool wb_dying(struct bdi_writeback *wb)
 {
-	return percpu_ref_is_dying(&wb->refcnt);
+    return percpu_ref_is_dying(&wb->refcnt);
 }
 
-#else	/* CONFIG_CGROUP_WRITEBACK */
+#else /* CONFIG_CGROUP_WRITEBACK */
 
 static inline bool wb_tryget(struct bdi_writeback *wb)
 {
-	return true;
+    return true;
 }
 
 static inline void wb_get(struct bdi_writeback *wb)
@@ -282,9 +278,9 @@ static inline void wb_put(struct bdi_writeback *wb)
 
 static inline bool wb_dying(struct bdi_writeback *wb)
 {
-	return false;
+    return false;
 }
 
-#endif	/* CONFIG_CGROUP_WRITEBACK */
+#endif /* CONFIG_CGROUP_WRITEBACK */
 
-#endif	/* __LINUX_BACKING_DEV_DEFS_H */
+#endif /* __LINUX_BACKING_DEV_DEFS_H */

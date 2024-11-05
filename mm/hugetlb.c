@@ -1489,7 +1489,7 @@ static void prep_compound_gigantic_page(struct page *page, unsigned int order)
  * transparent huge pages.  See the PageTransHuge() documentation for more
  * details.
  *
- * 大页内存
+ * 判断是不是hugetlb page
  */
 int PageHuge(struct page *page)
 {

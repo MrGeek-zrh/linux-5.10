@@ -203,9 +203,9 @@ enum pageflags {
 struct page; /* forward declaration */
 
 /**
- *
- * compound:化合物
  * 如果当前页是复合页，则返回其头部页的page指针；否则返回传入的页指针
+ * 这里说的复合页是包含hugetlb 和 thb 两种吗？
+ * 这两种大页应该都是这个结构表示的吧
  */
 static inline struct page *compound_head(struct page *page)
 {

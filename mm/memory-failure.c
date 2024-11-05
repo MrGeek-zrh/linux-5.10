@@ -1916,7 +1916,7 @@ static int soft_offline_in_use_page(struct page *page)
 {
     struct page *hpage = compound_head(page);
 
-    //如果不是hugetlbfs，但是THP,先尝试分割成基本页面
+    //如果不是hugetlbfs，但是THP,先尝试分割成4kB基本页面
     if (!PageHuge(page) && PageTransHuge(hpage))
         if (try_to_split_thp_page(page, "soft offline") < 0)
             return -EBUSY;
