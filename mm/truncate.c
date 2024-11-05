@@ -251,17 +251,10 @@ int generic_error_remove_page(struct address_space *mapping, struct page *page)
 EXPORT_SYMBOL(generic_error_remove_page);
 
 /**
- * invalidate_inode_page - 释放 inode 的所有 未锁定的 pages
+ * Safely invalidate one page from its pagecache mapping.
+ * It only drops clean, unused pages. The page must be locked.
  *
- * @mapping: the address_space which holds the pages to invalidate
- * @start: the offset 'from' which to invalidate
- * @end: the offset 'to' which to invalidate (inclusive)
- *
- * 该函数仅移除未锁定的页面，如果要移除 inode 的所有页面，必须调用 truncate_inode_pages。
- *
- * invalidate_mapping_pages() 不会阻塞 IO 活动。它不会使脏、锁定、写回中的页面或映射到页表中的页面失效。
- *
- * 返回: 被成功失效的页面数量
+ * Returns 1 if the page is successfully invalidated, otherwise 0.
  */
 int invalidate_inode_page(struct page *page)
 {
