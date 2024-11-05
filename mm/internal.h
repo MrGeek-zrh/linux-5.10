@@ -665,9 +665,9 @@ static inline bool is_migrate_highatomic_page(struct page *page)
 void setup_zone_pageset(struct zone *zone);
 
 struct migration_target_control {
-	int nid;		/* preferred node id */
-	nodemask_t *nmask;
-	gfp_t gfp_mask;
+    int nid;            /* 页面迁移的首选目标 NUMA 节点 ID */
+    nodemask_t *nmask;  /* 可以作为迁移目标的 NUMA 节点掩码 */
+    gfp_t gfp_mask;     /* 分配标志,决定页面分配行为 */
 };
 
 #endif	/* __MM_INTERNAL_H */
