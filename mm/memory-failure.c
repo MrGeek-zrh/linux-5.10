@@ -1863,6 +1863,7 @@ static int __soft_offline_page(struct page *page)
         /* 
          * 执行实际的页面迁移
          * MR_MEMORY_FAILURE表示这是由于内存错误引起的迁移
+         * 对于软下线来说，采用同步迁移的方式
          */
         ret = migrate_pages(&pagelist, alloc_migration_target, NULL, (unsigned long)&mtc, MIGRATE_SYNC,
                             MR_MEMORY_FAILURE);
