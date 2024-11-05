@@ -1830,7 +1830,10 @@ static int __soft_offline_page(struct page *page)
      */
     lock_page(page);
     if (!PageHuge(page))
+        // 不是hugetlb，就是普通页面
+        // 如果当前页面正在写回磁盘，需要等内容写回磁盘再进行迁移
         wait_on_page_writeback(page);
+    // 页面已经被标记为毒化，不在进行处理
     if (PageHWPoison(page)) {
         unlock_page(page);
         put_page(page);
@@ -1839,7 +1842,6 @@ static int __soft_offline_page(struct page *page)
     }
 
     /*
-	 * 这个函数中不会存在THP大页了，因为调用这个函数的函数中已经对THP进行拆分了
      * 对于非hugetlb大页,先尝试将页面从页面缓存中失效
      * 这适用于未映射的非脏页面缓存页
      */

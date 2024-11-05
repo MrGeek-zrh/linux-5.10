@@ -230,10 +230,8 @@ struct page {
         // 复合页相关字段
         // ⾸⻚ page 中的 flags 会被设置为 PG_head
         struct {
-            // 指向首⻚的 struct page 结构体
-            // 每一个尾页都会通过该字段指向首页
             // 如果compound head字段的最低位被设为了1，说明当前页是尾页；不然是首页
-            // 如果是尾页，(struct page *)(head - 1)就能获得首页的page指针
+            // - 如果是尾页，(struct page *)(head - 1)就能获得首页的page指针
             unsigned long compound_head;
 
             //  下面是首页专用字段

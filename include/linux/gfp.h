@@ -208,6 +208,15 @@ struct vm_area_struct;
  * loop around allocator.
  * Using this flag for costly allocations is _highly_ discouraged.
  */
+/**
+  *__GFP_ZERO - 分配时清零
+    __GFP_NOWARN - 分配失败时不警告
+    __GFP_NORETRY - 分配失败时不重试
+    __GFP_NOFAIL - 分配必须成功
+    __GFP_MOVABLE - 分配可迁移页面
+    __GFP_IO - 允许做IO操作
+    __GFP_FS - 允许调用文件系统
+  * */
 #define __GFP_IO ((__force gfp_t)___GFP_IO)
 #define __GFP_FS ((__force gfp_t)___GFP_FS)
 #define __GFP_DIRECT_RECLAIM ((__force gfp_t)___GFP_DIRECT_RECLAIM) /* Caller can reclaim, 可以回收 */
