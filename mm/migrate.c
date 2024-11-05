@@ -1747,7 +1747,23 @@ int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
         thp_retry = 0;
 
         // 遍历待迁移页面链表
-        list_for_each_entry_safe(page, page2, from, lru)
+    /* 
+     * list_for_each_entry_safe 在这里展开后等价于:
+     * for (page = list_first_entry(from, struct page, lru);  // 获取第一个页面
+     *      &page->lru != (from) &&                           // 未到链表尾
+     *      ({ page2 = list_next_entry(page, lru); 1; });    // 保存下一个页面
+     *      page = page2)                                     // 移动到下一个页面
+     *
+     * 其中:
+     * - page 是 struct page 类型,当前遍历到的页面
+     * - page2 是 struct page 类型,下一个要遍历的页面
+     * - from 是链表头
+     * - lru 是 struct page 中的 list_head 成员名
+     */  
+    for (page = list_first_entry(from, struct page, lru);
+         &page->lru != (from) && 
+         ({ page2 = list_next_entry(page, lru); 1; });
+         page = page2) {
         {
         retry:
             // 记录页面类型信息,用于统计
