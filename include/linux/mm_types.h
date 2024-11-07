@@ -142,7 +142,7 @@ struct page {
              *                  当需要使用地址空间时会指定交换分区的地址空间swapper_space。
              * 如果 mapping != 0，
              *      bit[0] = 0，说明该page属于页缓存或文件映射，mapping指向文件的地址空间address_space。
-             *      bit[0] != 0，说明该page为匿名映射，mapping指向struct anon_vma对象。
+             *      bit[0] = 1，说明该page为匿名映射，mapping指向struct anon_vma对象。
              *
              * 通过mapping恢复anon_vma的方法：
 			 *  anon_vma = (struct anon_vma *)(mapping - PAGE_MAPPING_ANON)。
@@ -343,7 +343,8 @@ struct page {
     /**
 	 *  Usage count. *DO NOT USE DIRECTLY*. See page_ref.h
 	 *
-	 *  内核中引用该页面的次数
+	 *  当前页面正在被使用的计数.注意，除了页面被映射，ref_count会++，还有三种情况下，ref_count也会++
+	 *
 	 *  =0 该页面 为空闲页面或即将要被释放的页面
 	 *  >0 该页面 已经被分配，且内核正在使用，暂时不会被释放
 	 *
@@ -356,7 +357,7 @@ struct page {
      *  =============================================
      *  1. 页面高速缓存在 radix tree 上， KSM 不考虑 页面高速缓存的情况
      *  2. 被用户态 PTE 引用， _refcount 和 _mapcount 都会增加计数
-     *  3. page->private 数据也会增加 _refcount，对于匿名页面，需要判断他是否在交换缓存中
+     *  3. page->private 数据也会增加 _refcount，对于匿名页面，需要判断他是否在交换缓存中.TODO:这是为啥？
      *  4. 内核操作某些页面时会增加 _refcount, 如 follow_page(),get_user_pages_fast()
 	 */
     atomic_t _refcount;

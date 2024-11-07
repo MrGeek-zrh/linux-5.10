@@ -1331,9 +1331,20 @@ static int unmap_and_move(new_page_t get_new_page, free_page_t put_new_page, uns
     int rc = MIGRATEPAGE_SUCCESS;
     struct page *newpage = NULL;
 
+    /**
+	 * 不支持透明大页迁移的系统上,不能迁移透明大页
+	 */
+    // TODO:这里还会出现是大页的情况吗？大页不是在其他地方被处理了吗？
     if (!thp_migration_supported() && PageTransHuge(page))
         return -ENOMEM;
 
+    /**
+	 * 检查页面引用计数
+	 * 引用计数为1说明只剩下页面隔离时获得的引用,
+	 * 页面已经没有其他使用者了,可以直接完成迁移。
+	 * 清除Active和Unevictable(不可回收）标志,表示页面可以被回收。
+	 * 对于可移动页面,还需要清除Isolated标志。
+	 */
     if (page_count(page) == 1) {
         /* page was freed from under us. So we are done. */
         ClearPageActive(page);
@@ -1348,58 +1359,51 @@ static int unmap_and_move(new_page_t get_new_page, free_page_t put_new_page, uns
     }
 
     /**
-     *  分配一个新的页面
-     */
+	 * 分配一个新的页面
+	 * 失败则返回-ENOMEM
+	 */
     newpage = get_new_page(page, private);
     if (!newpage)
         return -ENOMEM;
 
     /**
-     *  尝试迁移 页面到新分配的页面中
-     */
+	 * 尝试迁移页面到新分配的页面中
+	 */
     rc = __unmap_and_move(page, newpage, force, mode);
+
+    /**
+	 * 迁移成功则更新页面迁移原因
+	 */
     if (rc == MIGRATEPAGE_SUCCESS)
         set_page_owner_migrate_reason(newpage, reason);
 
 out:
     /**
-     *  若返回值 不是 -EAGAIN 说明迁移没成功
-     */
+	 * 若返回值不是-EAGAIN说明迁移完成(成功或失败)
+	 * 需要从LRU链表中删除该页面,并更新统计计数
+	 */
     if (rc != -EAGAIN) {
-        /*
-		 * A page that has been migrated has all references
-		 * removed and will be freed. A page that has not been
-		 * migrated will have kept its references and be restored.
-		 */
         list_del(&page->lru);
 
         /*
-		 * Compaction can migrate also non-LRU pages which are
-		 * not accounted to NR_ISOLATED_*. They can be recognized
-		 * as __PageMovable
+		 * 非__PageMovable的页面需要更新node统计信息
 		 */
         if (likely(!__PageMovable(page)))
             mod_node_page_state(page_pgdat(page), NR_ISOLATED_ANON + page_is_file_lru(page), -thp_nr_pages(page));
     }
 
-    /*
-	 * If migration is successful, releases reference grabbed during
-	 * isolation. Otherwise, restore the page to right list unless
-	 * we want to retry.
-	 *
-	 * 迁移成功
+    /**
+	 * 根据迁移结果做最终处理:
+	 * 1. 迁移成功:释放源页面的引用计数(除了内存故障的场景)
+	 * 2. 迁移失败:
+	 *    - 不可重试则恢复页面到原来的位置
+	 *    - 释放新分配的页面
 	 */
     if (rc == MIGRATEPAGE_SUCCESS) {
-        if (reason != MR_MEMORY_FAILURE)
-            /*
-			 * We release the page in page_handle_poison.
-			 */
+        if (reason != MR_MEMORY_FAILURE) {
             put_page(page);
-
+        }
     } else {
-        /**
-         *  迁移没成功，吧页面重新添加到 可移动的页面里，释放 newpage
-         */
         if (rc != -EAGAIN) {
             if (likely(!__PageMovable(page))) {
                 putback_lru_page(page);
@@ -1411,14 +1415,10 @@ out:
                 putback_movable_page(page);
             else
                 __ClearPageIsolated(page);
-
             unlock_page(page);
             put_page(page);
         }
     put_new:
-        /**
-         *  释放刚才分配的新页
-         */
         if (put_new_page)
             put_new_page(newpage, private);
         else
@@ -1456,6 +1456,8 @@ out:
  *
  * 这意味着当我们尝试迁移其子页面正在进行直接I/O的大页时,try_to_unmap()后仍有
  * 一些引用存在,大页迁移会失败但不会造成数据损坏。
+ *
+ * TODO: 迁移交换项是什么
  *
  * 当对正在迁移的页面发起直接I/O时也不会有竞争,因为此时pte已被替换为迁移交换项,
  * 直接I/O代码会在页面错误处等待迁移完成。

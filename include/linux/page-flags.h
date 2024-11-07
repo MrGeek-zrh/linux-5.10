@@ -2157,11 +2157,29 @@ static __always_inline void __ClearPageReported(struct page *page)
  * address_space which maps the page from disk; whereas "page_mapped"
  * refers to user virtual address space into which the page is mapped.
  *
+ * 对于映射到用户虚拟内存区域的匿名页面，
+* page->mapping 指向其 anon_vma，而不是指向 struct address_space；
+* 通过设置 PAGE_MAPPING_ANON 位来进行区分。详见 rmap.h。
+*
+* 对于位于 VM_MERGEABLE 区域的匿名页面，如果启用了 CONFIG_KSM，
+* PAGE_MAPPING_MOVABLE 位可能会和 PAGE_MAPPING_ANON 位一起被设置；
+* 这种情况下 page->mapping 指向的不是 anon_vma，
+* 而是指向 KSM 为该合并页面关联的一个私有结构。详见 ksm.h。
+*
+* 不带 PAGE_MAPPING_ANON 的 PAGE_MAPPING_KSM 用于非 LRU 可移动页面，
+* 此时 page->mapping 指向一个 struct address_space。
+*
+* 请注意，容易混淆的是，"page_mapping" 指的是从磁盘映射页面的
+* inode address_space；而 "page_mapped" 指的是页面被映射到的
+* 用户虚拟地址空间。
+ *
  * 见`struct page->mapping[0-1]`
  */
-#define PAGE_MAPPING_ANON 0x1 /* 匿名页面 */
-#define PAGE_MAPPING_MOVABLE 0x2 /* 可迁移页面 */
+#define PAGE_MAPPING_ANON 0x1 /* 匿名页面 01 */
+#define PAGE_MAPPING_MOVABLE 0x2 /* 可迁移页面 10 */ // 哪些页面会被设置这个可迁移标志呢？
 #define PAGE_MAPPING_KSM (PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
+
+/* 获取mapping最低两bit的掩码 */
 #define PAGE_MAPPING_FLAGS (PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
 
 static __always_inline int PageMappingFlags(struct page *page)
