@@ -72,10 +72,14 @@ static inline int current_is_kswapd(void)
 
 /*
  * NUMA node memory migration support
+ * 用于支持NUMA节点间的内存页面迁移
  */
 #ifdef CONFIG_MIGRATION
+/* 定义迁移类型的数量(读和写各占一个) */
 #define SWP_MIGRATION_NUM 2
+/* 用于迁移读操作的特殊swap entry类型 */
 #define SWP_MIGRATION_READ	(MAX_SWAPFILES + SWP_HWPOISON_NUM)
+/* 用于迁移写操作的特殊swap entry类型 */
 #define SWP_MIGRATION_WRITE	(MAX_SWAPFILES + SWP_HWPOISON_NUM + 1)
 #else
 //#define SWP_MIGRATION_NUM 0
