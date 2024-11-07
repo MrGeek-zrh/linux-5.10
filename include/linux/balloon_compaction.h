@@ -97,11 +97,18 @@ extern int balloon_page_migrate(struct address_space *mapping,
  * pages list is held before inserting a page into the balloon device.
  */
 static inline void balloon_page_insert(struct balloon_dev_info *balloon,
-				       struct page *page)
+				       struct page *page)  
 {
+        // 设置页面为offline状态
 	__SetPageOffline(page);
+
+        // 设置页面为可移动并与balloon inode mapping关联
 	__SetPageMovable(page, balloon->inode->i_mapping);
+        
+        // 保存balloon设备指针到页面private
 	set_page_private(page, (unsigned long)balloon);
+        
+        // 添加页面到balloon设备的页面链表中
 	list_add(&page->lru, &balloon->pages);
 }
 
