@@ -1446,34 +1446,56 @@ out:
  * because then pte is replaced with migration swap entry and direct I/O code
  * will wait in the page fault for migration to complete.
  */
+/*
+ * unmap_and_move_page()函数的大页版本。用于迁移大页(hugepage)到新分配的页面。
+ *
+ * 此函数不会等待大页I/O完成,因为大页的I/O和迁移之间不存在竞争。需要注意的是,
+ * 当前大页I/O只发生在直接I/O中,此时没有锁且PG_writeback标志不相关,所有子页面的
+ * 回写状态PG_writable都计入在头页面的引用计数中(例如:如果一个2MB大页的所有子页面都在进行
+ * 直接I/O,则头页面的引用计数是512)。
+ *
+ * 这意味着当我们尝试迁移其子页面正在进行直接I/O的大页时,try_to_unmap()后仍有
+ * 一些引用存在,大页迁移会失败但不会造成数据损坏。
+ *
+ * 当对正在迁移的页面发起直接I/O时也不会有竞争,因为此时pte已被替换为迁移交换项,
+ * 直接I/O代码会在页面错误处等待迁移完成。
+ *
+ * @get_new_page: 分配目标大页的函数
+ * @put_new_page: 迁移失败时释放目标大页的函数
+ * @private: 传递给get_new_page()的私有数据
+ * @hpage: 要迁移的大页
+ * @force: 是否在迁移期间强制进行内存压缩
+ * @mode: 迁移模式(异步、同步或无复制同步)
+ * @reason: 页面迁移的原因
+ *
+ * 成功返回0,失败返回错误码
+ */
 static int unmap_and_move_huge_page(new_page_t get_new_page, free_page_t put_new_page, unsigned long private,
                                     struct page *hpage, int force, enum migrate_mode mode, int reason)
 {
-    int rc = -EAGAIN;
-    int page_was_mapped = 0;
+    pg_data_t *pgdat = NODE_DATA(node);
+    int isolated;
     struct page *new_hpage;
     struct anon_vma *anon_vma = NULL;
     struct address_space *mapping = NULL;
 
-    /*
-	 * Migratability of hugepages depends on architectures and their size.
-	 * This check is necessary because some callers of hugepage migration
-	 * like soft offline and memory hotremove don't walk through page
-	 * tables or check whether the hugepage is pmd-based or not before
-	 * kicking migration.
-	 */
+    /* 检查架构和大页大小是否支持迁移 */
     if (!hugepage_migration_supported(page_hstate(hpage))) {
         putback_active_hugepage(hpage);
         return -ENOSYS;
     }
 
+    /* 分配新的大页 */
     new_hpage = get_new_page(hpage, private);
     if (!new_hpage)
         return -ENOMEM;
 
+    /* 尝试锁定源大页 */
     if (!trylock_page(hpage)) {
+        /* 如果不是强制迁移则直接返回 */
         if (!force)
             goto out;
+        /* 非同步模式下直接返回 */
         switch (mode) {
             case MIGRATE_SYNC:
             case MIGRATE_SYNC_NO_COPY:
@@ -1481,36 +1503,39 @@ static int unmap_and_move_huge_page(new_page_t get_new_page, free_page_t put_new
             default:
                 goto out;
         }
+        /* 强制获取页面锁 */
         lock_page(hpage);
     }
 
     /*
-	 * Check for pages which are in the process of being freed.  Without
-	 * page_mapping() set, hugetlbfs specific move page routine will not
-	 * be called and we could leak usage counts for subpools.
-	 */
+     * 检查页面是否正在被释放。如果没有设置page_mapping(),
+     * hugetlbfs特定的页面迁移例程将不会被调用,可能会导致子池的
+     * 使用计数泄漏。
+     */
     if (page_private(hpage) && !page_mapping(hpage)) {
         rc = -EBUSY;
         goto out_unlock;
     }
 
+    /* 如果是匿名页,获取anon_vma */
     if (PageAnon(hpage))
         anon_vma = page_get_anon_vma(hpage);
 
+    /* 尝试锁定目标大页 */
     if (unlikely(!trylock_page(new_hpage)))
         goto put_anon;
 
+    /* 处理已映射页面 */
     if (page_mapped(hpage)) {
         bool mapping_locked = false;
         enum ttu_flags ttu = TTU_MIGRATION | TTU_IGNORE_MLOCK;
 
         if (!PageAnon(hpage)) {
             /*
-			 * In shared mappings, try_to_unmap could potentially
-			 * call huge_pmd_unshare.  Because of this, take
-			 * semaphore in write mode here and set TTU_RMAP_LOCKED
-			 * to let lower levels know we have taken the lock.
-			 */
+             * 对于共享映射,try_to_unmap可能调用huge_pmd_unshare。
+             * 因此,这里以写模式获取信号量,并设置TTU_RMAP_LOCKED
+             * 以通知底层已获取锁。
+             */
             mapping = hugetlb_page_mapping_lock_write(hpage);
             if (unlikely(!mapping))
                 goto unlock_put_anon;
@@ -1519,6 +1544,7 @@ static int unmap_and_move_huge_page(new_page_t get_new_page, free_page_t put_new
             ttu |= TTU_RMAP_LOCKED;
         }
 
+        /* 解除页表映射 */
         try_to_unmap(hpage, ttu);
         page_was_mapped = 1;
 
@@ -1526,35 +1552,41 @@ static int unmap_and_move_huge_page(new_page_t get_new_page, free_page_t put_new
             i_mmap_unlock_write(mapping);
     }
 
+    /* 如果页面已经解除映射,执行实际迁移 */
     if (!page_mapped(hpage))
         rc = move_to_new_page(new_hpage, hpage, mode);
 
+    /* 如果页面之前有映射,需要移除迁移页表项 */
     if (page_was_mapped)
         remove_migration_ptes(hpage, rc == MIGRATEPAGE_SUCCESS ? new_hpage : hpage, false);
 
 unlock_put_anon:
+    /* 解锁新页面 */
     unlock_page(new_hpage);
 
 put_anon:
+    /* 如果有anon_vma引用,释放它 */
     if (anon_vma)
         put_anon_vma(anon_vma);
 
+    /* 迁移成功则更新hugepage状态 */
     if (rc == MIGRATEPAGE_SUCCESS) {
         move_hugetlb_state(hpage, new_hpage, reason);
         put_new_page = NULL;
     }
 
 out_unlock:
+    /* 解锁源页面 */
     unlock_page(hpage);
 out:
+    /* 如果不需要重试,将源页面放回活动列表 */
     if (rc != -EAGAIN)
         putback_active_hugepage(hpage);
 
     /*
-	 * If migration was not successful and there's a freeing callback, use
-	 * it.  Otherwise, put_page() will drop the reference grabbed during
-	 * isolation.
-	 */
+     * 如果迁移失败且有释放回调函数,则使用它。
+     * 否则,put_page()会释放隔离期间获得的引用。
+     */
     if (put_new_page)
         put_new_page(new_hpage, private);
     else
@@ -1723,7 +1755,7 @@ int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
     // pass记录当前是第几轮迁移尝试
     int pass = 0;
 
-    // is_thp标记当前处理的页面是否为透明大页
+    // is_thp标记当前是否是hugetlb 或者透明大页
     bool is_thp = false;
 
     // page/page2为遍历链表使用的指针
@@ -1746,18 +1778,73 @@ int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
         retry = 0;
         thp_retry = 0;
 
+        // 下面是为什么&page->lru != from 可以用来表示有没有到末尾的原理解释：
+        /*
+        * Linux双向循环链表的定义:
+        * 1. 链表头 list_head 初始化时指向自己:
+        *    - next 指向自己的地址
+        *    - prev 也指向自己的地址
+        *
+        * 示意图:
+        *  list_head(from)
+        *     |
+        *     v
+        *   +----------+
+        *   |    *next-|--> 指向自己
+        *   |    *prev-|--> 指向自己
+        *   +----------+
+        */
+        /*
+        * 当添加节点时:
+        * 1. 第一个节点:next/prev 都指向链表头
+        * 2. 后续节点:依次连接,最后一个节点的next指向链表头
+        *
+        * 示意图:
+        * +-----------+     +-----------+     +-----------+
+        * |list_head  |     |  page1    |     |  page2    |
+        * |  (from)   |<--->|   lru     |<--->|   lru     |
+        * +-----------+     +-----------+     +-----------+
+        *      ^                                    |
+        *      +------------------------------------+
+        *           最后一个节点next指向链表头
+        *
+        * 链表为空时,from->next = from->prev = from(自己)
+            有节点时,最后一个节点的next指向链表头from
+            因此遍历时检查 &page->lru != from:
+
+            不等于from,说明还没到尾部
+            等于from,说明已经遍历完所有节点回到链表头
+        */
+
         // 遍历待迁移页面链表
+        /*
+        * list_for_each_entry_safe 在这里展开后等价于:
+        * for (page = list_first_entry(from, struct page, lru);  // 获取第一个页面
+        *      &page->lru != (from) &&                           // 未到链表尾
+        *      ({ page2 = list_next_entry(page, lru); 1; });    // 保存下一个页面
+        *      page = page2)                                     // 移动到下一个页面
+        *
+        * 其中:
+        * - page 是 struct page 类型,当前遍历到的页面
+        * - page2 是 struct page 类型,下一个要遍历的页面.
+        *   - page2 = list_next_entry(page, lru) 提前保存下一个页面
+        *   - 这样即使当前页面被删除也不会影响遍历
+        * - from 是链表头
+        * - lru 是 struct page 一个字段的名称.在这里应该是就是作为一个通用的list
+        */
         list_for_each_entry_safe(page, page2, from, lru)
         {
         retry:
-            // 记录页面类型信息,用于统计
+            // 判断是不是hugetlb 或者透明大页
+            // 但是在内存软下线的情况下，似乎只有hugetlb会走到这一步吧；透明大页已经被分割了？
+            // TODO:既然是这样，这里为啥要用PageTransHuge而不是PageHuge？
             is_thp = PageTransHuge(page) && !PageHuge(page);
             nr_subpages = thp_nr_pages(page);
 
             // 定期让出CPU,防止长时间占用
             cond_resched();
 
-            // 处理大页迁移
+            // 处理hugetlb迁移
             if (PageHuge(page))
                 rc = unmap_and_move_huge_page(get_new_page, put_new_page, private, page, pass > 2, mode, reason);
             // 处理普通页面迁移

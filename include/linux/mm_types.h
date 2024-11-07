@@ -246,14 +246,16 @@ struct page {
         };
 
         // TODO:这个结构的作用？
-        struct { /* Second tail page of compound page */
+        struct {
+            /* Second tail page of compound page */
             unsigned long _compound_pad_1; /* compound_head */
             atomic_t hpage_pinned_refcount;
             /* For both global and memcg */
             struct list_head deferred_list;
         };
 
-        struct { /* Page table pages 页表使用的Page(管理页表) */
+        struct {
+            /* Page table pages 页表使用的Page(管理页表) */
             unsigned long _pt_pad_1; /* compound_head */
             pgtable_t pmd_huge_pte; /* protected by page->ptl */
             unsigned long _pt_pad_2; /* mapping */
@@ -272,7 +274,8 @@ struct page {
 #endif
         };
 
-        struct { /* ZONE_DEVICE pages ZONE设备Page */
+        struct {
+            /* ZONE_DEVICE pages ZONE设备Page */
             /** @pgmap: Points to the hosting device page map. */
             struct dev_pagemap *pgmap;
             void *zone_device_data;

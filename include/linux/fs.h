@@ -1932,7 +1932,7 @@ struct file_operations { /* 文件操作符 */
 	 */
     long (*unlocked_ioctl)(struct file *, unsigned int, unsigned long);
     /**
-	 *
+	 * TODO: 这个是ioctl？
 	 */
     long (*compat_ioctl)(struct file *, unsigned int, unsigned long);
 
