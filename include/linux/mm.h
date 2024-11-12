@@ -736,7 +736,23 @@ static inline int put_page_testzero(struct page *page)
  * This can be called when MMU is off so it must not access
  * any of the virtual mappings.
  */
-static inline int get_page_unless_zero(struct page *page)
+/**
+ * get_page_unless_zero - 安全地增加struct page的引用计数
+ * @page: 需要增加引用计数的页面
+ *
+ * 该函数尝试为页面增加引用计数,但条件是页面当前的引用计数不为零。
+ * 这是一种安全的增加引用计数的方式,用于避免对已释放到页面池的页面操作。
+ * 
+ * 主要用途:
+ * - 获取页面的安全引用以进行后续操作 
+ * - 防止页面在操作过程中被释放
+ * - 适用于并发环境下安全获取页面引用
+ *
+ * 返回值:
+ * 1 - 成功增加引用计数
+ * 0 - 页面引用计数已为零,增加失败
+ */
+static inline int get_page_unless_zero(struct page *page)  
 {
     return page_ref_add_unless(page, 1, 0);
 }
