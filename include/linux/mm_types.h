@@ -127,10 +127,15 @@ struct page {
              *  3. 交换高速缓存页面，`swapper_spaces`
              *  4. KSM页面对应 `struct stable_node`结构
              *
+             * TODO:下面说的我觉得是存疑的
              * 因为 `struct address_space` 为 8bytes 对齐(sizeof(long))，所以可将 mapping 成员的低两位用作：
              *
              * bit[0] 页面是否为 匿名页面，见`PageAnon()`,`PAGE_MAPPING_ANON`
-             * bit[1] 页面是否为 非 LRU 页面
+             * bit[1] 页面是否为 非 LRU 页面(专用于部分内核页面)。用户申请到的页面都是在LRU链表上的，也就是用户空间的页面的
+             * bit[1]都是0。 bit[1]=1是用于部分可迁移的内核页面的。
+             *  - 哪些内核页面是可以迁移的？
+             *   - 部分驱动中用到的内核页面也可以支持迁移
+             *  
              * 若bit[0-1]均未置位,表明这是一个 KSM 页面
              *
              * page_rmapping(): 清除 低2位
@@ -141,7 +146,7 @@ struct page {
              * 如果 mapping = 0，说明该page属于交换缓存（swap cache）；`page_mapping`返回NULL的情况
              *                  当需要使用地址空间时会指定交换分区的地址空间swapper_space。
              * 如果 mapping != 0，
-             *      bit[0] = 0，说明该page属于页缓存或文件映射，mapping指向文件的地址空间address_space。
+             *      bit[0] = 0，说明该page属于文件映射(page cache)，mapping指向文件的地址空间address_space。
              *      bit[0] = 1，说明该page为匿名映射，mapping指向struct anon_vma对象。
              *
              * 通过mapping恢复anon_vma的方法：
@@ -320,7 +325,7 @@ struct page {
          *  通常情况下，page_count(page) == page_mapcount(page)
          *          即   page->_refcount = page->_mapcount + 1
 		 */
-        // 当前page映射到用户空间页表的次数？
+        // 共享该物理页面的页表现数目
         atomic_t _mapcount;
 
         /*

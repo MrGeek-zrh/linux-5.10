@@ -219,7 +219,8 @@ static int invalidate_complete_page(struct address_space *mapping, struct page *
     if (page->mapping != mapping)
         return 0;
 
-    /* 如果页面有私有数据(如buffer_head),尝试释放它们 */
+    /* 如果页面有私有数据buffer_head,尝试释放它们 */
+    // buffer head是和page cache相关的
     if (page_has_private(page) && !try_to_release_page(page, 0))
         return 0;
 
@@ -265,13 +266,7 @@ EXPORT_SYMBOL(generic_error_remove_page);
  * Returns 1 if the page is successfully invalidated, otherwise 0.
  */
 /**
- * invalidate_inode_page - 安全地从地址空间的页面缓存基数树中删除一个页面
- * 删除也就是这个缓存就失效了，迁移的时候，不需要考虑这类页面
- * @page: 要删除的页面
- *
- * 该函数用于安全地删除页面缓存中的一个页面。但它只删除满足以下条件之一的页面:
- * 1. 页面必须是干净的(非脏)，且没有正在学会到磁盘
- * 2. 页面没有被映射到用户程序页表(未被使用)
+ * 使page cache失效
  *
  * 返回值:
  * 1 - 页面成功被删除
@@ -280,11 +275,14 @@ EXPORT_SYMBOL(generic_error_remove_page);
 int invalidate_inode_page(struct page *page)
 {
     struct address_space *mapping = page_mapping(page);
+    // mapping=0意味着什么？
     if (!mapping) // 页面没有关联的地址空间映射
         return 0;
-    if (PageDirty(page) || PageWriteback(page)) // 页面是脏的或正在写回
+    // 页面是脏的或正在写回
+    if (PageDirty(page) || PageWriteback(page))
         return 0;
-    if (page_mapped(page)) // 页面正在被映射使用
+    // 页面仍然在被页表项映射
+    if (page_mapped(page))
         return 0;
     /*
 	 * 所有检查都通过:

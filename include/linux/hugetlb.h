@@ -297,31 +297,39 @@ struct hstate { /* hugetlb 页 size */
     int next_nid_to_free; // 下一个可以回收内存的 NUMA NODE 节点
 
     /* 大页的order,决定大页大小 = PAGE_SIZE << order */
-    // 也就是当前hstate实例对应的大页的类型（大小）
     unsigned int order;
 
     /* 大页掩码,用于地址对齐 */
     unsigned long mask;
 
-    /* 系统级大页统计 */
-    unsigned long max_huge_pages; /* 系统最大可以分配的当前类型的大页数 */
-    unsigned long nr_huge_pages; /* 当前系统中该类型的大页的总数 */
-    unsigned long free_huge_pages; /* 空闲大页数 */
+    /* 内存池子中固定大页的数量. */
+    // 所谓固定就是系统一开始就分配好的大页，不是后期运行时动态申请的
+    unsigned long max_huge_pages;
+    /* 当前系统中该类型的大页的总数 */
+    // 这个包含系统一开始固定分配的大页 和 后期动态申请的大页
+    // 为什么是固定分配的大页+动态申请的？
+    // 因为只有固定分配的大页使用完了以后，才是动态申请？
+    unsigned long nr_huge_pages;
+    /* 空闲大页数 */
+    // 空闲是指未被使用的，包括 可被使用但没使用 和 预留用作特殊目的的
+    unsigned long free_huge_pages;
     unsigned long resv_huge_pages; /* 预留的大页数 */
-    unsigned long surplus_huge_pages; /* 超出预留的大页数 */
-    unsigned long nr_overcommit_huge_pages; /* 允许超额分配的大页数 */
+    /* 通过超发机制动态分配的大页数量 */
+    unsigned long surplus_huge_pages;
+    /* 可以超发的最多数量*/
+    unsigned long nr_overcommit_huge_pages;
 
-    /* 大页链表,用于跟踪活跃和空闲大页 */
-    // TODO:
-    struct list_head hugepage_activelist; /* 活跃大页链表 */
-    /* 每个NUMA节点的空闲大页链表.这个应该是为当前这种类型的大页预留的连续的物理内存区域吧。 */
-    // 就是这样
+    // 处于激活状态的大页链表
+    // 激活状态是指预留的大页被使用以后，会变为激活状态。
+    // 除了这个，正在被使用的应该也可以被称为激活状态？是的
+    struct list_head hugepage_activelist;
+    // 未被使用的空闲链表
     struct list_head hugepage_freelists[MAX_NUMNODES];
 
     /* 每个NUMA节点的大页统计 */
     unsigned int nr_huge_pages_node[MAX_NUMNODES]; /* 每个节点的大页总数 */
     unsigned int free_huge_pages_node[MAX_NUMNODES]; /* 每个节点的空闲大页数 */
-    unsigned int surplus_huge_pages_node[MAX_NUMNODES]; /* 每个节点超出预留的大页数 */
+    unsigned int surplus_huge_pages_node[MAX_NUMNODES]; /* 通过超发机制动态分配的大页数量 */
 
 #ifdef CONFIG_CGROUP_HUGETLB
     /* cgroup相关的控制文件 */

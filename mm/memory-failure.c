@@ -1099,9 +1099,19 @@ static int identify_page_state(unsigned long pfn, struct page *p, unsigned long 
     return page_action(ps, p, pfn);
 }
 
+/*
+ * try_to_split_thp_page - 尝试分割匿名透明大页(THP)为基本页面
+ * @page: 要分割的THP页面
+ * @msg: 在打印错误信息时使用的描述信息
+ *
+ * 返回值:
+ * 0      - 分割成功完成
+ * -EBUSY - 分割失败,页面可能正在使用或不支持分割
+ */
 static int try_to_split_thp_page(struct page *page, const char *msg)
 {
     lock_page(page);
+    // 不是匿名THP大页，或者对THP大页分割失败，就进入if循环
     if (!PageAnon(page) || unlikely(split_huge_page(page))) {
         unsigned long pfn = page_to_pfn(page);
 
@@ -1759,6 +1769,7 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
     bool isolated = false;
     bool lru = PageLRU(page);
 
+    // 隔离hugetlb大页
     if (PageHuge(page)) {
         isolated = isolate_huge_page(page, pagelist);
     } else {
@@ -1824,15 +1835,12 @@ static int __soft_offline_page(struct page *page)
         .gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_RETRY_MAYFAIL, // 内存分配标志
     };
 
-    /*
-     * 检查页面是否已经被标记为硬件中毒
-     * 这种页面已经不可用,不需要再进行软下线
-     */
     lock_page(page);
+    // 等待普通页面写回完毕
+    // 只有普通页面需要等待回写完毕，hugetlb 大页的回写不需要等待。因为hugetlb 大页的IO操作是通过直接IO进行的。
     if (!PageHuge(page))
-        // 不是hugetlb，就是普通页面
-        // 如果当前页面正在写回磁盘，需要等内容写回磁盘再进行迁移
         wait_on_page_writeback(page);
+
     // 页面已经被标记为毒化，不在进行处理
     if (PageHWPoison(page)) {
         unlock_page(page);
@@ -1841,10 +1849,10 @@ static int __soft_offline_page(struct page *page)
         return 0;
     }
 
-    /*
-     * 未使用的或非脏页面缓存页，可以直接从地址空间中删除，迁移的时候不需要考虑这类页面
-     */
+    // 是文件映射页面的page cache失效
+    // 匿名映射页面和hugetlb没有对应的page cache
     if (!PageHuge(page))
+        // 使相关的page cache失效
         ret = invalidate_inode_page(page);
     unlock_page(page);
 
@@ -1918,7 +1926,7 @@ static int soft_offline_in_use_page(struct page *page)
 {
     struct page *hpage = compound_head(page);
 
-    //如果不是hugetlbfs，但是THP,先尝试分割成4kB基本页面
+    //如果是THP,先尝试分割成4kB基本页面
     if (!PageHuge(page) && PageTransHuge(hpage))
         if (try_to_split_thp_page(page, "soft offline") < 0)
             return -EBUSY;
@@ -1981,6 +1989,7 @@ static int soft_offline_free_page(struct page *page)
  * -EIO - 页面不在线或不支持软下线
  * 其他负值 - 其他错误情况
  */
+// 一次处理几个页面？一个页面？
 int soft_offline_page(unsigned long pfn, int flags)
 {
     int ret;
@@ -2006,8 +2015,9 @@ int soft_offline_page(unsigned long pfn, int flags)
 
 retry:
     /* 锁定内存热插拔以防止并发操作 */
+    // TODO:
     get_online_mems();
-    /* 尝试获取页面的引用 */
+    // 读取page->_refcount
     ret = get_any_page(page, pfn, flags);
     put_online_mems();
 

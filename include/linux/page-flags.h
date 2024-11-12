@@ -205,7 +205,7 @@ struct page; /* forward declaration */
 /**
    当前page对应的复合页的头页的page指针
    - 如果当前页就是头页，直接返回page，
-   - 如果当前页是尾页，(struct page *)(head - 1); 就是头页指针
+   - 如果当前页是尾页，返回头页的page指针
  */
 static inline struct page *compound_head(struct page *page)
 {
@@ -2176,7 +2176,10 @@ static __always_inline void __ClearPageReported(struct page *page)
  * 见`struct page->mapping[0-1]`
  */
 #define PAGE_MAPPING_ANON 0x1 /* 匿名页面 01 */
-#define PAGE_MAPPING_MOVABLE 0x2 /* 可迁移页面 10 */ // 哪些页面会被设置这个可迁移标志呢？
+/* 可迁移页面 .我猜测，这里设置为0x10的原因就是，mapping bit[1]=1就是表示不在LRU上的页面
+*/ // 哪些页面会被设置这个可迁移标志呢？少部分内核页面
+// LRU中的page不可能设置PAGE_MAPPING_MOVABLE
+#define PAGE_MAPPING_MOVABLE 0x2
 #define PAGE_MAPPING_KSM (PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
 
 /* 获取mapping最低两bit的掩码 */
@@ -2200,33 +2203,11 @@ static __always_inline int PageAnon(struct page *page)
 }
 
 /**
- *  页面是否 可 移动/迁移，也就是是否属于 LRU 页面
+ * 可以用来判定page是否在LRU : 检查原理是查看page->mapping是否被设置为了PAGE_MAPPING_MOVABLE.
  *
- *  非 LRU 页面指代一些特殊页面，比如 zsmalloc 分配的页面
- *
- *  TODO: 这个注释是原作者写的，确定是对的？
- */
-/**
- * __PageMovable - 检查页面是否可移动
- * @page: 要检查的页面
- *
- * 该函数通过检查页面的mapping字段判断页面是否可移动。
- * 移动性是指页面可以在物理内存中迁移/重定位的能力。
- *
- * 可移动页面的特点:
- * - 不在 LRU 链表上,但实现了迁移回调函数
- * - 由特定子系统(如 DAX、RDMA)管理的页面
- * - 内容可以被安全地复制到新位置
- *
- * 使用场景:
- * - 内存热插拔判断页面是否可迁移
- * - 内存压缩判断页面是否可移动
- * - 内存回收判断页面处理方式
- * 
- * 返回值:
- * 1 - 页面可移动
- * 0 - 页面不可移动
- */
+ * 不在LRU上，返回true
+ * 在LRU上，返回false
+ * */
 static __always_inline int __PageMovable(struct page *page)
 {
     return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) == PAGE_MAPPING_MOVABLE;
@@ -2815,6 +2796,7 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
  * Determine if a page has private stuff, indicating that release routines
  * should be invoked upon it.
  */
+// TODO:PG_private：private指向buffer_heads
 static inline int page_has_private(struct page *page)
 {
     return !!(page->flags & PAGE_FLAGS_PRIVATE);

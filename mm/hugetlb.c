@@ -5415,12 +5415,14 @@ struct page *__weak follow_huge_pgd(struct mm_struct *mm, unsigned long address,
     return pte_page(*(pte_t *)pgd) + ((address & ~PGDIR_MASK) >> PAGE_SHIFT);
 }
 
+// 隔离hugetlb大页
 bool isolate_huge_page(struct page *page, struct list_head *list)
 {
     bool ret = true;
 
     VM_BUG_ON_PAGE(!PageHead(page), page);
     spin_lock(&hugetlb_lock);
+    // 如果hugetlb大页处于激活状语，
     if (!page_huge_active(page) || !get_page_unless_zero(page)) {
         ret = false;
         goto unlock;

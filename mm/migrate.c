@@ -1300,34 +1300,11 @@ out:
     return rc;
 }
 
-/*
- * Obtain the lock on page, remove all ptes and migrate the page
- * to the newly allocated page in newpage.
- *
- * @from:		The list of pages to be migrated.
- *              将要迁移的页面列表
- *
- * @get_new_page:	The function used to allocate free pages to be used
- *			    as the target of the page migration.
- *              申请新内存的页面的函数指针
- *
- * @put_new_page:	The function used to free target pages if migration
- *			    fails, or NULL if no special handling is necessary.
- *              迁移失败时释放目标页面的函数指针
- *
- * @private:		Private data to be passed on to get_new_page()
- *
- * @mode:		The migration mode that specifies the constraints for
- *			    page migration, if any.
- *              迁移模式
- *
- * @reason:		The reason for page migration. 迁移原因
- *
- * 获取页面锁，移动所有的 PTE 并且迁移 page 到新分配的页面
- */
+// 迁移一页
 static int unmap_and_move(new_page_t get_new_page, free_page_t put_new_page, unsigned long private, struct page *page,
                           int force, enum migrate_mode mode, enum migrate_reason reason)
 {
+    // 函数返回值，表示迁移是否成功
     int rc = MIGRATEPAGE_SUCCESS;
     struct page *newpage = NULL;
 
@@ -1343,15 +1320,32 @@ static int unmap_and_move(new_page_t get_new_page, free_page_t put_new_page, uns
 	 * 引用计数为1说明只剩下页面隔离时获得的引用,
 	 * 页面已经没有其他使用者了,可以直接完成迁移。
 	 * 清除Active和Unevictable(不可回收）标志,表示页面可以被回收。
-	 * 对于可移动页面,还需要清除Isolated标志。
 	 */
     if (page_count(page) == 1) {
         /* page was freed from under us. So we are done. */
+
+        // 下面按照页面被隔离的情况处理
+
         ClearPageActive(page);
         ClearPageUnevictable(page);
+        // unlikely 只是内核提供给编译器的一些提示信息，用于知道编译器进行代码优化，并不会影响if语句本身的语义
+        // 是non-lru页面，接下来要进一步判断是不是movable页面
         if (unlikely(__PageMovable(page))) {
             lock_page(page);
+            // 不是non-lru movable page
+            // PageMovable()检查页面是否真的是可移动页面
+            // 返回false表示不是可移动页面了,可能情况:
+            // 1. 驱动已经将页面标记为不可移动
+            // 2. 页面正在被迁移
+            // 3. 页面的address_space已改变
             if (!PageMovable(page))
+                // 如果不是可移动页面,但又设置了isolated标志
+                // 说明这个页面曾经被隔离过但状态已改变
+                // 需要清除isolated标志使其回到正常状态
+                // PG_isolated用于标记页面当前已被隔离,不能被其他路径使用
+                /* 如果页面状态已改变为不可移动,但还保留着isolated标志 */
+                /* 这会导致页面处于"被隔离但又不可移动"的矛盾状态 */
+                /* 清除isolated标志让页面回到正常状态,可以被内存管理系统正常使用 */
                 __ClearPageIsolated(page);
             unlock_page(page);
         }
@@ -1450,7 +1444,7 @@ out:
  * unmap_and_move_page()函数的大页版本。用于迁移大页(hugepage)到新分配的页面。
  *
  * 此函数不会等待大页I/O完成,因为大页的I/O和迁移之间不存在竞争。需要注意的是,
- * 当前大页I/O只发生在直接I/O中,此时没有锁且PG_writeback标志不相关,所有子页面的
+ * 当前大页I/O只发生在直接I/O中,此时没有锁(TODO:PG_locked?) 且PG_writeback标志不相关,所有子页面的
  * 回写状态PG_writable都计入在头页面的引用计数中(例如:如果一个2MB大页的所有子页面都在进行
  * 直接I/O,则头页面的引用计数是512)。
  *
@@ -1765,12 +1759,14 @@ int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
     struct page *page2;
 
     // swapwrite保存当前进程的swap标志位
+    // TODO:
     int swapwrite = current->flags & PF_SWAPWRITE;
 
     // rc用于保存函数返回值,nr_subpages记录页面的子页数量
     int rc, nr_subpages;
 
     // 如果进程未设置swap标志位,则临时设置它
+    // TODO:why?
     if (!swapwrite)
         current->flags |= PF_SWAPWRITE;
 
