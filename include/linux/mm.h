@@ -737,22 +737,16 @@ static inline int put_page_testzero(struct page *page)
  * any of the virtual mappings.
  */
 /**
- * get_page_unless_zero - 安全地增加struct page的引用计数
- * @page: 需要增加引用计数的页面
  *
- * 该函数尝试为页面增加引用计数,但条件是页面当前的引用计数不为零。
- * 这是一种安全的增加引用计数的方式,用于避免对已释放到页面池的页面操作。
- * 
- * 主要用途:
- * - 获取页面的安全引用以进行后续操作 
- * - 防止页面在操作过程中被释放
- * - 适用于并发环境下安全获取页面引用
+        为页面增加引用计数,但前提是页面当前的引用计数不为零,防止对已释放到页面池的页面(引用计数为0)进行操作
+ *
+ * @page: 需要增加引用计数的页面
  *
  * 返回值:
  * 1 - 成功增加引用计数
  * 0 - 页面引用计数已为零,增加失败
  */
-static inline int get_page_unless_zero(struct page *page)  
+static inline int get_page_unless_zero(struct page *page)
 {
     return page_ref_add_unless(page, 1, 0);
 }
@@ -1452,6 +1446,7 @@ static inline struct zone *page_zone(const struct page *page) /* page所在的 Z
     return &NODE_DATA(page_to_nid(page))->node_zones[page_zonenum(page)];
 }
 
+// 根据page结构获取到pg_data_t结构
 static inline pg_data_t *page_pgdat(const struct page *page)
 {
     return NODE_DATA(page_to_nid(page));

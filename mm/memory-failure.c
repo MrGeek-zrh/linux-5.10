@@ -1736,17 +1736,12 @@ static int get_any_page(struct page *page, unsigned long pfn, int flags)
 }
 
 /*
- * isolate_page - 隔离一个内存页面以准备进行迁移或其他操作
- * @page: 要隔离的页面
- * @pagelist: 存放被隔离页面的链表头
+ * 隔离页面
+
+
+ * 1. hugetlb大页(HugePage):
+      - 使大页失效
  *
- * 该函数实现页面的隔离操作,将页面从其当前管理系统中移除并加入待处理链表。
- * 主要处理三类页面:
- *
- * 1. 大页(HugePage):
- *    - 调用isolate_huge_page()处理
- *    - 整个大页作为一个单位进行隔离
- * 
  * 2. LRU页面:
  *    - 通过isolate_lru_page()从LRU链表中隔离
  *    - 包括匿名页和文件页
@@ -1767,12 +1762,14 @@ static int get_any_page(struct page *page, unsigned long pfn, int flags)
 static bool isolate_page(struct page *page, struct list_head *pagelist)
 {
     bool isolated = false;
+    // 页面是不是在LRU链表上
     bool lru = PageLRU(page);
 
     // 隔离hugetlb大页
     if (PageHuge(page)) {
         isolated = isolate_huge_page(page, pagelist);
     } else {
+        // 在LRU上
         if (lru)
             isolated = !isolate_lru_page(page);
         else
@@ -1849,7 +1846,7 @@ static int __soft_offline_page(struct page *page)
         return 0;
     }
 
-    // 是文件映射页面的page cache失效
+    // 使文件映射页面的page cache失效
     // 匿名映射页面和hugetlb没有对应的page cache
     if (!PageHuge(page))
         // 使相关的page cache失效

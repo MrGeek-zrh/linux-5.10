@@ -104,6 +104,8 @@ struct page {
 		 */
         struct {
             /**
+			 * TODO: 对LRU的用法还是不太懂
+			 *
 			 * @lru: Pageout list, eg. active_list protected by
 			 * pgdat->lru_lock.  Sometimes used as a generic list
 			 * by the page owner.
@@ -239,8 +241,9 @@ struct page {
             // - 如果是尾页，(struct page *)(head - 1)就能获得首页的page指针
             unsigned long compound_head;
 
-            //  下面是首页专用字段
-            // 用 于释放复合页 的析构函数,首页中才会定义
+            // 下面是第一个尾页专用
+            // 复合页的析构函数，被设置为了HUGETLB_PAGE_DTOR
+            // 判断第一个尾页的这个字段是不是HUGETLB_PAGE_DTOR 可以用来判断是不是hugetlb大页
             unsigned char compound_dtor;
             //  当前复合页的阶
             unsigned char compound_order;

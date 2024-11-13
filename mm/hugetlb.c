@@ -1290,9 +1290,14 @@ struct hstate *size_to_hstate(unsigned long size)
  *
  * This function can be called for tail pages, but never returns true for them.
  */
+// 内核使用复合页的第一个尾页是否包含 PG_Private 来判断大页是否处于激活态
+//
+// 如果包含，那么物理大页处于激活态;
+// 反之不处于激活态
 bool page_huge_active(struct page *page)
 {
     VM_BUG_ON_PAGE(!PageHuge(page), page);
+    // 内核使用复合页的第一个尾页是否包含 PG_Private 来判断大页是否处于激活态，如果包含，那么物理大页处于激活态; 反之不处于激活态
     return PageHead(page) && PagePrivate(&page[1]);
 }
 
@@ -1303,6 +1308,9 @@ static void set_page_huge_active(struct page *page)
     SetPagePrivate(&page[1]);
 }
 
+// 清除大页的活跃状态标记
+//
+// 即清除复合页第一个尾页的 PG_private 标志
 static void clear_page_huge_active(struct page *page)
 {
     VM_BUG_ON_PAGE(!PageHeadHuge(page), page);
@@ -5416,18 +5424,21 @@ struct page *__weak follow_huge_pgd(struct mm_struct *mm, unsigned long address,
 }
 
 // 隔离hugetlb大页
+// 对大页的隔离就是设置当前大页为不活跃状态
 bool isolate_huge_page(struct page *page, struct list_head *list)
 {
     bool ret = true;
 
     VM_BUG_ON_PAGE(!PageHead(page), page);
     spin_lock(&hugetlb_lock);
-    // 如果hugetlb大页处于激活状语，
+    // 为页面增加引用计数,但前提是页面当前的引用计数不为零,防止对已释放到页面池的页面(引用计数为0)进行操作
     if (!page_huge_active(page) || !get_page_unless_zero(page)) {
+        // 执行操作失败
         ret = false;
         goto unlock;
     }
     clear_page_huge_active(page);
+    // 将当前大页的所有复合页都放到待迁移链表中
     list_move_tail(&page->lru, list);
 unlock:
     spin_unlock(&hugetlb_lock);
