@@ -1795,7 +1795,7 @@ PAGEFLAG_FALSE(HighMem)
 
 #ifdef CONFIG_SWAP
 /**
- * 该页的内容已经被换出到交换区
+ * 该页现在是否属于交换区
  */
 static __always_inline int PageSwapCache(struct page *page)
 {

@@ -95,8 +95,12 @@ struct anon_vma { /* 匿名 VMA */
     struct rw_semaphore rwsem; /* W: modification, R: walking the list */
     /*
 	 * The refcount is taken on an anon_vma when there is no
-	 * guarantee that the vma of page tables will exist for
-	 * the duration of the operation. A caller that takes
+	 * guarantee that the vma of page			 * Most pages have a mapping and most filesystems
+			 * provide a migratepage callback. Anonymous pages
+			 * are part of swap space which also has its own
+			 * migratepage callback. This is the most common path
+			 * for page migration.gew
+ the duration of the operation. A caller that takes
 	 * the reference is responsible for clearing up the
 	 * anon_vma if they are the last user on release
 	 *
