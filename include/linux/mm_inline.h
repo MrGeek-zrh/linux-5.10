@@ -19,56 +19,54 @@
  * needs to survive until the page is last deleted from the LRU, which
  * could be as far down as __page_cache_release.
  */
+// 判断页面应该位于文件LRU还是匿名LRU？
+//
+// - 文件LRU：返回1
+// - 匿名LRU：返回0
 static inline int page_is_file_lru(struct page *page)
 {
-	return !PageSwapBacked(page);
+    return !PageSwapBacked(page);
 }
 
 /**
  *
  */
-static __always_inline void __update_lru_size(struct lruvec *lruvec,
-				enum lru_list lru, enum zone_type zid,
-				int nr_pages)
+static __always_inline void __update_lru_size(struct lruvec *lruvec, enum lru_list lru, enum zone_type zid,
+                                              int nr_pages)
 {
-	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
+    struct pglist_data *pgdat = lruvec_pgdat(lruvec);
 
-	__mod_lruvec_state(lruvec, NR_LRU_BASE + lru, nr_pages);
-	__mod_zone_page_state(&pgdat->node_zones[zid], NR_ZONE_LRU_BASE + lru, nr_pages);
+    __mod_lruvec_state(lruvec, NR_LRU_BASE + lru, nr_pages);
+    __mod_zone_page_state(&pgdat->node_zones[zid], NR_ZONE_LRU_BASE + lru, nr_pages);
 }
 
-static __always_inline void update_lru_size(struct lruvec *lruvec,
-				enum lru_list lru, enum zone_type zid,
-				int nr_pages)
+static __always_inline void update_lru_size(struct lruvec *lruvec, enum lru_list lru, enum zone_type zid, int nr_pages)
 {
-	__update_lru_size(lruvec, lru, zid, nr_pages);
+    __update_lru_size(lruvec, lru, zid, nr_pages);
 #ifdef CONFIG_MEMCG
-	mem_cgroup_update_lru_size(lruvec, lru, zid, nr_pages);
+    mem_cgroup_update_lru_size(lruvec, lru, zid, nr_pages);
 #endif
 }
 
 /**
  *  添加至 lruvec 对应的 类别 链表中
  */
-static __always_inline void add_page_to_lru_list(struct page *page,
-				struct lruvec *lruvec, enum lru_list lru)
+static __always_inline void add_page_to_lru_list(struct page *page, struct lruvec *lruvec, enum lru_list lru)
 {
-	update_lru_size(lruvec, lru, page_zonenum(page), thp_nr_pages(page));
-	list_add(&page->lru, &lruvec->lists[lru]);
+    update_lru_size(lruvec, lru, page_zonenum(page), thp_nr_pages(page));
+    list_add(&page->lru, &lruvec->lists[lru]);
 }
 
-static __always_inline void add_page_to_lru_list_tail(struct page *page,
-				struct lruvec *lruvec, enum lru_list lru)
+static __always_inline void add_page_to_lru_list_tail(struct page *page, struct lruvec *lruvec, enum lru_list lru)
 {
-	update_lru_size(lruvec, lru, page_zonenum(page), thp_nr_pages(page));
-	list_add_tail(&page->lru, &lruvec->lists[lru]);
+    update_lru_size(lruvec, lru, page_zonenum(page), thp_nr_pages(page));
+    list_add_tail(&page->lru, &lruvec->lists[lru]);
 }
 
-static __always_inline void del_page_from_lru_list(struct page *page,
-				struct lruvec *lruvec, enum lru_list lru)
+static __always_inline void del_page_from_lru_list(struct page *page, struct lruvec *lruvec, enum lru_list lru)
 {
-	list_del(&page->lru);
-	update_lru_size(lruvec, lru, page_zonenum(page), -thp_nr_pages(page));
+    list_del(&page->lru);
+    update_lru_size(lruvec, lru, page_zonenum(page), -thp_nr_pages(page));
 }
 
 /**
@@ -81,9 +79,9 @@ static __always_inline void del_page_from_lru_list(struct page *page,
  */
 static inline enum lru_list page_lru_base_type(struct page *page)
 {
-	if (page_is_file_lru(page))
-		return LRU_INACTIVE_FILE;
-	return LRU_INACTIVE_ANON;
+    if (page_is_file_lru(page))
+        return LRU_INACTIVE_FILE;
+    return LRU_INACTIVE_ANON;
 }
 
 /**
@@ -95,23 +93,23 @@ static inline enum lru_list page_lru_base_type(struct page *page)
  */
 static __always_inline enum lru_list page_off_lru(struct page *page)
 {
-	enum lru_list lru;
+    enum lru_list lru;
 
-	/**
+    /**
 	 * @brief PG_unevictable 不可回收
 	 *
 	 */
-	if (PageUnevictable(page)) {
-		__ClearPageUnevictable(page);
-		lru = LRU_UNEVICTABLE;
-	} else {
-		lru = page_lru_base_type(page);
-		if (PageActive(page)) {
-			__ClearPageActive(page);
-			lru += LRU_ACTIVE;
-		}
-	}
-	return lru;
+    if (PageUnevictable(page)) {
+        __ClearPageUnevictable(page);
+        lru = LRU_UNEVICTABLE;
+    } else {
+        lru = page_lru_base_type(page);
+        if (PageActive(page)) {
+            __ClearPageActive(page);
+            lru += LRU_ACTIVE;
+        }
+    }
+    return lru;
 }
 
 /**
@@ -123,24 +121,24 @@ static __always_inline enum lru_list page_off_lru(struct page *page)
  */
 static __always_inline enum lru_list page_lru(struct page *page)
 {
-	enum lru_list lru;
+    enum lru_list lru;
 
     /**
      *  不可回收的
      */
-	if (PageUnevictable(page))
-		lru = LRU_UNEVICTABLE;
-	else {
+    if (PageUnevictable(page))
+        lru = LRU_UNEVICTABLE;
+    else {
         /**
          *  可回收
          */
-		lru = page_lru_base_type(page);
+        lru = page_lru_base_type(page);
         /**
          *  如果页面是活跃的，将 lru 转换为 active
          */
-		if (PageActive(page))
-			lru += LRU_ACTIVE;//+1
-	}
-	return lru;
+        if (PageActive(page))
+            lru += LRU_ACTIVE; //+1
+    }
+    return lru;
 }
 #endif

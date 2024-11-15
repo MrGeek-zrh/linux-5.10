@@ -929,6 +929,11 @@ static int page_action(struct page_state *ps, struct page *p, unsigned long pfn)
  * get_hwpoison_page() - Get refcount for memory error handling:
  * @page:	raw error page (hit by memory error)
  *
+ * 获取用于内存错误处理的引用计数
+ *
+ *  返回值：如果无法获取引用计数，则返回 0；
+ *  否则返回true（某个非零值）
+ *
  * Return: return 0 if failed to grab the refcount, otherwise true (some
  * non-zero value.)
  */
@@ -936,12 +941,16 @@ static int get_hwpoison_page(struct page *page)
 {
     struct page *head = compound_head(page);
 
+    // 透明大页
     if (!PageHuge(head) && PageTransHuge(head)) {
         /*
 		 * Non anonymous thp exists only in allocation/free time. We
 		 * can't handle such a case correctly, so let's give it up.
 		 * This should be better than triggering BUG_ON when kernel
 		 * tries to touch the "partially handled" page.
+		 *
+		 * 非匿名的透明大页（thp）仅在分配/释放时存在
+		 * 我们无法正确处理这种情况，因此放弃处理。
 		 */
         if (!PageAnon(head)) {
             pr_err("Memory failure: %#lx: non anonymous thp\n", page_to_pfn(page));
@@ -1102,7 +1111,9 @@ static int identify_page_state(unsigned long pfn, struct page *p, unsigned long 
 /*
  * try_to_split_thp_page - 尝试分割匿名透明大页(THP)为基本页面
  * @page: 要分割的THP页面
- * @msg: 在打印错误信息时使用的描述信息
+ *
+ * - 拆分的所有尾页面添加到LRU;
+ * - 首页转换为普通页面并保持在原管理系统中(page cache或匿名页管理)
  *
  * 返回值:
  * 0      - 分割成功完成
@@ -1111,7 +1122,7 @@ static int identify_page_state(unsigned long pfn, struct page *p, unsigned long 
 static int try_to_split_thp_page(struct page *page, const char *msg)
 {
     lock_page(page);
-    // 不是匿名THP大页，或者对THP大页分割失败，就进入if循环
+    // 不是匿名THP大页，或者对THP大页分割失败
     if (!PageAnon(page) || unlikely(split_huge_page(page))) {
         unsigned long pfn = page_to_pfn(page);
 
@@ -1648,6 +1659,10 @@ EXPORT_SYMBOL(unpoison_memory);
  * Returns 0 for a free page, -EIO for a zero refcount page
  * that is not free, and 1 for any other page type.
  * For 1 the page is returned with increased page count, otherwise not.
+ *
+ 增加page的refcount
+
+ - refcount=0的不能增加
  */
 static int __get_any_page(struct page *p, unsigned long pfn, int flags)
 {
@@ -1681,29 +1696,13 @@ static int __get_any_page(struct page *p, unsigned long pfn, int flags)
     return ret;
 }
 /*
- * get_any_page - 安全地获取任意内存页面的引用计数
- * @page: 需要获取引用的页面
- * @pfn: 页面的页帧号
- * @flags: 控制标志,如MF_COUNT_INCREASED等
- *
- * 该函数在内存热插拔过程中用于安全地获取页面引用。为了安全地对页面进行操作,
- * 首先需要增加页面的引用计数,防止其他进程同时释放该页面。主要处理的页面类型包括:
- * 
- * 1. 大页(HugePage):
- *    - 如果是free hugepage,可以直接返回0
- *    - 对活跃的大页增加引用计数
- *
- * 2. 普通页面:
- *    - 尝试获取引用计数,如果失败可能说明页面正好被释放
- *    - 如果页面不在LRU链表上,尝试通过shake_page清理后再获取
- *
- * 3. 处理竞态:
- *    - 如果首次获取引用失败,会重试一次
- *    - 使用try_get_page等安全的方式增加引用计数
+ * 增加page的refcount
  *
  * 返回值:
- * 1 - 成功获取页面引用
- * 0 - 页面是空闲的,不需要引用
+ *
+ * 1 - 成功增加refcount
+ *
+ * 0 - 页面是空闲的,不允许引用
  * -EIO - 页面引用计数异常
  * -EBUSY - 获取引用时发生竞态
  */
@@ -1711,6 +1710,7 @@ static int get_any_page(struct page *page, unsigned long pfn, int flags)
 {
     int ret = __get_any_page(page, pfn, flags);
 
+    // 发生竞争，在获取一次
     if (ret == -EBUSY)
         ret = __get_any_page(page, pfn, flags);
 
@@ -1744,16 +1744,13 @@ static int get_any_page(struct page *page, unsigned long pfn, int flags)
  *
  * 2. LRU页面:
  *    - 通过isolate_lru_page()从LRU链表中隔离
- *    - 包括匿名页和文件页
  *
  * 3. 非LRU可移动页面:
  *    - 使用isolate_movable_page()隔离
- *    - 主要是一些特殊用途的可移动页面
  *
  * 隔离成功后:
  * - 页面被加入pagelist链表
  * - 更新相关统计计数
- * - 增加页面引用计数以确保安全
  *
  * 返回值:
  * true  - 页面成功隔离
@@ -1773,13 +1770,19 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
         if (lru)
             isolated = !isolate_lru_page(page);
         else
+            // non-lru movable page
             isolated = !isolate_movable_page(page, ISOLATE_UNEVICTABLE);
 
+        // 隔离成功
         if (isolated)
+            // page-lru就代表了当前的page
+            // 这里就相当于是把page加入到了链表中
             list_add(&page->lru, pagelist);
     }
 
+    // 隔离LRUpage成功，更新vmstat信息
     if (isolated && lru)
+        // 增加pglist_data结构中(vm_stat字段)记录的被隔离的匿名/文件 页面的数量
         inc_node_page_state(page, NR_ISOLATED_ANON + page_is_file_lru(page));
 
     /*
@@ -1799,23 +1802,10 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
  * If the page is mapped, it migrates the contents over.
  */
 /*
- * __soft_offline_page - 执行页面软下线操作的核心实现
+如果页面是一个未映射的非脏页面缓存页面，它会简单地使其失效。  │
+│   * 如果页面是映射的，则会将其内容迁移到其他位置。
+ *
  * @page: 需要软下线的页面
- *
- * 该函数实现了内存软下线的主要逻辑。软下线是一种安全的内存维护方式,它会:
- * 1. 尝试将页面内容迁移到其他物理内存位置
- * 2. 不会强制杀死使用这些页面的进程
- * 3. 对于不可迁移的页面会返回错误
- *
- * 具体处理流程:
- * 1. 如果是hugetlb 大页:
- *    - 对整个大页进行迁移
- *    - 迁移失败则返回错误
- * 
- * 2. 对于普通页面:
- *    - 如果是非脏的未映射页面缓存,直接使页面失效
- *    - 如果是映射的或脏的页面,尝试迁移内容
- *    - 迁移成功后将页面标记为poisoned状态
  *
  * 返回值:
  * 0      - 软下线成功完成
@@ -1833,7 +1823,7 @@ static int __soft_offline_page(struct page *page)
     };
 
     lock_page(page);
-    // 等待普通页面写回完毕
+    // 普通页面需要等待写回完毕（如果在回写的话）
     // 只有普通页面需要等待回写完毕，hugetlb 大页的回写不需要等待。因为hugetlb 大页的IO操作是通过直接IO进行的。
     if (!PageHuge(page))
         wait_on_page_writeback(page);
@@ -1847,12 +1837,15 @@ static int __soft_offline_page(struct page *page)
     }
 
     // 使文件映射页面的page cache失效
+    // 如果是文件映射，经过前面的等待回写完毕，哪怕之前page cache是dirty的，到这里的时候也已经干净了.
     // 匿名映射页面和hugetlb没有对应的page cache
+    // 不过目前没看到unmap这个page，所以下面的失效我觉得无法执行成功
     if (!PageHuge(page))
         // 使相关的page cache失效
         ret = invalidate_inode_page(page);
     unlock_page(page);
 
+    // 是page 失效成功
     if (ret) {
         pr_info("soft_offline: %#lx: invalidated\n", pfn);
         // 标记页面为poisoned并减少引用计数
@@ -1860,6 +1853,7 @@ static int __soft_offline_page(struct page *page)
         return 0;
     }
 
+    // 不是未映射的非脏page cache
     /*
      * 尝试将页面从其当前位置隔离出来,准备迁移
      * huge=true时是hugetlb页面的处理
@@ -1986,7 +1980,7 @@ static int soft_offline_free_page(struct page *page)
  * -EIO - 页面不在线或不支持软下线
  * 其他负值 - 其他错误情况
  */
-// 一次处理几个页面？一个页面？
+// 一次处理几个页面？一个页面
 int soft_offline_page(unsigned long pfn, int flags)
 {
     int ret;
@@ -2014,12 +2008,12 @@ retry:
     /* 锁定内存热插拔以防止并发操作 */
     // TODO:
     get_online_mems();
-    // 读取page->_refcount
+    // 增加page的refcount
     ret = get_any_page(page, pfn, flags);
     put_online_mems();
 
     if (ret > 0)
-        /* 如果页面正在使用,尝试迁移内容 */
+        // 增加对page的引用成功
         ret = soft_offline_in_use_page(page);
     else if (ret == 0)
         /* 如果是空闲页面,直接执行软下线,如果失败且允许重试则重试 */

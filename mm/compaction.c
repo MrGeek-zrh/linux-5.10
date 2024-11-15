@@ -126,11 +126,16 @@ static void split_map_pages(struct list_head *list)
 
 #ifdef CONFIG_COMPACTION
 
-// 是不是non-lru movable 内核page
-// 我觉得是这样：PAGE_MAPPING_FLAGS被设置，说明是non-lru page，也就是内核页面；然后进一步查看mapping->a_ops && mapping->a_ops->isolate_page 的回调函数有没有被注册，
-// 被注册了就说明是non-lru movable page，没注册就是non-lru unmovable page。
+// 是不是non-lru movable page
+//
+// mapping bit[1]=1，说明是non-lru page，也就是内核页面(这个存疑)；
+//
+// 然后进一步查看mapping->a_ops && mapping->a_ops->isolate_page 的回调函数有没有被注册，
+//
+// - 被注册了就说明是non-lru movable page
+// - 没注册就是non-lru unmovable page。
+//
 // 所以这也是为什么会有__PageMovable和PageMovable。先用__PageMovable判断一下，如果page是LRU page，那就一定不是movable
-// TODO:感觉理解的还是有偏差
 int PageMovable(struct page *page)
 {
     struct address_space *mapping;

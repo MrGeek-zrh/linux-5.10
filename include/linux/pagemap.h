@@ -573,7 +573,7 @@ extern void unlock_page(struct page *page);
 /*
  * Return true if the page was successfully locked
  *
- * 锁定成功返回 true
+ * PG_locked锁定成功返回 true
  */
 static inline int trylock_page(struct page *page)
 {

@@ -323,7 +323,8 @@ struct hstate { /* hugetlb 页 size */
     // 激活状态是指预留的大页被使用以后，会变为激活状态。
     // 除了这个，正在被使用的应该也可以被称为激活状态？是的
     struct list_head hugepage_activelist;
-    // 未被使用的空闲链表
+    // 未被使用的空闲链表(未被使用不代表一定可被分配，reserved大页也是空闲大页)
+    // 每个NUMA 结点的list_head指向谁？hugetlb大页 首页page结构的lru字段？应该是的
     struct list_head hugepage_freelists[MAX_NUMNODES];
 
     /* 每个NUMA节点的大页统计 */

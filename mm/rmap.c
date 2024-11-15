@@ -84,28 +84,28 @@ static struct kmem_cache *anon_vma_chain_cachep;
 
 static inline struct anon_vma *anon_vma_alloc(void)
 {
-	struct anon_vma *anon_vma;
+    struct anon_vma *anon_vma;
 
-	anon_vma = kmem_cache_alloc(anon_vma_cachep, GFP_KERNEL);
-	if (anon_vma) {
-		atomic_set(&anon_vma->refcount, 1);
-		anon_vma->degree = 1;	/* Reference for first vma */
-		anon_vma->parent = anon_vma;
-		/*
+    anon_vma = kmem_cache_alloc(anon_vma_cachep, GFP_KERNEL);
+    if (anon_vma) {
+        atomic_set(&anon_vma->refcount, 1);
+        anon_vma->degree = 1; /* Reference for first vma */
+        anon_vma->parent = anon_vma;
+        /*
 		 * Initialise the anon_vma root to point to itself. If called
 		 * from fork, the root will be reset to the parents anon_vma.
 		 */
-		anon_vma->root = anon_vma;
-	}
+        anon_vma->root = anon_vma;
+    }
 
-	return anon_vma;
+    return anon_vma;
 }
 
 static inline void anon_vma_free(struct anon_vma *anon_vma)
 {
-	VM_BUG_ON(atomic_read(&anon_vma->refcount));
+    VM_BUG_ON(atomic_read(&anon_vma->refcount));
 
-	/*
+    /*
 	 * Synchronize against page_lock_anon_vma_read() such that
 	 * we can safely hold the lock without the anon_vma getting
 	 * freed.
@@ -122,43 +122,41 @@ static inline void anon_vma_free(struct anon_vma *anon_vma)
 	 * LOCK should suffice since the actual taking of the lock must
 	 * happen _before_ what follows.
 	 */
-	might_sleep();
+    might_sleep();
 
-	if (rwsem_is_locked(&anon_vma->root->rwsem)) {
-		anon_vma_lock_write(anon_vma);
-		anon_vma_unlock_write(anon_vma);
-	}
+    if (rwsem_is_locked(&anon_vma->root->rwsem)) {
+        anon_vma_lock_write(anon_vma);
+        anon_vma_unlock_write(anon_vma);
+    }
 
-	kmem_cache_free(anon_vma_cachep, anon_vma);
+    kmem_cache_free(anon_vma_cachep, anon_vma);
 }
 
-static inline struct anon_vma_chain *anon_vma_chain_alloc(gfp_t gfp)    /* 分配一个 AVC */
+static inline struct anon_vma_chain *anon_vma_chain_alloc(gfp_t gfp) /* 分配一个 AVC */
 {
-	return kmem_cache_alloc(anon_vma_chain_cachep, gfp);
+    return kmem_cache_alloc(anon_vma_chain_cachep, gfp);
 }
 
-static void anon_vma_chain_free(struct anon_vma_chain *anon_vma_chain)  /* 释放 */
+static void anon_vma_chain_free(struct anon_vma_chain *anon_vma_chain) /* 释放 */
 {
-	kmem_cache_free(anon_vma_chain_cachep, anon_vma_chain);
+    kmem_cache_free(anon_vma_chain_cachep, anon_vma_chain);
 }
 
 /**
  *  将 avc 插入 vma 的管理结构中
  *  关联 VMA-AVC-AV 结构
  */
-static void anon_vma_chain_link(struct vm_area_struct *vma,
-				struct anon_vma_chain *avc,
-				struct anon_vma *anon_vma)
+static void anon_vma_chain_link(struct vm_area_struct *vma, struct anon_vma_chain *avc, struct anon_vma *anon_vma)
 {
     /* 赋值 */
-	avc->vma = vma;
-	avc->anon_vma = anon_vma;
+    avc->vma = vma;
+    avc->anon_vma = anon_vma;
 
     /* 将 AVC 插入 VMA 的 AVC 链表 */
-	list_add(&avc->same_vma, &vma->anon_vma_chain);
+    list_add(&avc->same_vma, &vma->anon_vma_chain);
 
     /* AVC 插入 AV  红黑树中 */
-	anon_vma_interval_tree_insert(avc, &anon_vma->rb_root); /* 插入 */
+    anon_vma_interval_tree_insert(avc, &anon_vma->rb_root); /* 插入 */
 }
 
 /**
@@ -193,73 +191,73 @@ static void anon_vma_chain_link(struct vm_area_struct *vma,
  */
 int __anon_vma_prepare(struct vm_area_struct *vma)
 {
-	struct mm_struct *mm = vma->vm_mm;
-	struct anon_vma *anon_vma, *allocated;
-	struct anon_vma_chain *avc;
+    struct mm_struct *mm = vma->vm_mm;
+    struct anon_vma *anon_vma, *allocated;
+    struct anon_vma_chain *avc;
 
     /* 不调试，这将啥都不做 */
-	might_sleep();
+    might_sleep();
 
     /* 分配 AVC 结构 */
-	avc = anon_vma_chain_alloc(GFP_KERNEL);
-	if (!avc)
-		goto out_enomem;
+    avc = anon_vma_chain_alloc(GFP_KERNEL);
+    if (!avc)
+        goto out_enomem;
 
     /**
      *  查找可合并的 anon_vma
      *  是否可以复用当前 VMA 的 near_vma 和 prev_vma 的 anon_vma 结构
      */
-	anon_vma = find_mergeable_anon_vma(vma);
-	allocated = NULL;
-	if (!anon_vma) {    /* 不能复用 就分配 */
-		anon_vma = anon_vma_alloc();
-		if (unlikely(!anon_vma))
-			goto out_enomem_free_avc;
-		allocated = anon_vma;
-	}
+    anon_vma = find_mergeable_anon_vma(vma);
+    allocated = NULL;
+    if (!anon_vma) { /* 不能复用 就分配 */
+        anon_vma = anon_vma_alloc();
+        if (unlikely(!anon_vma))
+            goto out_enomem_free_avc;
+        allocated = anon_vma;
+    }
 
-	anon_vma_lock_write(anon_vma); /* 读写信号量 */
+    anon_vma_lock_write(anon_vma); /* 读写信号量 */
 
-	/* page_table_lock to protect against threads */
-	spin_lock(&mm->page_table_lock);
+    /* page_table_lock to protect against threads */
+    spin_lock(&mm->page_table_lock);
 
     /**
      *  VMA 的anon_vma 很可能为空
      */
-	if (likely(!vma->anon_vma)) {
-		vma->anon_vma = anon_vma;
+    if (likely(!vma->anon_vma)) {
+        vma->anon_vma = anon_vma;
 
         /**
          *  插入 AVC
          *  关联 VMA-AVC-AV 结构
          */
-		anon_vma_chain_link(vma, avc, anon_vma);
+        anon_vma_chain_link(vma, avc, anon_vma);
 
-		/* vma reference or self-parent link for new root */
-		anon_vma->degree++;
+        /* vma reference or self-parent link for new root */
+        anon_vma->degree++;
 
         /* 插入之后置空，已判断后面是否释放 */
-		allocated = NULL;
-		avc = NULL;
-	}
+        allocated = NULL;
+        avc = NULL;
+    }
 
-	spin_unlock(&mm->page_table_lock);
-	anon_vma_unlock_write(anon_vma);
+    spin_unlock(&mm->page_table_lock);
+    anon_vma_unlock_write(anon_vma);
 
     /* 如果 分配的   anon_vma 没有使用，进行释放 */
-	if (unlikely(allocated))
-		put_anon_vma(allocated);
+    if (unlikely(allocated))
+        put_anon_vma(allocated);
 
     /* 是否释放 */
-	if (unlikely(avc))
-		anon_vma_chain_free(avc);
+    if (unlikely(avc))
+        anon_vma_chain_free(avc);
 
-	return 0;
+    return 0;
 
- out_enomem_free_avc:
-	anon_vma_chain_free(avc);
- out_enomem:
-	return -ENOMEM;
+out_enomem_free_avc:
+    anon_vma_chain_free(avc);
+out_enomem:
+    return -ENOMEM;
 }
 
 /*
@@ -272,20 +270,20 @@ int __anon_vma_prepare(struct vm_area_struct *vma)
  */
 static inline struct anon_vma *lock_anon_vma_root(struct anon_vma *root, struct anon_vma *anon_vma)
 {
-	struct anon_vma *new_root = anon_vma->root;
-	if (new_root != root) {
-		if (WARN_ON_ONCE(root))
-			up_write(&root->rwsem);
-		root = new_root;
-		down_write(&root->rwsem);
-	}
-	return root;
+    struct anon_vma *new_root = anon_vma->root;
+    if (new_root != root) {
+        if (WARN_ON_ONCE(root))
+            up_write(&root->rwsem);
+        root = new_root;
+        down_write(&root->rwsem);
+    }
+    return root;
 }
 
 static inline void unlock_anon_vma_root(struct anon_vma *root)
 {
-	if (root)
-		up_write(&root->rwsem);
+    if (root)
+        up_write(&root->rwsem);
 }
 
 /*
@@ -312,35 +310,35 @@ static inline void unlock_anon_vma_root(struct anon_vma *root)
  */
 int anon_vma_clone(struct vm_area_struct *dst, struct vm_area_struct *src)
 {
-	struct anon_vma_chain *avc, *pavc;
-	struct anon_vma *root = NULL;
+    struct anon_vma_chain *avc, *pavc;
+    struct anon_vma *root = NULL;
 
     /* 遍历 父进程 的 AVC */
-	list_for_each_entry_reverse(pavc, &src->anon_vma_chain, same_vma) {
-
-		struct anon_vma *anon_vma;
+    list_for_each_entry_reverse(pavc, &src->anon_vma_chain, same_vma)
+    {
+        struct anon_vma *anon_vma;
 
         /* 分配 avc */
-		avc = anon_vma_chain_alloc(GFP_NOWAIT | __GFP_NOWARN);
-		if (unlikely(!avc)) {   /* 分配失败 */
-			unlock_anon_vma_root(root);
-			root = NULL;
-			avc = anon_vma_chain_alloc(GFP_KERNEL);
-			if (!avc)
-				goto enomem_failure;
-		}
+        avc = anon_vma_chain_alloc(GFP_NOWAIT | __GFP_NOWARN);
+        if (unlikely(!avc)) { /* 分配失败 */
+            unlock_anon_vma_root(root);
+            root = NULL;
+            avc = anon_vma_chain_alloc(GFP_KERNEL);
+            if (!avc)
+                goto enomem_failure;
+        }
 
         /* 父进程    AV */
-		anon_vma = pavc->anon_vma;
-		root = lock_anon_vma_root(root, anon_vma);
+        anon_vma = pavc->anon_vma;
+        root = lock_anon_vma_root(root, anon_vma);
 
         /**
          *  1. AVC 插入 VMA 链表中
          *  2. AVC 插入 AV 红黑树中
          */
-        anon_vma_chain_link(dst/* 子进程 VMA */, avc/* 新的 avc */, anon_vma/*  父进程的AV*/);
+        anon_vma_chain_link(dst /* 子进程 VMA */, avc /* 新的 avc */, anon_vma /*  父进程的AV*/);
 
-		/*
+        /*
 		 * Reuse existing anon_vma if its degree lower than two,
 		 * that means it has no vma and only one anon_vma child.
 		 *
@@ -351,31 +349,30 @@ int anon_vma_clone(struct vm_area_struct *dst, struct vm_area_struct *src)
 		 * 如果父进程的 anon_vma->degree < 2, 那么 anon_vma 将复用
 		 *
 		 */
-		if (!dst->anon_vma && src->anon_vma &&
-		    anon_vma != src->anon_vma && anon_vma->degree < 2)
-			dst->anon_vma = anon_vma;
-	}
+        if (!dst->anon_vma && src->anon_vma && anon_vma != src->anon_vma && anon_vma->degree < 2)
+            dst->anon_vma = anon_vma;
+    }
 
     /**
      *  如果 复用了 anon_vma
      */
-	if (dst->anon_vma)
-		dst->anon_vma->degree++;
+    if (dst->anon_vma)
+        dst->anon_vma->degree++;
 
-	unlock_anon_vma_root(root);
+    unlock_anon_vma_root(root);
 
-	return 0;
+    return 0;
 
- enomem_failure:
-	/*
+enomem_failure:
+    /*
 	 * dst->anon_vma is dropped here otherwise its degree can be incorrectly
 	 * decremented in unlink_anon_vmas().
 	 * We can safely do this because callers of anon_vma_clone() don't care
 	 * about dst->anon_vma if anon_vma_clone() failed.
 	 */
-	dst->anon_vma = NULL;
-	unlink_anon_vmas(dst);
-	return -ENOMEM;
+    dst->anon_vma = NULL;
+    unlink_anon_vmas(dst);
+    return -ENOMEM;
 }
 
 /*
@@ -390,97 +387,97 @@ int anon_vma_clone(struct vm_area_struct *dst, struct vm_area_struct *src)
  */
 int anon_vma_fork(struct vm_area_struct *vma, struct vm_area_struct *pvma)
 {
-	struct anon_vma_chain *avc;
-	struct anon_vma *anon_vma;
-	int error;
+    struct anon_vma_chain *avc;
+    struct anon_vma *anon_vma;
+    int error;
 
-	/* Don't bother if the parent process has no anon_vma here. */
-	if (!pvma->anon_vma)    /* 父进程的 av 不能为空 */
-		return 0;
+    /* Don't bother if the parent process has no anon_vma here. */
+    if (!pvma->anon_vma) /* 父进程的 av 不能为空 */
+        return 0;
 
-	/* Drop inherited anon_vma, we'll reuse existing or allocate new. */
-	vma->anon_vma = NULL;
+    /* Drop inherited anon_vma, we'll reuse existing or allocate new. */
+    vma->anon_vma = NULL;
 
-	/*
+    /*
 	 * First, attach the new VMA to the parent VMA's anon_vmas,
 	 * so rmap can find non-COWed pages in child processes.
 	 *
 	 * 首先，将 子进程的 vma 添加至 父进程 的 vma anon_vma 中;
 	 * 同时，子进程的 anon_vma 可能直接指向 父进程 的 anon_vma
 	 */
-	error = anon_vma_clone(vma, pvma);
-	if (error)
-		return error;
+    error = anon_vma_clone(vma, pvma);
+    if (error)
+        return error;
 
-	/**
+    /**
 	 *  An existing anon_vma has been reused, all done then.
 	 *  当前 子进程的 anon_vma 不为空，则复用，直接退出。
 	 *  可能在 `anon_vma_clone()` 完成赋值
 	 *
 	 *  复用 anon_vma
 	 */
-	if (vma->anon_vma)
-		return 0;
+    if (vma->anon_vma)
+        return 0;
 
-	/**
+    /**
 	 *  Then add our own anon_vma.
 	 *  如果没有 复用 anon_vma ，分配一个 新的 AV - anon_vma
 	 *
 	 */
-	anon_vma = anon_vma_alloc();
-	if (!anon_vma)
-		goto out_error;
+    anon_vma = anon_vma_alloc();
+    if (!anon_vma)
+        goto out_error;
 
     /**
      *  分配 anon_vma_chain
      */
-	avc = anon_vma_chain_alloc(GFP_KERNEL);
-	if (!avc)
-		goto out_error_free_anon_vma;
+    avc = anon_vma_chain_alloc(GFP_KERNEL);
+    if (!avc)
+        goto out_error_free_anon_vma;
 
-	/*
+    /*
 	 * The root anon_vma's spinlock is the lock actually used when we
 	 * lock any of the anon_vmas in this anon_vma tree.
 	 *
 	 * 子进程的 AV root 指向父进程;
 	 *
 	 */
-	anon_vma->root = pvma->anon_vma->root;
-	anon_vma->parent = pvma->anon_vma;
+    anon_vma->root = pvma->anon_vma->root;
+    anon_vma->parent = pvma->anon_vma;
 
-	/*
+    /*
 	 * With refcounts, an anon_vma can stay around longer than the
 	 * process it belongs to. The root anon_vma needs to be pinned until
 	 * this anon_vma is freed, because the lock lives in the root.
 	 *
 	 * 引用计数
 	 */
-	get_anon_vma(anon_vma->root);
+    get_anon_vma(anon_vma->root);
 
-	/**
+    /**
 	 *  Mark this anon_vma as the one where our new (COWed) pages go.
 	 *
 	 *  将此anon_vma标记为我们的新（写时复制）页面所在的页面。
 	 *  也就是说，子进程的 vma 结构将发生写时复制，使用的 anon_vma 即为此。
 	 *
 	 */
-	vma->anon_vma = anon_vma;
+    vma->anon_vma = anon_vma;
 
-	anon_vma_lock_write(anon_vma);
+    anon_vma_lock_write(anon_vma);
 
     /* 链接 */
-	anon_vma_chain_link(vma, avc, anon_vma);
-	anon_vma->parent->degree++;
+    anon_vma_chain_link(vma, avc, anon_vma);
+    anon_vma->parent->degree++;
 
-	anon_vma_unlock_write(anon_vma);
+    anon_vma_unlock_write(anon_vma);
 
-	return 0;
+    return 0;
 
- out_error_free_anon_vma:
-	put_anon_vma(anon_vma);
- out_error:
-	unlink_anon_vmas(vma);
-	return -ENOMEM;
+out_error_free_anon_vma:
+    put_anon_vma(anon_vma);
+out_error:
+    unlink_anon_vmas(vma);
+    return -ENOMEM;
 }
 
 /**
@@ -488,67 +485,67 @@ int anon_vma_fork(struct vm_area_struct *vma, struct vm_area_struct *pvma)
  */
 void unlink_anon_vmas(struct vm_area_struct *vma)
 {
-	struct anon_vma_chain *avc, *next;
-	struct anon_vma *root = NULL;
+    struct anon_vma_chain *avc, *next;
+    struct anon_vma *root = NULL;
 
-	/*
+    /*
 	 * Unlink each anon_vma chained to the VMA.  This list is ordered
 	 * from newest to oldest, ensuring the root anon_vma gets freed last.
 	 */
-	list_for_each_entry_safe(avc, next, &vma->anon_vma_chain, same_vma) {
-		struct anon_vma *anon_vma = avc->anon_vma;
+    list_for_each_entry_safe(avc, next, &vma->anon_vma_chain, same_vma)
+    {
+        struct anon_vma *anon_vma = avc->anon_vma;
 
-		root = lock_anon_vma_root(root, anon_vma);
-		anon_vma_interval_tree_remove(avc, &anon_vma->rb_root);
+        root = lock_anon_vma_root(root, anon_vma);
+        anon_vma_interval_tree_remove(avc, &anon_vma->rb_root);
 
-		/*
+        /*
 		 * Leave empty anon_vmas on the list - we'll need
 		 * to free them outside the lock.
 		 */
-		if (RB_EMPTY_ROOT(&anon_vma->rb_root.rb_root)) {
-			anon_vma->parent->degree--;
-			continue;
-		}
+        if (RB_EMPTY_ROOT(&anon_vma->rb_root.rb_root)) {
+            anon_vma->parent->degree--;
+            continue;
+        }
 
-		list_del(&avc->same_vma);
-		anon_vma_chain_free(avc);
-	}
-	if (vma->anon_vma)
-		vma->anon_vma->degree--;
-	unlock_anon_vma_root(root);
+        list_del(&avc->same_vma);
+        anon_vma_chain_free(avc);
+    }
+    if (vma->anon_vma)
+        vma->anon_vma->degree--;
+    unlock_anon_vma_root(root);
 
-	/*
+    /*
 	 * Iterate the list once more, it now only contains empty and unlinked
 	 * anon_vmas, destroy them. Could not do before due to __put_anon_vma()
 	 * needing to write-acquire the anon_vma->root->rwsem.
 	 */
-	list_for_each_entry_safe(avc, next, &vma->anon_vma_chain, same_vma) {
-		struct anon_vma *anon_vma = avc->anon_vma;
+    list_for_each_entry_safe(avc, next, &vma->anon_vma_chain, same_vma)
+    {
+        struct anon_vma *anon_vma = avc->anon_vma;
 
-		VM_WARN_ON(anon_vma->degree);
-		put_anon_vma(anon_vma);
+        VM_WARN_ON(anon_vma->degree);
+        put_anon_vma(anon_vma);
 
-		list_del(&avc->same_vma);
-		anon_vma_chain_free(avc);
-	}
+        list_del(&avc->same_vma);
+        anon_vma_chain_free(avc);
+    }
 }
 
-static void anon_vma_ctor(void *data)   /* 构造函数 */
+static void anon_vma_ctor(void *data) /* 构造函数 */
 {
-	struct anon_vma *anon_vma = data;
+    struct anon_vma *anon_vma = data;
 
-	init_rwsem(&anon_vma->rwsem);
-	atomic_set(&anon_vma->refcount, 0);
-	anon_vma->rb_root = RB_ROOT_CACHED;
+    init_rwsem(&anon_vma->rwsem);
+    atomic_set(&anon_vma->refcount, 0);
+    anon_vma->rb_root = RB_ROOT_CACHED;
 }
 
 void __init anon_vma_init(void) /* 从 salb 分配 */
 {
-	anon_vma_cachep = kmem_cache_create("anon_vma", sizeof(struct anon_vma),
-			0, SLAB_TYPESAFE_BY_RCU|SLAB_PANIC|SLAB_ACCOUNT,
-			anon_vma_ctor);
-	anon_vma_chain_cachep = KMEM_CACHE(anon_vma_chain,
-			SLAB_PANIC|SLAB_ACCOUNT);
+    anon_vma_cachep = kmem_cache_create("anon_vma", sizeof(struct anon_vma), 0,
+                                        SLAB_TYPESAFE_BY_RCU | SLAB_PANIC | SLAB_ACCOUNT, anon_vma_ctor);
+    anon_vma_chain_cachep = KMEM_CACHE(anon_vma_chain, SLAB_PANIC | SLAB_ACCOUNT);
 }
 
 /*
@@ -579,45 +576,45 @@ void __init anon_vma_init(void) /* 从 salb 分配 */
  */
 struct anon_vma *page_get_anon_vma(struct page *__page)
 {
-	struct anon_vma *anon_vma = NULL;
-	unsigned long anon_mapping;
+    struct anon_vma *anon_vma = NULL;
+    unsigned long anon_mapping;
 
     /**
      *
      */
-	rcu_read_lock();
+    rcu_read_lock();
 
-	anon_mapping = (unsigned long)READ_ONCE(__page->mapping);
-	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
-		goto out;
-	if (!page_mapped(__page))
-		goto out;
+    anon_mapping = (unsigned long)READ_ONCE(__page->mapping);
+    if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
+        goto out;
+    if (!page_mapped(__page))
+        goto out;
 
-	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
-	if (!atomic_inc_not_zero(&anon_vma->refcount)) {
-		anon_vma = NULL;
-		goto out;
-	}
+    anon_vma = (struct anon_vma *)(anon_mapping - PAGE_MAPPING_ANON);
+    if (!atomic_inc_not_zero(&anon_vma->refcount)) {
+        anon_vma = NULL;
+        goto out;
+    }
 
-	/*
+    /*
 	 * If this page is still mapped, then its anon_vma cannot have been
 	 * freed.  But if it has been unmapped, we have no security against the
 	 * anon_vma structure being freed and reused (for another anon_vma:
 	 * SLAB_TYPESAFE_BY_RCU guarantees that - so the atomic_inc_not_zero()
 	 * above cannot corrupt).
 	 */
-	if (!page_mapped(__page)) {
-		rcu_read_unlock();
-		put_anon_vma(anon_vma);
-		return NULL;
-	}
+    if (!page_mapped(__page)) {
+        rcu_read_unlock();
+        put_anon_vma(anon_vma);
+        return NULL;
+    }
 out:
     /**
      *
      */
-	rcu_read_unlock();
+    rcu_read_unlock();
 
-	return anon_vma;
+    return anon_vma;
 }
 
 /*
@@ -629,84 +626,84 @@ out:
  */
 struct anon_vma *page_lock_anon_vma_read(struct page *page)
 {
-	struct anon_vma *anon_vma = NULL;
-	struct anon_vma *root_anon_vma;
-	unsigned long anon_mapping;
+    struct anon_vma *anon_vma = NULL;
+    struct anon_vma *root_anon_vma;
+    unsigned long anon_mapping;
 
-	rcu_read_lock();
+    rcu_read_lock();
 
     /* 获取 anon_vma 地址 */
-	anon_mapping = (unsigned long)READ_ONCE(page->mapping);
-	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)   /* 类型判断 */
-		goto out;
+    anon_mapping = (unsigned long)READ_ONCE(page->mapping);
+    if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON) /* 类型判断 */
+        goto out;
 
     /* page->_mapcount >= 0 的 非 大页，没人映射就 out */
-	if (!page_mapped(page))
-		goto out;
+    if (!page_mapped(page))
+        goto out;
 
     /* 获取AV结构 */
-	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
+    anon_vma = (struct anon_vma *)(anon_mapping - PAGE_MAPPING_ANON);
 
     /* 获取  root AV */
-	root_anon_vma = READ_ONCE(anon_vma->root);
+    root_anon_vma = READ_ONCE(anon_vma->root);
 
     /* 锁定 root */
-	if (down_read_trylock(&root_anon_vma->rwsem)) {
+    if (down_read_trylock(&root_anon_vma->rwsem)) {
         /* 锁定 read 成功 */
-		/*
+        /*
 		 * If the page is still mapped, then this anon_vma is still
 		 * its anon_vma, and holding the mutex ensures that it will
 		 * not go away, see anon_vma_free().
 		 *
 		 * 如果 page->_mapcount >= 0 的 非 大页，没人映射就 释放 root 的信号量
 		 */
-		if (!page_mapped(page)) {
-			up_read(&root_anon_vma->rwsem);
-			anon_vma = NULL;
-		}
-		goto out; /* 退出 */
-	}
+        if (!page_mapped(page)) {
+            up_read(&root_anon_vma->rwsem);
+            anon_vma = NULL;
+        }
+        goto out; /* 退出 */
+    }
 
-	/**
+    /**
 	 *  trylock failed, we got to sleep
 	 */
-	if (!atomic_inc_not_zero(&anon_vma->refcount)) {
-		anon_vma = NULL;
-		goto out;
-	}
+    if (!atomic_inc_not_zero(&anon_vma->refcount)) {
+        anon_vma = NULL;
+        goto out;
+    }
 
     /* 如果没人映射这个页面 */
-	if (!page_mapped(page)) {
-		rcu_read_unlock();      /* 释放锁 */
-		put_anon_vma(anon_vma); /* 引用计数 -1 */
-		return NULL;
-	}
+    if (!page_mapped(page)) {
+        rcu_read_unlock(); /* 释放锁 */
+        put_anon_vma(anon_vma); /* 引用计数 -1 */
+        return NULL;
+    }
 
-	/* we pinned the anon_vma, its safe to sleep */
-	rcu_read_unlock();
-	anon_vma_lock_read(anon_vma);
+    /* we pinned the anon_vma, its safe to sleep */
+    rcu_read_unlock();
+    anon_vma_lock_read(anon_vma);
 
-	if (atomic_dec_and_test(&anon_vma->refcount)) {
-		/*
+    if (atomic_dec_and_test(&anon_vma->refcount)) {
+        /*
 		 * Oops, we held the last refcount, release the lock
 		 * and bail -- can't simply use put_anon_vma() because
 		 * we'll deadlock on the anon_vma_lock_write() recursion.
 		 */
-		anon_vma_unlock_read(anon_vma);
-		__put_anon_vma(anon_vma);
-		anon_vma = NULL;
-	}
+        anon_vma_unlock_read(anon_vma);
+        __put_anon_vma(anon_vma);
+        anon_vma = NULL;
+    }
 
-	return anon_vma;
+    return anon_vma;
 
 out:
-	rcu_read_unlock();
-	return anon_vma;
+    rcu_read_unlock();
+    return anon_vma;
 }
 
 void page_unlock_anon_vma_read(struct anon_vma *anon_vma)
 {
-	anon_vma_unlock_read(anon_vma);
+    anon_vma_unlock_read(anon_vma);
 }
 
 #ifdef CONFIG_ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH
@@ -718,46 +715,46 @@ void page_unlock_anon_vma_read(struct anon_vma *anon_vma)
  */
 void try_to_unmap_flush(void)
 {
-	struct tlbflush_unmap_batch *tlb_ubc = &current->tlb_ubc;
+    struct tlbflush_unmap_batch *tlb_ubc = &current->tlb_ubc;
 
-	if (!tlb_ubc->flush_required)
-		return;
+    if (!tlb_ubc->flush_required)
+        return;
 
-	arch_tlbbatch_flush(&tlb_ubc->arch);
-	tlb_ubc->flush_required = false;
-	tlb_ubc->writable = false;
+    arch_tlbbatch_flush(&tlb_ubc->arch);
+    tlb_ubc->flush_required = false;
+    tlb_ubc->writable = false;
 }
 
 /* Flush iff there are potentially writable TLB entries that can race with IO */
 void try_to_unmap_flush_dirty(void)
 {
-	struct tlbflush_unmap_batch *tlb_ubc = &current->tlb_ubc;
+    struct tlbflush_unmap_batch *tlb_ubc = &current->tlb_ubc;
 
-	if (tlb_ubc->writable)
-		try_to_unmap_flush();
+    if (tlb_ubc->writable)
+        try_to_unmap_flush();
 }
 
 static void set_tlb_ubc_flush_pending(struct mm_struct *mm, bool writable)
 {
-	struct tlbflush_unmap_batch *tlb_ubc = &current->tlb_ubc;
+    struct tlbflush_unmap_batch *tlb_ubc = &current->tlb_ubc;
 
-	arch_tlbbatch_add_mm(&tlb_ubc->arch, mm);
-	tlb_ubc->flush_required = true;
+    arch_tlbbatch_add_mm(&tlb_ubc->arch, mm);
+    tlb_ubc->flush_required = true;
 
-	/*
+    /*
 	 * Ensure compiler does not re-order the setting of tlb_flush_batched
 	 * before the PTE is cleared.
 	 */
-	barrier();
-	mm->tlb_flush_batched = true;
+    barrier();
+    mm->tlb_flush_batched = true;
 
-	/*
+    /*
 	 * If the PTE was dirty then it's best to assume it's writable. The
 	 * caller must use try_to_unmap_flush_dirty() or try_to_unmap_flush()
 	 * before the page is queued for IO.
 	 */
-	if (writable)
-		tlb_ubc->writable = true;
+    if (writable)
+        tlb_ubc->writable = true;
 }
 
 /*
@@ -766,17 +763,17 @@ static void set_tlb_ubc_flush_pending(struct mm_struct *mm, bool writable)
  */
 static bool should_defer_flush(struct mm_struct *mm, enum ttu_flags flags)
 {
-	bool should_defer = false;
+    bool should_defer = false;
 
-	if (!(flags & TTU_BATCH_FLUSH))
-		return false;
+    if (!(flags & TTU_BATCH_FLUSH))
+        return false;
 
-	/* If remote CPUs need to be flushed then defer batch the flush */
-	if (cpumask_any_but(mm_cpumask(mm), get_cpu()) < nr_cpu_ids)
-		should_defer = true;
-	put_cpu();
+    /* If remote CPUs need to be flushed then defer batch the flush */
+    if (cpumask_any_but(mm_cpumask(mm), get_cpu()) < nr_cpu_ids)
+        should_defer = true;
+    put_cpu();
 
-	return should_defer;
+    return should_defer;
 }
 
 /*
@@ -796,16 +793,16 @@ static bool should_defer_flush(struct mm_struct *mm, enum ttu_flags flags)
  */
 void flush_tlb_batched_pending(struct mm_struct *mm)
 {
-	if (data_race(mm->tlb_flush_batched)) {
-		flush_tlb_mm(mm);
+    if (data_race(mm->tlb_flush_batched)) {
+        flush_tlb_mm(mm);
 
-		/*
+        /*
 		 * Do not allow the compiler to re-order the clearing of
 		 * tlb_flush_batched before the tlb is flushed.
 		 */
-		barrier();
-		mm->tlb_flush_batched = false;
-	}
+        barrier();
+        mm->tlb_flush_batched = false;
+    }
 }
 #else
 static void set_tlb_ubc_flush_pending(struct mm_struct *mm, bool writable)
@@ -814,7 +811,7 @@ static void set_tlb_ubc_flush_pending(struct mm_struct *mm, bool writable)
 
 static bool should_defer_flush(struct mm_struct *mm, enum ttu_flags flags)
 {
-	return false;
+    return false;
 }
 #endif /* CONFIG_ARCH_WANT_BATCHED_UNMAP_TLB_FLUSH */
 
@@ -826,106 +823,101 @@ static bool should_defer_flush(struct mm_struct *mm, enum ttu_flags flags)
  */
 unsigned long page_address_in_vma(struct page *page, struct vm_area_struct *vma)
 {
-	unsigned long address;
-	if (PageAnon(page)) {
-		struct anon_vma *page__anon_vma = page_anon_vma(page);
-		/*
+    unsigned long address;
+    if (PageAnon(page)) {
+        struct anon_vma *page__anon_vma = page_anon_vma(page);
+        /*
 		 * Note: swapoff's unuse_vma() is more efficient with this
 		 * check, and needs it to match anon_vma when KSM is active.
 		 */
-		if (!vma->anon_vma || !page__anon_vma ||
-		    vma->anon_vma->root != page__anon_vma->root)
-			return -EFAULT;
-	} else if (page->mapping) {
-		if (!vma->vm_file || vma->vm_file->f_mapping != page->mapping)
-			return -EFAULT;
-	} else
-		return -EFAULT;
+        if (!vma->anon_vma || !page__anon_vma || vma->anon_vma->root != page__anon_vma->root)
+            return -EFAULT;
+    } else if (page->mapping) {
+        if (!vma->vm_file || vma->vm_file->f_mapping != page->mapping)
+            return -EFAULT;
+    } else
+        return -EFAULT;
 
     /**
      *
      */
-	address = __vma_address(page, vma);
-	if (unlikely(address < vma->vm_start || address >= vma->vm_end))
-		return -EFAULT;
-	return address;
+    address = __vma_address(page, vma);
+    if (unlikely(address < vma->vm_start || address >= vma->vm_end))
+        return -EFAULT;
+    return address;
 }
 
 pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address)
 {
-	pgd_t *pgd;
-	p4d_t *p4d;
-	pud_t *pud;
-	pmd_t *pmd = NULL;
-	pmd_t pmde;
+    pgd_t *pgd;
+    p4d_t *p4d;
+    pud_t *pud;
+    pmd_t *pmd = NULL;
+    pmd_t pmde;
 
-	pgd = pgd_offset(mm, address);
-	if (!pgd_present(*pgd))
-		goto out;
+    pgd = pgd_offset(mm, address);
+    if (!pgd_present(*pgd))
+        goto out;
 
-	p4d = p4d_offset(pgd, address);
-	if (!p4d_present(*p4d))
-		goto out;
+    p4d = p4d_offset(pgd, address);
+    if (!p4d_present(*p4d))
+        goto out;
 
-	pud = pud_offset(p4d, address);
-	if (!pud_present(*pud))
-		goto out;
+    pud = pud_offset(p4d, address);
+    if (!pud_present(*pud))
+        goto out;
 
-	pmd = pmd_offset(pud, address);
-	/*
+    pmd = pmd_offset(pud, address);
+    /*
 	 * Some THP functions use the sequence pmdp_huge_clear_flush(), set_pmd_at()
 	 * without holding anon_vma lock for write.  So when looking for a
 	 * genuine pmde (in which to find pte), test present and !THP together.
 	 */
-	pmde = *pmd;
-	barrier();
-	if (!pmd_present(pmde) || pmd_trans_huge(pmde))
-		pmd = NULL;
+    pmde = *pmd;
+    barrier();
+    if (!pmd_present(pmde) || pmd_trans_huge(pmde))
+        pmd = NULL;
 out:
-	return pmd;
+    return pmd;
 }
 
-struct page_referenced_arg {    /* page 引用 arg */
-	int mapcount;   /* mapcount: 和 page->_mapcount 相关 */
-	int referenced;
-	unsigned long vm_flags;
-	struct mem_cgroup *memcg;
+struct page_referenced_arg { /* page 引用 arg */
+    int mapcount; /* mapcount: 和 page->_mapcount 相关 */
+    int referenced;
+    unsigned long vm_flags;
+    struct mem_cgroup *memcg;
 };
 /*
  * arg: page_referenced_arg will be passed
  */
-static bool page_referenced_one(struct page *page, struct vm_area_struct *vma,
-			unsigned long address, void *arg)
+static bool page_referenced_one(struct page *page, struct vm_area_struct *vma, unsigned long address, void *arg)
 {
-	struct page_referenced_arg *pra = arg;
-	struct page_vma_mapped_walk pvmw = {
-		pvmw.page = page,
-		pvmw.vma = vma,
-		pvmw.address = address,
-	};
-	int referenced = 0;
+    struct page_referenced_arg *pra = arg;
+    struct page_vma_mapped_walk pvmw = {
+        pvmw.page = page,
+        pvmw.vma = vma,
+        pvmw.address = address,
+    };
+    int referenced = 0;
 
     /**
      *  从虚拟地址 address 遍历页表，找出对应的 PTE
      */
-	while (page_vma_mapped_walk(&pvmw)) {
-
-
-		address = pvmw.address;
+    while (page_vma_mapped_walk(&pvmw)) {
+        address = pvmw.address;
 
         /* 如果是锁定的，直接返回 */
-		if (vma->vm_flags & VM_LOCKED) {
-			page_vma_mapped_walk_done(&pvmw);
-			pra->vm_flags |= VM_LOCKED;
-			return false; /* To break the loop */
-		}
+        if (vma->vm_flags & VM_LOCKED) {
+            page_vma_mapped_walk_done(&pvmw);
+            pra->vm_flags |= VM_LOCKED;
+            return false; /* To break the loop */
+        }
 
         /* PTE 存在 */
-		if (pvmw.pte) {
-
+        if (pvmw.pte) {
             /* 判断 该 PTE 最近是否被访问过 */
-			if (ptep_clear_flush_young_notify(vma, address, pvmw.pte)) {
-				/*
+            if (ptep_clear_flush_young_notify(vma, address, pvmw.pte)) {
+                /*
 				 * Don't treat a reference through
 				 * a sequentially read mapping as such.
 				 * If the page has been used in another mapping,
@@ -933,49 +925,47 @@ static bool page_referenced_one(struct page *page, struct vm_area_struct *vma,
 				 * already gone, the unmap path will have set
 				 * PG_referenced or activated the page.
 				 */
-				if (likely(!(vma->vm_flags & VM_SEQ_READ)))
-					referenced++;
-			}
+                if (likely(!(vma->vm_flags & VM_SEQ_READ)))
+                    referenced++;
+            }
 
-		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
-			if (pmdp_clear_flush_young_notify(vma, address, pvmw.pmd))
-				referenced++;
-		} else {
-			/* unexpected pmd-mapped page? */
-			WARN_ON_ONCE(1);
-		}
+        } else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
+            if (pmdp_clear_flush_young_notify(vma, address, pvmw.pmd))
+                referenced++;
+        } else {
+            /* unexpected pmd-mapped page? */
+            WARN_ON_ONCE(1);
+        }
 
-		pra->mapcount--;
-	}
+        pra->mapcount--;
+    }
 
+    if (referenced)
+        clear_page_idle(page);
 
-	if (referenced)
-		clear_page_idle(page);
+    if (test_and_clear_page_young(page))
+        referenced++;
 
-	if (test_and_clear_page_young(page))
-		referenced++;
+    if (referenced) {
+        pra->referenced++;
+        pra->vm_flags |= vma->vm_flags;
+    }
 
-	if (referenced) {
-		pra->referenced++;
-		pra->vm_flags |= vma->vm_flags;
-	}
+    if (!pra->mapcount)
+        return false; /* To break the loop */
 
-	if (!pra->mapcount)
-		return false; /* To break the loop */
-
-	return true;
+    return true;
 }
 
 static bool invalid_page_referenced_vma(struct vm_area_struct *vma, void *arg)
 {
-	struct page_referenced_arg *pra = arg;
-	struct mem_cgroup *memcg = pra->memcg;
+    struct page_referenced_arg *pra = arg;
+    struct mem_cgroup *memcg = pra->memcg;
 
+    if (!mm_match_cgroup(vma->vm_mm, memcg))
+        return true;
 
-	if (!mm_match_cgroup(vma->vm_mm, memcg))
-		return true;
-
-	return false;
+    return false;
 }
 
 /**
@@ -995,38 +985,35 @@ static bool invalid_page_referenced_vma(struct vm_area_struct *vma, void *arg)
  * 3. 返回 referenced 计数，标识该页面访问、引用多少个 PTE
  */
 /* Page Frame Reclaim Algorithm-PFRA 算法扫描一页调用一次该函数 */
-int page_referenced(struct page *page,
-		    int is_locked,
-		    struct mem_cgroup *memcg,
-		    unsigned long *vm_flags)
+int page_referenced(struct page *page, int is_locked, struct mem_cgroup *memcg, unsigned long *vm_flags)
 {
-	int we_locked = 0;
+    int we_locked = 0;
 
     /* page 引用 arg */
-	struct page_referenced_arg pra = {
-		pra.mapcount = total_mapcount(page),    /* page _mapcount 数 */
-		pra.memcg = memcg,  /* memory cgroup */
-	};
+    struct page_referenced_arg pra = {
+        pra.mapcount = total_mapcount(page), /* page _mapcount 数 */
+        pra.memcg = memcg, /* memory cgroup */
+    };
 
     /* RMAP 遍历 控制结构 */
-	struct rmap_walk_control rwc = {
-		rwc.rmap_one = page_referenced_one,
-		rwc.arg = (void *)&pra,
-		rwc.anon_lock = page_lock_anon_vma_read,
-	};
+    struct rmap_walk_control rwc = {
+        rwc.rmap_one = page_referenced_one,
+        rwc.arg = (void *)&pra,
+        rwc.anon_lock = page_lock_anon_vma_read,
+    };
 
     /* 清理标志位 */
-	*vm_flags = 0;
+    *vm_flags = 0;
 
     /* 如果 mapcount == 0 */
-	if (!pra.mapcount)
-		return 0;
+    if (!pra.mapcount)
+        return 0;
 
     /**
      *  如果 page->mapping 为空，表明 page 没有对应的 页框，直接返回0
      */
-	if (!page_rmapping(page))
-		return 0;
+    if (!page_rmapping(page))
+        return 0;
 
     /**
      *  如果
@@ -1038,145 +1025,142 @@ int page_referenced(struct page *page,
      *  1. 未锁定的 KSM 页面
      *  2. 未锁定的 文件映射
      */
-	if (!is_locked && (!PageAnon(page) || PageKsm(page))) {
-
+    if (!is_locked && (!PageAnon(page) || PageKsm(page))) {
         /* 尝试锁定 */
-		we_locked = trylock_page(page);
-		if (!we_locked) /* 锁定失败，表明该页面被锁定，返回 1 */
-			return 1;
-	}
+        we_locked = trylock_page(page);
+        if (!we_locked) /* 锁定失败，表明该页面被锁定，返回 1 */
+            return 1;
+    }
 
-	/*
+    /*
 	 * If we are reclaiming on behalf of a cgroup, skip
 	 * counting on behalf of references from different
 	 * cgroups
 	 *
 	 * 如果我们代表 cgroup 进行回收，请跳过代表不同 cgroup 引用的计数
 	 */
-	if (memcg) {
-		rwc.invalid_vma = invalid_page_referenced_vma;
-	}
+    if (memcg) {
+        rwc.invalid_vma = invalid_page_referenced_vma;
+    }
 
     /**
      *  利用 RMAP 遍历
      */
-	rmap_walk(page, &rwc);
+    rmap_walk(page, &rwc);
 
     /* 获取 flags */
-	*vm_flags = pra.vm_flags;
+    *vm_flags = pra.vm_flags;
 
     /* 在上面种锁定成功了，进行 解锁 */
-	if (we_locked)
-		unlock_page(page);
+    if (we_locked)
+        unlock_page(page);
 
     /* 返回页面被引用的次数 */
-	return pra.referenced;
+    return pra.referenced;
 }
 
-static bool page_mkclean_one(struct page *page, struct vm_area_struct *vma,
-			    unsigned long address, void *arg)
+static bool page_mkclean_one(struct page *page, struct vm_area_struct *vma, unsigned long address, void *arg)
 {
-	struct page_vma_mapped_walk pvmw = {
-		.page = page,
-		.vma = vma,
-		.address = address,
-		.flags = PVMW_SYNC,
-	};
-	struct mmu_notifier_range range;
-	int *cleaned = arg;
+    struct page_vma_mapped_walk pvmw = {
+        .page = page,
+        .vma = vma,
+        .address = address,
+        .flags = PVMW_SYNC,
+    };
+    struct mmu_notifier_range range;
+    int *cleaned = arg;
 
-	/*
+    /*
 	 * We have to assume the worse case ie pmd for invalidation. Note that
 	 * the page can not be free from this function.
 	 */
-	mmu_notifier_range_init(&range, MMU_NOTIFY_PROTECTION_PAGE,
-				0, vma, vma->vm_mm, address,
-				min(vma->vm_end, address + page_size(page)));
-	mmu_notifier_invalidate_range_start(&range);
+    mmu_notifier_range_init(&range, MMU_NOTIFY_PROTECTION_PAGE, 0, vma, vma->vm_mm, address,
+                            min(vma->vm_end, address + page_size(page)));
+    mmu_notifier_invalidate_range_start(&range);
 
-	while (page_vma_mapped_walk(&pvmw)) {
-		int ret = 0;
+    while (page_vma_mapped_walk(&pvmw)) {
+        int ret = 0;
 
-		address = pvmw.address;
-		if (pvmw.pte) {
-			pte_t entry;
-			pte_t *pte = pvmw.pte;
+        address = pvmw.address;
+        if (pvmw.pte) {
+            pte_t entry;
+            pte_t *pte = pvmw.pte;
 
-			if (!pte_dirty(*pte) && !pte_write(*pte))
-				continue;
+            if (!pte_dirty(*pte) && !pte_write(*pte))
+                continue;
 
-			flush_cache_page(vma, address, pte_pfn(*pte));
-			entry = ptep_clear_flush(vma, address, pte);
-			entry = pte_wrprotect(entry);
-			entry = pte_mkclean(entry);
-			set_pte_at(vma->vm_mm, address, pte, entry);
-			ret = 1;
-		} else {
+            flush_cache_page(vma, address, pte_pfn(*pte));
+            entry = ptep_clear_flush(vma, address, pte);
+            entry = pte_wrprotect(entry);
+            entry = pte_mkclean(entry);
+            set_pte_at(vma->vm_mm, address, pte, entry);
+            ret = 1;
+        } else {
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-			pmd_t *pmd = pvmw.pmd;
-			pmd_t entry;
+            pmd_t *pmd = pvmw.pmd;
+            pmd_t entry;
 
-			if (!pmd_dirty(*pmd) && !pmd_write(*pmd))
-				continue;
+            if (!pmd_dirty(*pmd) && !pmd_write(*pmd))
+                continue;
 
-			flush_cache_page(vma, address, page_to_pfn(page));
-			entry = pmdp_invalidate(vma, address, pmd);
-			entry = pmd_wrprotect(entry);
-			entry = pmd_mkclean(entry);
-			set_pmd_at(vma->vm_mm, address, pmd, entry);
-			ret = 1;
+            flush_cache_page(vma, address, page_to_pfn(page));
+            entry = pmdp_invalidate(vma, address, pmd);
+            entry = pmd_wrprotect(entry);
+            entry = pmd_mkclean(entry);
+            set_pmd_at(vma->vm_mm, address, pmd, entry);
+            ret = 1;
 #else
-			/* unexpected pmd-mapped page? */
-			WARN_ON_ONCE(1);
+            /* unexpected pmd-mapped page? */
+            WARN_ON_ONCE(1);
 #endif
-		}
+        }
 
-		/*
+        /*
 		 * No need to call mmu_notifier_invalidate_range() as we are
 		 * downgrading page table protection not changing it to point
 		 * to a new page.
 		 *
 		 * See Documentation/vm/mmu_notifier.rst
 		 */
-		if (ret)
-			(*cleaned)++;
-	}
+        if (ret)
+            (*cleaned)++;
+    }
 
-	mmu_notifier_invalidate_range_end(&range);
+    mmu_notifier_invalidate_range_end(&range);
 
-	return true;
+    return true;
 }
 
 static bool invalid_mkclean_vma(struct vm_area_struct *vma, void *arg)
 {
-	if (vma->vm_flags & VM_SHARED)
-		return false;
+    if (vma->vm_flags & VM_SHARED)
+        return false;
 
-	return true;
+    return true;
 }
 
 int page_mkclean(struct page *page)
 {
-	int cleaned = 0;
-	struct address_space *mapping;
-	struct rmap_walk_control rwc = {
-		.arg = (void *)&cleaned,
-		.rmap_one = page_mkclean_one,
-		.invalid_vma = invalid_mkclean_vma,
-	};
+    int cleaned = 0;
+    struct address_space *mapping;
+    struct rmap_walk_control rwc = {
+        .arg = (void *)&cleaned,
+        .rmap_one = page_mkclean_one,
+        .invalid_vma = invalid_mkclean_vma,
+    };
 
-	BUG_ON(!PageLocked(page));
+    BUG_ON(!PageLocked(page));
 
-	if (!page_mapped(page))
-		return 0;
+    if (!page_mapped(page))
+        return 0;
 
-	mapping = page_mapping(page);
-	if (!mapping)
-		return 0;
+    mapping = page_mapping(page);
+    if (!mapping)
+        return 0;
 
-	rmap_walk(page, &rwc);
+    rmap_walk(page, &rwc);
 
-	return cleaned;
+    return cleaned;
 }
 EXPORT_SYMBOL_GPL(page_mkclean);
 
@@ -1192,20 +1176,20 @@ EXPORT_SYMBOL_GPL(page_mkclean);
  */
 void page_move_anon_rmap(struct page *page, struct vm_area_struct *vma)
 {
-	struct anon_vma *anon_vma = vma->anon_vma;
+    struct anon_vma *anon_vma = vma->anon_vma;
 
-	page = compound_head(page);
+    page = compound_head(page);
 
-	VM_BUG_ON_PAGE(!PageLocked(page), page);
-	VM_BUG_ON_VMA(!anon_vma, vma);
+    VM_BUG_ON_PAGE(!PageLocked(page), page);
+    VM_BUG_ON_VMA(!anon_vma, vma);
 
-	anon_vma = (void *) anon_vma + PAGE_MAPPING_ANON;
-	/*
+    anon_vma = (void *)anon_vma + PAGE_MAPPING_ANON;
+    /*
 	 * Ensure that anon_vma and the PAGE_MAPPING_ANON bit are written
 	 * simultaneously, so a concurrent reader (eg page_referenced()'s
 	 * PageAnon()) will not see one without the other.
 	 */
-	WRITE_ONCE(page->mapping, (struct address_space *) anon_vma);
+    WRITE_ONCE(page->mapping, (struct address_space *)anon_vma);
 }
 
 /**
@@ -1217,18 +1201,16 @@ void page_move_anon_rmap(struct page *page, struct vm_area_struct *vma)
  *
  * 设置 page->mapping = anon_vma
  */
-static void __page_set_anon_rmap(struct page *page,
-	struct vm_area_struct *vma, unsigned long address, int exclusive)
+static void __page_set_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address, int exclusive)
 {
-	struct anon_vma *anon_vma = vma->anon_vma;
+    struct anon_vma *anon_vma = vma->anon_vma;
 
-	BUG_ON(!anon_vma);
+    BUG_ON(!anon_vma);
 
+    if (PageAnon(page)) /* 如果已经标记为 匿名页面，直接返回 */
+        return;
 
-	if (PageAnon(page)) /* 如果已经标记为 匿名页面，直接返回 */
-		return;
-
-	/*
+    /*
 	 * If the page isn't exclusively mapped into this vma,
 	 * we must use the _oldest_ possible anon_vma for the
 	 * page mapping!
@@ -1239,17 +1221,17 @@ static void __page_set_anon_rmap(struct page *page,
 	 * 2. do_page_add_anon_rmap() 中根据 flag 的 RMAP_EXCLUSIVE 标志位而定
 	 *
 	 */
-	if (!exclusive)
-		anon_vma = anon_vma->root;
+    if (!exclusive)
+        anon_vma = anon_vma->root;
 
     /* 设置匿名页面标志位 */
-	anon_vma = (void *) anon_vma + PAGE_MAPPING_ANON;
+    anon_vma = (void *)anon_vma + PAGE_MAPPING_ANON;
 
     /* 指向 AV 结构 */
-	page->mapping = (struct address_space *) anon_vma;
+    page->mapping = (struct address_space *)anon_vma;
 
     /* 线性地址的总偏移页数 */
-	page->index = linear_page_index(vma, address);
+    page->index = linear_page_index(vma, address);
 }
 
 /**
@@ -1258,10 +1240,9 @@ static void __page_set_anon_rmap(struct page *page,
  * @vma:	the vm area in which the mapping is added
  * @address:	the user virtual address mapped
  */
-static void __page_check_anon_rmap(struct page *page,
-	struct vm_area_struct *vma, unsigned long address)
+static void __page_check_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address)
 {
-	/*
+    /*
 	 * The page's anon-rmap details (mapping and index) are guaranteed to
 	 * be set up correctly at this point.
 	 *
@@ -1273,9 +1254,8 @@ static void __page_check_anon_rmap(struct page *page,
 	 * are initially only visible via the pagetables, and the pte is locked
 	 * over the call to page_add_new_anon_rmap.
 	 */
-	VM_BUG_ON_PAGE(page_anon_vma(page)->root != vma->anon_vma->root, page);
-	VM_BUG_ON_PAGE(page_to_pgoff(page) != linear_page_index(vma, address),
-		       page);
+    VM_BUG_ON_PAGE(page_anon_vma(page)->root != vma->anon_vma->root, page);
+    VM_BUG_ON_PAGE(page_to_pgoff(page) != linear_page_index(vma, address), page);
 }
 
 /**
@@ -1290,10 +1270,9 @@ static void __page_check_anon_rmap(struct page *page,
  * and to ensure that PageAnon is not being upgraded racily to PageKsm
  * (but PageKsm is never downgraded to PageAnon).
  */
-void page_add_anon_rmap(struct page *page,
-	struct vm_area_struct *vma, unsigned long address, bool compound)
+void page_add_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address, bool compound)
 {
-	do_page_add_anon_rmap(page, vma, address, compound ? RMAP_COMPOUND : 0);
+    do_page_add_anon_rmap(page, vma, address, compound ? RMAP_COMPOUND : 0);
 }
 
 /*
@@ -1301,51 +1280,49 @@ void page_add_anon_rmap(struct page *page,
  * into pages that are exclusively owned by the current process.
  * Everybody else should continue to use page_add_anon_rmap above.
  */
-void do_page_add_anon_rmap(struct page *page,
-	struct vm_area_struct *vma, unsigned long address, int flags)
+void do_page_add_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address, int flags)
 {
-	bool compound = flags & RMAP_COMPOUND;
-	bool first;
+    bool compound = flags & RMAP_COMPOUND;
+    bool first;
 
-	if (unlikely(PageKsm(page)))
-		lock_page_memcg(page);
-	else
-		VM_BUG_ON_PAGE(!PageLocked(page), page);
+    if (unlikely(PageKsm(page)))
+        lock_page_memcg(page);
+    else
+        VM_BUG_ON_PAGE(!PageLocked(page), page);
 
-	if (compound) {
-		atomic_t *mapcount;
-		VM_BUG_ON_PAGE(!PageLocked(page), page);
-		VM_BUG_ON_PAGE(!PageTransHuge(page), page);
-		mapcount = compound_mapcount_ptr(page);
-		first = atomic_inc_and_test(mapcount);
-	} else {
-		first = atomic_inc_and_test(&page->_mapcount);
-	}
+    if (compound) {
+        atomic_t *mapcount;
+        VM_BUG_ON_PAGE(!PageLocked(page), page);
+        VM_BUG_ON_PAGE(!PageTransHuge(page), page);
+        mapcount = compound_mapcount_ptr(page);
+        first = atomic_inc_and_test(mapcount);
+    } else {
+        first = atomic_inc_and_test(&page->_mapcount);
+    }
 
-	if (first) {
-		int nr = compound ? thp_nr_pages(page) : 1;
-		/*
+    if (first) {
+        int nr = compound ? thp_nr_pages(page) : 1;
+        /*
 		 * We use the irq-unsafe __{inc|mod}_zone_page_stat because
 		 * these counters are not modified in interrupt context, and
 		 * pte lock(a spinlock) is held, which implies preemption
 		 * disabled.
 		 */
-		if (compound)
-			__inc_lruvec_page_state(page, NR_ANON_THPS);
-		__mod_lruvec_page_state(page, NR_ANON_MAPPED, nr);
-	}
+        if (compound)
+            __inc_lruvec_page_state(page, NR_ANON_THPS);
+        __mod_lruvec_page_state(page, NR_ANON_MAPPED, nr);
+    }
 
-	if (unlikely(PageKsm(page))) {
-		unlock_page_memcg(page);
-		return;
-	}
+    if (unlikely(PageKsm(page))) {
+        unlock_page_memcg(page);
+        return;
+    }
 
-	/* address might be in next vma when migration races vma_adjust */
-	if (first)
-		__page_set_anon_rmap(page, vma, address,
-				flags & RMAP_EXCLUSIVE);
-	else
-		__page_check_anon_rmap(page, vma, address);
+    /* address might be in next vma when migration races vma_adjust */
+    if (first)
+        __page_set_anon_rmap(page, vma, address, flags & RMAP_EXCLUSIVE);
+    else
+        __page_check_anon_rmap(page, vma, address);
 }
 
 /**
@@ -1361,8 +1338,7 @@ void do_page_add_anon_rmap(struct page *page,
  *
  *  添加 PTE mapping 到 新的 匿名页面中
  */
-void page_add_new_anon_rmap(struct page *page,
-	struct vm_area_struct *vma, unsigned long address, bool compound)
+void page_add_new_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address, bool compound)
 {
     /**
      *  compound(复合): page是复合 还是 小 page
@@ -1370,38 +1346,38 @@ void page_add_new_anon_rmap(struct page *page,
      *
      * 大页内存时，compound 为 true
      */
-	int nr = compound ? thp_nr_pages(page) : 1;
+    int nr = compound ? thp_nr_pages(page) : 1;
 
-	VM_BUG_ON_VMA(address < vma->vm_start || address >= vma->vm_end, vma);
+    VM_BUG_ON_VMA(address < vma->vm_start || address >= vma->vm_end, vma);
 
     /* 交换回 */
     __SetPageSwapBacked(page);
 
     /* 复合页面 */
-	if (compound) {
-		VM_BUG_ON_PAGE(!PageTransHuge(page), page);
-		/* increment count (starts at -1) */
-		atomic_set(compound_mapcount_ptr(page), 0);
-		if (hpage_pincount_available(page))
-			atomic_set(compound_pincount_ptr(page), 0);
+    if (compound) {
+        VM_BUG_ON_PAGE(!PageTransHuge(page), page);
+        /* increment count (starts at -1) */
+        atomic_set(compound_mapcount_ptr(page), 0);
+        if (hpage_pincount_available(page))
+            atomic_set(compound_pincount_ptr(page), 0);
 
-		__inc_lruvec_page_state(page, NR_ANON_THPS);
-	}
+        __inc_lruvec_page_state(page, NR_ANON_THPS);
+    }
     /* 普通页面 */
     else {
-		/* Anon THP always mapped first with PMD */
-		VM_BUG_ON_PAGE(PageTransCompound(page), page);
-		/* increment count (starts at -1) */
-		atomic_set(&page->_mapcount, 0);
-	}
+        /* Anon THP always mapped first with PMD */
+        VM_BUG_ON_PAGE(PageTransCompound(page), page);
+        /* increment count (starts at -1) */
+        atomic_set(&page->_mapcount, 0);
+    }
 
     /* 页面回收等 TODO */
-	__mod_lruvec_page_state(page, NR_ANON_MAPPED, nr);
+    __mod_lruvec_page_state(page, NR_ANON_MAPPED, nr);
 
     /**
      *  设置这个页面为匿名映射
      */
-	__page_set_anon_rmap(page, vma, address, 1);
+    __page_set_anon_rmap(page, vma, address, 1);
 }
 
 /**
@@ -1413,127 +1389,125 @@ void page_add_new_anon_rmap(struct page *page,
  */
 void page_add_file_rmap(struct page *page, bool compound)
 {
-	int i, nr = 1;
+    int i, nr = 1;
 
-	VM_BUG_ON_PAGE(compound && !PageTransHuge(page), page);
-	lock_page_memcg(page);
-	if (compound && PageTransHuge(page)) {
-		for (i = 0, nr = 0; i < thp_nr_pages(page); i++) {
-			if (atomic_inc_and_test(&page[i]._mapcount))
-				nr++;
-		}
-		if (!atomic_inc_and_test(compound_mapcount_ptr(page)))
-			goto out;
-		if (PageSwapBacked(page))
-			__inc_node_page_state(page, NR_SHMEM_PMDMAPPED);
-		else
-			__inc_node_page_state(page, NR_FILE_PMDMAPPED);
-	} else {
-		if (PageTransCompound(page) && page_mapping(page)) {
-			VM_WARN_ON_ONCE(!PageLocked(page));
+    VM_BUG_ON_PAGE(compound && !PageTransHuge(page), page);
+    lock_page_memcg(page);
+    if (compound && PageTransHuge(page)) {
+        for (i = 0, nr = 0; i < thp_nr_pages(page); i++) {
+            if (atomic_inc_and_test(&page[i]._mapcount))
+                nr++;
+        }
+        if (!atomic_inc_and_test(compound_mapcount_ptr(page)))
+            goto out;
+        if (PageSwapBacked(page))
+            __inc_node_page_state(page, NR_SHMEM_PMDMAPPED);
+        else
+            __inc_node_page_state(page, NR_FILE_PMDMAPPED);
+    } else {
+        if (PageTransCompound(page) && page_mapping(page)) {
+            VM_WARN_ON_ONCE(!PageLocked(page));
 
-			SetPageDoubleMap(compound_head(page));
-			if (PageMlocked(page))
-				clear_page_mlock(compound_head(page));
-		}
-		if (!atomic_inc_and_test(&page->_mapcount))
-			goto out;
-	}
-	__mod_lruvec_page_state(page, NR_FILE_MAPPED, nr);
+            SetPageDoubleMap(compound_head(page));
+            if (PageMlocked(page))
+                clear_page_mlock(compound_head(page));
+        }
+        if (!atomic_inc_and_test(&page->_mapcount))
+            goto out;
+    }
+    __mod_lruvec_page_state(page, NR_FILE_MAPPED, nr);
 out:
-	unlock_page_memcg(page);
+    unlock_page_memcg(page);
 }
 
 static void page_remove_file_rmap(struct page *page, bool compound)
 {
-	int i, nr = 1;
+    int i, nr = 1;
 
-	VM_BUG_ON_PAGE(compound && !PageHead(page), page);
+    VM_BUG_ON_PAGE(compound && !PageHead(page), page);
 
-	/**
+    /**
 	 *  Hugepages are not counted in NR_FILE_MAPPED for now.
 	 *  大页内存 不 记在 NR_FILE_MAPPED 中
 	 */
-	if (unlikely(PageHuge(page))) {
-		/* hugetlb pages are always mapped with pmds */
-		atomic_dec(compound_mapcount_ptr(page));
-		return;
-	}
+    if (unlikely(PageHuge(page))) {
+        /* hugetlb pages are always mapped with pmds */
+        atomic_dec(compound_mapcount_ptr(page));
+        return;
+    }
 
-	/* page still mapped by someone else? */
-	if (compound && PageTransHuge(page)) {
-		for (i = 0, nr = 0; i < thp_nr_pages(page); i++) {
-			if (atomic_add_negative(-1, &page[i]._mapcount))
-				nr++;
-		}
-		if (!atomic_add_negative(-1, compound_mapcount_ptr(page)))
-			return;
+    /* page still mapped by someone else? */
+    if (compound && PageTransHuge(page)) {
+        for (i = 0, nr = 0; i < thp_nr_pages(page); i++) {
+            if (atomic_add_negative(-1, &page[i]._mapcount))
+                nr++;
+        }
+        if (!atomic_add_negative(-1, compound_mapcount_ptr(page)))
+            return;
 
+        if (PageSwapBacked(page))
+            __dec_node_page_state(page, NR_SHMEM_PMDMAPPED);
+        else
+            __dec_node_page_state(page, NR_FILE_PMDMAPPED);
 
-		if (PageSwapBacked(page))
-			__dec_node_page_state(page, NR_SHMEM_PMDMAPPED);
-		else
-			__dec_node_page_state(page, NR_FILE_PMDMAPPED);
+    } else {
+        if (!atomic_add_negative(-1, &page->_mapcount))
+            return;
+    }
 
-
-	} else {
-		if (!atomic_add_negative(-1, &page->_mapcount))
-			return;
-	}
-
-	/*
+    /*
 	 * We use the irq-unsafe __{inc|mod}_lruvec_page_state because
 	 * these counters are not modified in interrupt context, and
 	 * pte lock(a spinlock) is held, which implies preemption disabled.
 	 */
-	__mod_lruvec_page_state(page, NR_FILE_MAPPED, -nr);
+    __mod_lruvec_page_state(page, NR_FILE_MAPPED, -nr);
 
-	if (unlikely(PageMlocked(page)))
-		clear_page_mlock(page);
+    if (unlikely(PageMlocked(page)))
+        clear_page_mlock(page);
 }
 
 static void page_remove_anon_compound_rmap(struct page *page)
 {
-	int i, nr;
+    int i, nr;
 
-	if (!atomic_add_negative(-1, compound_mapcount_ptr(page)))
-		return;
+    if (!atomic_add_negative(-1, compound_mapcount_ptr(page)))
+        return;
 
-	/* Hugepages are not counted in NR_ANON_PAGES for now. */
-	if (unlikely(PageHuge(page)))
-		return;
+    /* Hugepages are not counted in NR_ANON_PAGES for now. */
+    if (unlikely(PageHuge(page)))
+        return;
 
-	if (!IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE))
-		return;
+    if (!IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE))
+        return;
 
-	__dec_lruvec_page_state(page, NR_ANON_THPS);
+    __dec_lruvec_page_state(page, NR_ANON_THPS);
 
-	if (TestClearPageDoubleMap(page)) {
-		/*
+    if (TestClearPageDoubleMap(page)) {
+        /*
 		 * Subpages can be mapped with PTEs too. Check how many of
 		 * them are still mapped.
 		 */
-		for (i = 0, nr = 0; i < thp_nr_pages(page); i++) {
-			if (atomic_add_negative(-1, &page[i]._mapcount))
-				nr++;
-		}
+        for (i = 0, nr = 0; i < thp_nr_pages(page); i++) {
+            if (atomic_add_negative(-1, &page[i]._mapcount))
+                nr++;
+        }
 
-		/*
+        /*
 		 * Queue the page for deferred split if at least one small
 		 * page of the compound page is unmapped, but at least one
 		 * small page is still mapped.
 		 */
-		if (nr && nr < thp_nr_pages(page))
-			deferred_split_huge_page(page);
-	} else {
-		nr = thp_nr_pages(page);
-	}
+        if (nr && nr < thp_nr_pages(page))
+            deferred_split_huge_page(page);
+    } else {
+        nr = thp_nr_pages(page);
+    }
 
-	if (unlikely(PageMlocked(page)))
-		clear_page_mlock(page);
+    if (unlikely(PageMlocked(page)))
+        clear_page_mlock(page);
 
-	if (nr)
-		__mod_lruvec_page_state(page, NR_ANON_MAPPED, -nr);
+    if (nr)
+        __mod_lruvec_page_state(page, NR_ANON_MAPPED, -nr);
 }
 
 /**
@@ -1545,42 +1519,40 @@ static void page_remove_anon_compound_rmap(struct page *page)
  */
 void page_remove_rmap(struct page *page, bool compound)
 {
-	lock_page_memcg(page);
+    lock_page_memcg(page);
 
     /* 如果不是匿名页面 */
-	if (!PageAnon(page)) {
-
+    if (!PageAnon(page)) {
         /* 去除 文件 RMAP */
-		page_remove_file_rmap(page, compound);
-		goto out;
-	}
+        page_remove_file_rmap(page, compound);
+        goto out;
+    }
 
     /* 复合 page */
-	if (compound) { /* 可能是大页 */
+    if (compound) { /* 可能是大页 */
 
+        page_remove_anon_compound_rmap(page);
+        goto out;
+    }
 
-		page_remove_anon_compound_rmap(page);
-		goto out;
-	}
+    /* page still mapped by someone else? */
+    if (!atomic_add_negative(-1, &page->_mapcount))
+        goto out;
 
-	/* page still mapped by someone else? */
-	if (!atomic_add_negative(-1, &page->_mapcount))
-		goto out;
-
-	/*
+    /*
 	 * We use the irq-unsafe __{inc|mod}_zone_page_stat because
 	 * these counters are not modified in interrupt context, and
 	 * pte lock(a spinlock) is held, which implies preemption disabled.
 	 */
-	__dec_lruvec_page_state(page, NR_ANON_MAPPED);
+    __dec_lruvec_page_state(page, NR_ANON_MAPPED);
 
-	if (unlikely(PageMlocked(page)))
-		clear_page_mlock(page);
+    if (unlikely(PageMlocked(page)))
+        clear_page_mlock(page);
 
-	if (PageTransCompound(page))
-		deferred_split_huge_page(compound_head(page));
+    if (PageTransCompound(page))
+        deferred_split_huge_page(compound_head(page));
 
-	/*
+    /*
 	 * It would be tidy to reset the PageAnon mapping here,
 	 * but that might overwrite a racing page_add_anon_rmap
 	 * which increments mapcount after us but sets mapping
@@ -1590,7 +1562,7 @@ void page_remove_rmap(struct page *page, bool compound)
 	 * faster for those pages still in swapcache.
 	 */
 out:
-	unlock_page_memcg(page);
+    unlock_page_memcg(page);
 }
 
 /*
@@ -1600,34 +1572,33 @@ out:
  *
  * 当一个页面被选为 候选交换页面后，需要调用此函数，来断开 所有和用户进程地址空间映射的PTE
  */
-static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
-		     unsigned long address, void *arg)
+static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma, unsigned long address, void *arg)
 {
-	struct mm_struct *mm = vma->vm_mm;
-	struct page_vma_mapped_walk pvmw = {
-		.page = page,
-		.vma = vma,
-		.address = address,
-	};
-	pte_t pteval;
-	struct page *subpage;
-	bool ret = true;
-	struct mmu_notifier_range range;
-	enum ttu_flags flags = (enum ttu_flags)(long)arg;
+    struct mm_struct *mm = vma->vm_mm;
+    struct page_vma_mapped_walk pvmw = {
+        .page = page,
+        .vma = vma,
+        .address = address,
+    };
+    pte_t pteval;
+    struct page *subpage;
+    bool ret = true;
+    struct mmu_notifier_range range;
+    enum ttu_flags flags = (enum ttu_flags)(long)arg;
 
-	/* munlock has nothing to gain from examining un-locked vmas */
-	if ((flags & TTU_MUNLOCK) && !(vma->vm_flags & VM_LOCKED))
-		return true;
+    /* munlock has nothing to gain from examining un-locked vmas */
+    if ((flags & TTU_MUNLOCK) && !(vma->vm_flags & VM_LOCKED))
+        return true;
 
-	if (IS_ENABLED(CONFIG_MIGRATION) && (flags & TTU_MIGRATION) &&
-	    is_zone_device_page(page) && !is_device_private_page(page))
-		return true;
+    if (IS_ENABLED(CONFIG_MIGRATION) && (flags & TTU_MIGRATION) && is_zone_device_page(page) &&
+        !is_device_private_page(page))
+        return true;
 
-	if (flags & TTU_SPLIT_HUGE_PMD) {
-		split_huge_pmd_address(vma, address, flags & TTU_SPLIT_FREEZE, page);
-	}
+    if (flags & TTU_SPLIT_HUGE_PMD) {
+        split_huge_pmd_address(vma, address, flags & TTU_SPLIT_FREEZE, page);
+    }
 
-	/*
+    /*
 	 * For THP, we have to assume the worse case ie pmd for invalidation.
 	 * For hugetlb, it could be much worse if we need to do pud
 	 * invalidation in the case of pmd sharing.
@@ -1635,79 +1606,77 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 	 * Note that the page can not be free in this function as call of
 	 * try_to_unmap() must hold a reference on the page.
 	 */
-	mmu_notifier_range_init(&range, MMU_NOTIFY_CLEAR, 0, vma, vma->vm_mm,
-            				address,
-            				min(vma->vm_end, address + page_size(page)));
-	if (PageHuge(page)) {
-		/*
+    mmu_notifier_range_init(&range, MMU_NOTIFY_CLEAR, 0, vma, vma->vm_mm, address,
+                            min(vma->vm_end, address + page_size(page)));
+    if (PageHuge(page)) {
+        /*
 		 * If sharing is possible, start and end will be adjusted
 		 * accordingly.
 		 */
-		adjust_range_if_pmd_sharing_possible(vma, &range.start, &range.end);
-	}
-	mmu_notifier_invalidate_range_start(&range);
+        adjust_range_if_pmd_sharing_possible(vma, &range.start, &range.end);
+    }
+    mmu_notifier_invalidate_range_start(&range);
 
-	while (page_vma_mapped_walk(&pvmw)) {
+    while (page_vma_mapped_walk(&pvmw)) {
 #ifdef CONFIG_ARCH_ENABLE_THP_MIGRATION
-		/* PMD-mapped THP migration entry */
-		if (!pvmw.pte && (flags & TTU_MIGRATION)) {
-			VM_BUG_ON_PAGE(PageHuge(page) || !PageTransCompound(page), page);
+        /* PMD-mapped THP migration entry */
+        if (!pvmw.pte && (flags & TTU_MIGRATION)) {
+            VM_BUG_ON_PAGE(PageHuge(page) || !PageTransCompound(page), page);
 
-			set_pmd_migration_entry(&pvmw, page);
-			continue;
-		}
+            set_pmd_migration_entry(&pvmw, page);
+            continue;
+        }
 #endif
 
-		/*
+        /*
 		 * If the page is mlock()d, we cannot swap it out.
 		 * If it's recently referenced (perhaps page_referenced
 		 * skipped over this mm) then we should reactivate it.
 		 */
-		if (!(flags & TTU_IGNORE_MLOCK)) {
-			if (vma->vm_flags & VM_LOCKED) {
-				/* PTE-mapped THP are never mlocked */
-				if (!PageTransCompound(page)) {
-					/*
+        if (!(flags & TTU_IGNORE_MLOCK)) {
+            if (vma->vm_flags & VM_LOCKED) {
+                /* PTE-mapped THP are never mlocked */
+                if (!PageTransCompound(page)) {
+                    /*
 					 * Holding pte lock, we do *not* need
 					 * mmap_lock here
 					 */
-					mlock_vma_page(page);
-				}
-				ret = false;
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
-			if (flags & TTU_MUNLOCK)
-				continue;
-		}
+                    mlock_vma_page(page);
+                }
+                ret = false;
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
+            if (flags & TTU_MUNLOCK)
+                continue;
+        }
 
-		/* Unexpected PMD-mapped THP? */
-		VM_BUG_ON_PAGE(!pvmw.pte, page);
+        /* Unexpected PMD-mapped THP? */
+        VM_BUG_ON_PAGE(!pvmw.pte, page);
 
-		subpage = page - page_to_pfn(page) + pte_pfn(*pvmw.pte);
-		address = pvmw.address;
+        subpage = page - page_to_pfn(page) + pte_pfn(*pvmw.pte);
+        address = pvmw.address;
 
-		if (PageHuge(page) && !PageAnon(page)) {
-			/*
+        if (PageHuge(page) && !PageAnon(page)) {
+            /*
 			 * To call huge_pmd_unshare, i_mmap_rwsem must be
 			 * held in write mode.  Caller needs to explicitly
 			 * do this outside rmap routines.
 			 */
-			VM_BUG_ON(!(flags & TTU_RMAP_LOCKED));
-			if (huge_pmd_unshare(mm, vma, &address, pvmw.pte)) {
-				/*
+            VM_BUG_ON(!(flags & TTU_RMAP_LOCKED));
+            if (huge_pmd_unshare(mm, vma, &address, pvmw.pte)) {
+                /*
 				 * huge_pmd_unshare unmapped an entire PMD
 				 * page.  There is no way of knowing exactly
 				 * which PMDs may be cached for this mm, so
 				 * we must flush them all.  start/end were
 				 * already adjusted above to cover this range.
 				 */
-				flush_cache_range(vma, range.start, range.end);
-				flush_tlb_range(vma, range.start, range.end);
-				mmu_notifier_invalidate_range(mm, range.start,
-							      range.end);
+                flush_cache_range(vma, range.start, range.end);
+                flush_tlb_range(vma, range.start, range.end);
+                mmu_notifier_invalidate_range(mm, range.start, range.end);
 
-				/*
+                /*
 				 * The ref count of the PMD page was dropped
 				 * which is part of the way map counting
 				 * is done for shared PMDs.  Return 'true'
@@ -1716,37 +1685,35 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 				 * unmap the actual page and drop map count
 				 * to zero.
 				 */
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
-		}
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
+        }
 
-		if (IS_ENABLED(CONFIG_MIGRATION) &&
-		    (flags & TTU_MIGRATION) &&
-		    is_zone_device_page(page)) {
-			swp_entry_t entry;
-			pte_t swp_pte;
+        if (IS_ENABLED(CONFIG_MIGRATION) && (flags & TTU_MIGRATION) && is_zone_device_page(page)) {
+            swp_entry_t entry;
+            pte_t swp_pte;
 
-			pteval = ptep_get_and_clear(mm, pvmw.address, pvmw.pte);
+            pteval = ptep_get_and_clear(mm, pvmw.address, pvmw.pte);
 
-			/*
+            /*
 			 * Store the pfn of the page in a special migration
 			 * pte. do_swap_page() will wait until the migration
 			 * pte is removed and then restart fault handling.
 			 */
-			entry = make_migration_entry(page, 0);
-			swp_pte = swp_entry_to_pte(entry);
+            entry = make_migration_entry(page, 0);
+            swp_pte = swp_entry_to_pte(entry);
 
-			/*
+            /*
 			 * pteval maps a zone device page and is therefore
 			 * a swap pte.
 			 */
-			if (pte_swp_soft_dirty(pteval))
-				swp_pte = pte_swp_mksoft_dirty(swp_pte);
-			if (pte_swp_uffd_wp(pteval))
-				swp_pte = pte_swp_mkuffd_wp(swp_pte);
-			set_pte_at(mm, pvmw.address, pvmw.pte, swp_pte);
-			/*
+            if (pte_swp_soft_dirty(pteval))
+                swp_pte = pte_swp_mksoft_dirty(swp_pte);
+            if (pte_swp_uffd_wp(pteval))
+                swp_pte = pte_swp_mkuffd_wp(swp_pte);
+            set_pte_at(mm, pvmw.address, pvmw.pte, swp_pte);
+            /*
 			 * No need to invalidate here it will synchronize on
 			 * against the special swap migration pte.
 			 *
@@ -1757,14 +1724,14 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			 * changed when hugepage migrations to device private
 			 * memory are supported.
 			 */
-			subpage = page;
-			goto discard;
-		}
+            subpage = page;
+            goto discard;
+        }
 
-		/* Nuke the page table entry. */
-		flush_cache_page(vma, address, pte_pfn(*pvmw.pte));
-		if (should_defer_flush(mm, flags)) {
-			/*
+        /* Nuke the page table entry. */
+        flush_cache_page(vma, address, pte_pfn(*pvmw.pte));
+        if (should_defer_flush(mm, flags)) {
+            /*
 			 * We clear the PTE but do not flush so potentially
 			 * a remote CPU could still be writing to the page.
 			 * If the entry was previously clean then the
@@ -1772,34 +1739,32 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			 * transition on a cached TLB entry is written through
 			 * and traps if the PTE is unmapped.
 			 */
-			pteval = ptep_get_and_clear(mm, address, pvmw.pte);
+            pteval = ptep_get_and_clear(mm, address, pvmw.pte);
 
-			set_tlb_ubc_flush_pending(mm, pte_dirty(pteval));
-		} else {
-			pteval = ptep_clear_flush(vma, address, pvmw.pte);
-		}
+            set_tlb_ubc_flush_pending(mm, pte_dirty(pteval));
+        } else {
+            pteval = ptep_clear_flush(vma, address, pvmw.pte);
+        }
 
-		/* Move the dirty bit to the page. Now the pte is gone. */
-		if (pte_dirty(pteval))
-			set_page_dirty(page);
+        /* Move the dirty bit to the page. Now the pte is gone. */
+        if (pte_dirty(pteval))
+            set_page_dirty(page);
 
-		/* Update high watermark before we lower rss */
-		update_hiwater_rss(mm);
+        /* Update high watermark before we lower rss */
+        update_hiwater_rss(mm);
 
-		if (PageHWPoison(page) && !(flags & TTU_IGNORE_HWPOISON)) {
-			pteval = swp_entry_to_pte(make_hwpoison_entry(subpage));
-			if (PageHuge(page)) {
-				hugetlb_count_sub(compound_nr(page), mm);
-				set_huge_swap_pte_at(mm, address,
-						     pvmw.pte, pteval,
-						     vma_mmu_pagesize(vma));
-			} else {
-				dec_mm_counter(mm, mm_counter(page));
-				set_pte_at(mm, address, pvmw.pte, pteval);
-			}
+        if (PageHWPoison(page) && !(flags & TTU_IGNORE_HWPOISON)) {
+            pteval = swp_entry_to_pte(make_hwpoison_entry(subpage));
+            if (PageHuge(page)) {
+                hugetlb_count_sub(compound_nr(page), mm);
+                set_huge_swap_pte_at(mm, address, pvmw.pte, pteval, vma_mmu_pagesize(vma));
+            } else {
+                dec_mm_counter(mm, mm_counter(page));
+                set_pte_at(mm, address, pvmw.pte, pteval);
+            }
 
-		} else if (pte_unused(pteval) && !userfaultfd_armed(vma)) {
-			/*
+        } else if (pte_unused(pteval) && !userfaultfd_armed(vma)) {
+            /*
 			 * The guest indicated that the page content is of no
 			 * interest anymore. Simply discard the pte, vmscan
 			 * will take care of the rest.
@@ -1809,113 +1774,111 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			 * migration) will not expect userfaults on already
 			 * copied pages.
 			 */
-			dec_mm_counter(mm, mm_counter(page));
-			/* We have to invalidate as we cleared the pte */
-			mmu_notifier_invalidate_range(mm, address,
-						      address + PAGE_SIZE);
-		} else if (IS_ENABLED(CONFIG_MIGRATION) &&
-				(flags & (TTU_MIGRATION|TTU_SPLIT_FREEZE))) {
-			swp_entry_t entry;
-			pte_t swp_pte;
+            dec_mm_counter(mm, mm_counter(page));
+            /* We have to invalidate as we cleared the pte */
+            mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
+        } else if (IS_ENABLED(CONFIG_MIGRATION) && (flags & (TTU_MIGRATION | TTU_SPLIT_FREEZE))) {
+            swp_entry_t entry;
+            pte_t swp_pte;
 
-			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-				set_pte_at(mm, address, pvmw.pte, pteval);
-				ret = false;
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
+            if (arch_unmap_one(mm, vma, address, pteval) < 0) {
+                set_pte_at(mm, address, pvmw.pte, pteval);
+                ret = false;
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
 
-			/*
+            /*
 			 * Store the pfn of the page in a special migration
 			 * pte. do_swap_page() will wait until the migration
 			 * pte is removed and then restart fault handling.
 			 */
-			entry = make_migration_entry(subpage, pte_write(pteval));
-			swp_pte = swp_entry_to_pte(entry);
-			if (pte_soft_dirty(pteval))
-				swp_pte = pte_swp_mksoft_dirty(swp_pte);
-			if (pte_uffd_wp(pteval))
-				swp_pte = pte_swp_mkuffd_wp(swp_pte);
-			set_pte_at(mm, address, pvmw.pte, swp_pte);
-			/*
+            entry = make_migration_entry(subpage, pte_write(pteval));
+            swp_pte = swp_entry_to_pte(entry);
+            if (pte_soft_dirty(pteval))
+                swp_pte = pte_swp_mksoft_dirty(swp_pte);
+            if (pte_uffd_wp(pteval))
+                swp_pte = pte_swp_mkuffd_wp(swp_pte);
+            set_pte_at(mm, address, pvmw.pte, swp_pte);
+            /*
 			 * No need to invalidate here it will synchronize on
 			 * against the special swap migration pte.
 			 */
-		}
+        }
         /**
          *  匿名页面
          */
         else if (PageAnon(page)) {
-			swp_entry_t entry = { .val = page_private(subpage) };
-			pte_t swp_pte;
-			/*
+            swp_entry_t entry = { .val = page_private(subpage) };
+            pte_t swp_pte;
+            /*
 			 * Store the swap location in the pte.
 			 * See handle_pte_fault() ...
 			 */
-			if (unlikely(PageSwapBacked(page) != PageSwapCache(page))) {
-				WARN_ON_ONCE(1);
-				ret = false;
-				/* We have to invalidate as we cleared the pte */
-				mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
+            if (unlikely(PageSwapBacked(page) != PageSwapCache(page))) {
+                WARN_ON_ONCE(1);
+                ret = false;
+                /* We have to invalidate as we cleared the pte */
+                mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
 
-			/* MADV_FREE page check */
-			if (!PageSwapBacked(page)) {
-				if (!PageDirty(page)) {
-					/* Invalidate as we cleared the pte */
-					mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
-					dec_mm_counter(mm, MM_ANONPAGES);
-					goto discard;
-				}
+            /* MADV_FREE page check */
+            if (!PageSwapBacked(page)) {
+                if (!PageDirty(page)) {
+                    /* Invalidate as we cleared the pte */
+                    mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
+                    dec_mm_counter(mm, MM_ANONPAGES);
+                    goto discard;
+                }
 
-				/*
+                /*
 				 * If the page was redirtied, it cannot be
 				 * discarded. Remap the page to page table.
 				 */
-				set_pte_at(mm, address, pvmw.pte, pteval);
-				SetPageSwapBacked(page);
-				ret = false;
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
+                set_pte_at(mm, address, pvmw.pte, pteval);
+                SetPageSwapBacked(page);
+                ret = false;
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
 
-			if (swap_duplicate(entry) < 0) {
-				set_pte_at(mm, address, pvmw.pte, pteval);
-				ret = false;
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
-			if (arch_unmap_one(mm, vma, address, pteval) < 0) {
-				set_pte_at(mm, address, pvmw.pte, pteval);
-				ret = false;
-				page_vma_mapped_walk_done(&pvmw);
-				break;
-			}
-			if (list_empty(&mm->mmlist)) {
-				spin_lock(&mmlist_lock);
-				if (list_empty(&mm->mmlist))
-					list_add(&mm->mmlist, &init_mm.mmlist);
-				spin_unlock(&mmlist_lock);
-			}
+            if (swap_duplicate(entry) < 0) {
+                set_pte_at(mm, address, pvmw.pte, pteval);
+                ret = false;
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
+            if (arch_unmap_one(mm, vma, address, pteval) < 0) {
+                set_pte_at(mm, address, pvmw.pte, pteval);
+                ret = false;
+                page_vma_mapped_walk_done(&pvmw);
+                break;
+            }
+            if (list_empty(&mm->mmlist)) {
+                spin_lock(&mmlist_lock);
+                if (list_empty(&mm->mmlist))
+                    list_add(&mm->mmlist, &init_mm.mmlist);
+                spin_unlock(&mmlist_lock);
+            }
 
             /**
              *  计数 - 匿名页面转换为 交换空间页面
              */
-			dec_mm_counter(mm, MM_ANONPAGES);
-			inc_mm_counter(mm, MM_SWAPENTS);
-			swp_pte = swp_entry_to_pte(entry);
-			if (pte_soft_dirty(pteval))
-				swp_pte = pte_swp_mksoft_dirty(swp_pte);
-			if (pte_uffd_wp(pteval))
-				swp_pte = pte_swp_mkuffd_wp(swp_pte);
-			set_pte_at(mm, address, pvmw.pte, swp_pte);
-			/* Invalidate as we cleared the pte */
-			mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
+            dec_mm_counter(mm, MM_ANONPAGES);
+            inc_mm_counter(mm, MM_SWAPENTS);
+            swp_pte = swp_entry_to_pte(entry);
+            if (pte_soft_dirty(pteval))
+                swp_pte = pte_swp_mksoft_dirty(swp_pte);
+            if (pte_uffd_wp(pteval))
+                swp_pte = pte_swp_mkuffd_wp(swp_pte);
+            set_pte_at(mm, address, pvmw.pte, swp_pte);
+            /* Invalidate as we cleared the pte */
+            mmu_notifier_invalidate_range(mm, address, address + PAGE_SIZE);
 
-		} else {
-			/*
+        } else {
+            /*
 			 * This is a locked file-backed page, thus it cannot
 			 * be removed from the page cache and replaced by a new
 			 * page before mmu_notifier_invalidate_range_end, so no
@@ -1925,33 +1888,33 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 			 *
 			 * See Documentation/vm/mmu_notifier.rst
 			 */
-			dec_mm_counter(mm, mm_counter_file(page));
-		}
-discard:
-		/*
+            dec_mm_counter(mm, mm_counter_file(page));
+        }
+    discard:
+        /*
 		 * No need to call mmu_notifier_invalidate_range() it has be
 		 * done above for all cases requiring it to happen under page
 		 * table lock before mmu_notifier_invalidate_range_end()
 		 *
 		 * See Documentation/vm/mmu_notifier.rst
 		 */
-		page_remove_rmap(subpage, PageHuge(page));
-		put_page(page);
-	}
+        page_remove_rmap(subpage, PageHuge(page));
+        put_page(page);
+    }
 
-	mmu_notifier_invalidate_range_end(&range);
+    mmu_notifier_invalidate_range_end(&range);
 
-	return ret;
+    return ret;
 }
 
 static bool invalid_migration_vma(struct vm_area_struct *vma, void *arg)
 {
-	return vma_is_temporary_stack(vma);
+    return vma_is_temporary_stack(vma);
 }
 
 static int page_mapcount_is_zero(struct page *page)
 {
-	return !total_mapcount(page);
+    return !total_mapcount(page);
 }
 
 /**
@@ -1964,23 +1927,22 @@ static int page_mapcount_is_zero(struct page *page)
  *
  * If unmap is successful, return true. Otherwise, false.
  *
- * 试图 将 映射到这个 物理 页面 的 映射移除
+ * 将 映射到这个 物理 页面 的 页表项移除
  *  解除用户映射 PTE
  */
 bool try_to_unmap(struct page *page, enum ttu_flags flags)
 {
-
     /**
      *
      */
-	struct rmap_walk_control rwc = {
-		rwc.rmap_one = try_to_unmap_one,
-		rwc.arg = (void *)flags,
-		rwc.done = page_mapcount_is_zero,
-		rwc.anon_lock = page_lock_anon_vma_read,
-	};
+    struct rmap_walk_control rwc = {
+        rwc.rmap_one = try_to_unmap_one,
+        rwc.arg = (void *)flags,
+        rwc.done = page_mapcount_is_zero,
+        rwc.anon_lock = page_lock_anon_vma_read,
+    };
 
-	/*
+    /*
 	 * During exec, a temporary VMA is setup and later moved.
 	 * The VMA is moved under the anon_vma lock but not the
 	 * page tables leading to a race where migration cannot
@@ -1988,21 +1950,20 @@ bool try_to_unmap(struct page *page, enum ttu_flags flags)
 	 * locking requirements of exec(), migration skips
 	 * temporary VMAs until after exec() completes.
 	 */
-	if ((flags & (TTU_MIGRATION|TTU_SPLIT_FREEZE))
-	    && !PageKsm(page) && PageAnon(page))
-		rwc.invalid_vma = invalid_migration_vma;
+    if ((flags & (TTU_MIGRATION | TTU_SPLIT_FREEZE)) && !PageKsm(page) && PageAnon(page))
+        rwc.invalid_vma = invalid_migration_vma;
 
-	if (flags & TTU_RMAP_LOCKED)
-		rmap_walk_locked(page, &rwc);
-	else
-		rmap_walk(page, &rwc);
+    if (flags & TTU_RMAP_LOCKED)
+        rmap_walk_locked(page, &rwc);
+    else
+        rmap_walk(page, &rwc);
 
-	return !page_mapcount(page) ? true : false;
+    return !page_mapcount(page) ? true : false;
 }
 
 static int page_not_mapped(struct page *page)
 {
-	return !page_mapped(page);
+    return !page_mapped(page);
 };
 
 /**
@@ -2016,38 +1977,37 @@ static int page_not_mapped(struct page *page)
 
 void try_to_munlock(struct page *page)
 {
-	struct rmap_walk_control rwc = {
-		.rmap_one = try_to_unmap_one,
-		.arg = (void *)TTU_MUNLOCK,
-		.done = page_not_mapped,
-		.anon_lock = page_lock_anon_vma_read,
+    struct rmap_walk_control rwc = {
+        .rmap_one = try_to_unmap_one,
+        .arg = (void *)TTU_MUNLOCK,
+        .done = page_not_mapped,
+        .anon_lock = page_lock_anon_vma_read,
 
-	};
+    };
 
-	VM_BUG_ON_PAGE(!PageLocked(page) || PageLRU(page), page);
-	VM_BUG_ON_PAGE(PageCompound(page) && PageDoubleMap(page), page);
+    VM_BUG_ON_PAGE(!PageLocked(page) || PageLRU(page), page);
+    VM_BUG_ON_PAGE(PageCompound(page) && PageDoubleMap(page), page);
 
-	rmap_walk(page, &rwc);
+    rmap_walk(page, &rwc);
 }
 
 void __put_anon_vma(struct anon_vma *anon_vma)
 {
-	struct anon_vma *root = anon_vma->root;
+    struct anon_vma *root = anon_vma->root;
 
-	anon_vma_free(anon_vma);
+    anon_vma_free(anon_vma);
 
-	if (root != anon_vma && atomic_dec_and_test(&root->refcount))   /* 如果 root 的引用计数为0，将被释放 */
-		anon_vma_free(root);
+    if (root != anon_vma && atomic_dec_and_test(&root->refcount)) /* 如果 root 的引用计数为0，将被释放 */
+        anon_vma_free(root);
 }
 
 /**
  *
  *  被 rmap_walk_anon() 调用
  */
-static struct anon_vma *rmap_walk_anon_lock(struct page *page,
-					struct rmap_walk_control *rwc)
+static struct anon_vma *rmap_walk_anon_lock(struct page *page, struct rmap_walk_control *rwc)
 {
-	struct anon_vma *anon_vma;
+    struct anon_vma *anon_vma;
 
     /**
      *  可能为以下回调
@@ -2056,10 +2016,10 @@ static struct anon_vma *rmap_walk_anon_lock(struct page *page,
      *  `try_to_unmap()`    ==> `page_lock_anon_vma_read()`
      *  其他TODO
      */
-	if (rwc->anon_lock)
-		return rwc->anon_lock(page);
+    if (rwc->anon_lock)
+        return rwc->anon_lock(page);
 
-	/*
+    /*
 	 * Note: remove_migration_ptes() cannot use page_lock_anon_vma_read()
 	 * because that depends on page_mapped(); but not all its usages
 	 * are holding mmap_lock. Users without mmap_lock are required to
@@ -2067,13 +2027,13 @@ static struct anon_vma *rmap_walk_anon_lock(struct page *page,
 	 *
 	 * 从 page->mapping 获取 anon_vma 结构
 	 */
-	anon_vma = page_anon_vma(page);
-	if (!anon_vma)
-		return NULL;
+    anon_vma = page_anon_vma(page);
+    if (!anon_vma)
+        return NULL;
 
     /* 读 down */
-	anon_vma_lock_read(anon_vma);
-	return anon_vma;
+    anon_vma_lock_read(anon_vma);
+    return anon_vma;
 }
 
 /*
@@ -2093,51 +2053,49 @@ static struct anon_vma *rmap_walk_anon_lock(struct page *page,
  * 遍历这个逆向映射
  * 匿名映射 page->mapping 结构指向 struct anon_vma 结构
  */
-static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc,
-		bool locked)
+static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc, bool locked)
 {
-	struct anon_vma *anon_vma;
-	pgoff_t pgoff_start, pgoff_end;
-	struct anon_vma_chain *avc;
+    struct anon_vma *anon_vma;
+    pgoff_t pgoff_start, pgoff_end;
+    struct anon_vma_chain *avc;
 
     /**
      *  rmap_walk 中为 false
      */
-	if (locked) {
+    if (locked) {
         /* 匿名映射 page->mapping 结构指向 struct anon_vma 结构 */
-		anon_vma = page_anon_vma(page);
-		/* anon_vma disappear under us? */
-		VM_BUG_ON_PAGE(!anon_vma, page);
-	} else {
+        anon_vma = page_anon_vma(page);
+        /* anon_vma disappear under us? */
+        VM_BUG_ON_PAGE(!anon_vma, page);
+    } else {
         /* 获取 anon_vma 结构 */
-		anon_vma = rmap_walk_anon_lock(page, rwc);  /* 获取 读 信号量 */
-	}
+        anon_vma = rmap_walk_anon_lock(page, rwc); /* 获取 读 信号量 */
+    }
 
     /* 不存在 AV 直接退出 */
-	if (!anon_vma)
-		return;
+    if (!anon_vma)
+        return;
 
-
-	pgoff_start = page_to_pgoff(page);
-	pgoff_end = pgoff_start + thp_nr_pages(page)/* 页数 */ - 1;
+    pgoff_start = page_to_pgoff(page);
+    pgoff_end = pgoff_start + thp_nr_pages(page) /* 页数 */ - 1;
 
     /**
      *  遍历 红黑树 ， anon_vma 是由 vm_pgoff 排序的
      */
-	anon_vma_interval_tree_foreach(avc, &anon_vma->rb_root, pgoff_start, pgoff_end) {
-
+    anon_vma_interval_tree_foreach(avc, &anon_vma->rb_root, pgoff_start, pgoff_end)
+    {
         /**
          *  vma 映射在 page 页
          *
          *  下面将调用对应的 struct rmap_walk_control 一系列的回调函数
          */
-		struct vm_area_struct *vma = avc->vma;
+        struct vm_area_struct *vma = avc->vma;
 
         /* VMA 的起始虚拟地址 */
-		unsigned long address = vma_address(page, vma);
+        unsigned long address = vma_address(page, vma);
 
         /* TODO */
-		cond_resched();
+        cond_resched();
 
         /**
          *  不可用，继续下一个，为下列的回调
@@ -2147,8 +2105,8 @@ static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc,
          *  MORE
          *
          */
-		if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
-			continue;
+        if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
+            continue;
 
         /**
          *  RMAP 的一个处理
@@ -2158,8 +2116,8 @@ static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc,
          *  MORE
          *
          */
-		if (!rwc->rmap_one(page, vma, address, rwc->arg))
-			break;
+        if (!rwc->rmap_one(page, vma, address, rwc->arg))
+            break;
 
         /**
          *  完成
@@ -2168,12 +2126,12 @@ static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc,
          *  `try_to_unmap()`    ==> `page_mapcount_is_zero()` TODO
          *  MORE
          */
-		if (rwc->done && rwc->done(page))
-			break;
-	}
+        if (rwc->done && rwc->done(page))
+            break;
+    }
 
-	if (!locked)
-		anon_vma_unlock_read(anon_vma);
+    if (!locked)
+        anon_vma_unlock_read(anon_vma);
 }
 
 /*
@@ -2191,55 +2149,54 @@ static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc,
  *
  * 文件高速缓存 page->mapping 对应  struct address_space 结构
  */
-static void rmap_walk_file(struct page *page, struct rmap_walk_control *rwc,
-		bool locked)
+static void rmap_walk_file(struct page *page, struct rmap_walk_control *rwc, bool locked)
 {
-	struct address_space *mapping = page_mapping(page);
-	pgoff_t pgoff_start, pgoff_end;
-	struct vm_area_struct *vma;
+    struct address_space *mapping = page_mapping(page);
+    pgoff_t pgoff_start, pgoff_end;
+    struct vm_area_struct *vma;
 
-	/*
+    /*
 	 * The page lock not only makes sure that page->mapping cannot
 	 * suddenly be NULLified by truncation, it makes sure that the
 	 * structure at mapping cannot be freed and reused yet,
 	 * so we can safely take mapping->i_mmap_rwsem.
 	 */
-	VM_BUG_ON_PAGE(!PageLocked(page), page);
+    VM_BUG_ON_PAGE(!PageLocked(page), page);
 
-	if (!mapping)
-		return;
+    if (!mapping)
+        return;
 
     /* TODO */
-	pgoff_start = page_to_pgoff(page);
-	pgoff_end = pgoff_start + thp_nr_pages(page) - 1;
+    pgoff_start = page_to_pgoff(page);
+    pgoff_end = pgoff_start + thp_nr_pages(page) - 1;
 
-	if (!locked)
-		i_mmap_lock_read(mapping);
+    if (!locked)
+        i_mmap_lock_read(mapping);
 
     /**
      *
      *
      */
-	vma_interval_tree_foreach(vma, &mapping->i_mmap, pgoff_start, pgoff_end) {
+    vma_interval_tree_foreach(vma, &mapping->i_mmap, pgoff_start, pgoff_end)
+    {
+        unsigned long address = vma_address(page, vma);
 
-		unsigned long address = vma_address(page, vma);
+        cond_resched();
 
-		cond_resched();
-
-		if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
-			continue;
+        if (rwc->invalid_vma && rwc->invalid_vma(vma, rwc->arg))
+            continue;
 
         /* 回调 */
-		if (!rwc->rmap_one(page, vma, address, rwc->arg))
-			goto done;
+        if (!rwc->rmap_one(page, vma, address, rwc->arg))
+            goto done;
 
-		if (rwc->done && rwc->done(page))
-			goto done;
-	}
+        if (rwc->done && rwc->done(page))
+            goto done;
+    }
 
 done:
-	if (!locked)
-		i_mmap_unlock_read(mapping);
+    if (!locked)
+        i_mmap_unlock_read(mapping);
 }
 
 /**
@@ -2259,40 +2216,40 @@ void rmap_walk(struct page *page, struct rmap_walk_control *rwc)
     /**
      *  KSM 页面
      */
-	if (unlikely(PageKsm(page)))
-		rmap_walk_ksm(page, rwc);
+    if (unlikely(PageKsm(page)))
+        rmap_walk_ksm(page, rwc);
 
     /**
      *  匿名页面
      *
      */
-	else if (PageAnon(page))
-		rmap_walk_anon(page, rwc, false);
+    else if (PageAnon(page))
+        rmap_walk_anon(page, rwc, false);
 
     /**
      *  文件映射   TODO
      */
-	else
-		rmap_walk_file(page, rwc, false);
+    else
+        rmap_walk_file(page, rwc, false);
 }
 
 /* Like rmap_walk, but caller holds relevant rmap lock */
 void rmap_walk_locked(struct page *page, struct rmap_walk_control *rwc)
 {
-	/* no ksm support for now，还不支持 */
-	VM_BUG_ON_PAGE(PageKsm(page), page);
+    /* no ksm support for now，还不支持 */
+    VM_BUG_ON_PAGE(PageKsm(page), page);
 
     /**
      *  匿名页面
      *
      */
-	if (PageAnon(page))
-		rmap_walk_anon(page, rwc, true);
+    if (PageAnon(page))
+        rmap_walk_anon(page, rwc, true);
     /**
      *  文件映射   TODO
      */
-	else
-		rmap_walk_file(page, rwc, true);
+    else
+        rmap_walk_file(page, rwc, true);
 }
 
 #ifdef CONFIG_HUGETLB_PAGE
@@ -2301,28 +2258,26 @@ void rmap_walk_locked(struct page *page, struct rmap_walk_control *rwc)
  * Unlike common anonymous pages, anonymous hugepages have no accounting code
  * and no lru code, because we handle hugepages differently from common pages.
  */
-void hugepage_add_anon_rmap(struct page *page,
-			    struct vm_area_struct *vma, unsigned long address)
+void hugepage_add_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address)
 {
-	struct anon_vma *anon_vma = vma->anon_vma;
-	int first;
+    struct anon_vma *anon_vma = vma->anon_vma;
+    int first;
 
-	BUG_ON(!PageLocked(page));
-	BUG_ON(!anon_vma);
-	/* address might be in next vma when migration races vma_adjust */
-	first = atomic_inc_and_test(compound_mapcount_ptr(page));
-	if (first)
-		__page_set_anon_rmap(page, vma, address, 0);
+    BUG_ON(!PageLocked(page));
+    BUG_ON(!anon_vma);
+    /* address might be in next vma when migration races vma_adjust */
+    first = atomic_inc_and_test(compound_mapcount_ptr(page));
+    if (first)
+        __page_set_anon_rmap(page, vma, address, 0);
 }
 
-void hugepage_add_new_anon_rmap(struct page *page,
-			struct vm_area_struct *vma, unsigned long address)
+void hugepage_add_new_anon_rmap(struct page *page, struct vm_area_struct *vma, unsigned long address)
 {
-	BUG_ON(address < vma->vm_start || address >= vma->vm_end);
-	atomic_set(compound_mapcount_ptr(page), 0);
-	if (hpage_pincount_available(page))
-		atomic_set(compound_pincount_ptr(page), 0);
+    BUG_ON(address < vma->vm_start || address >= vma->vm_end);
+    atomic_set(compound_mapcount_ptr(page), 0);
+    if (hpage_pincount_available(page))
+        atomic_set(compound_pincount_ptr(page), 0);
 
-	__page_set_anon_rmap(page, vma, address, 1);
+    __page_set_anon_rmap(page, vma, address, 1);
 }
 #endif /* CONFIG_HUGETLB_PAGE */

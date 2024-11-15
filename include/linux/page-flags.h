@@ -1795,7 +1795,7 @@ PAGEFLAG_FALSE(HighMem)
 
 #ifdef CONFIG_SWAP
 /**
- *  已经为页面分配了 交换空间
+ * 该页的内容已经被换出到交换区
  */
 static __always_inline int PageSwapCache(struct page *page)
 {
@@ -2185,6 +2185,12 @@ static __always_inline void __ClearPageReported(struct page *page)
 /* 获取mapping最低两bit的掩码 */
 #define PAGE_MAPPING_FLAGS (PAGE_MAPPING_ANON | PAGE_MAPPING_MOVABLE)
 
+/*
+ *mapping 的低两比特有没有被设置
+ *
+ *- 设置了，返回true
+ *- 没设置（都是0），返回false
+ */
 static __always_inline int PageMappingFlags(struct page *page)
 {
     return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) != 0;
@@ -2796,7 +2802,8 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
  * Determine if a page has private stuff, indicating that release routines
  * should be invoked upon it.
  */
-// TODO:PG_private：private指向buffer_heads
+// 检查的是PG_private
+// PG_private：private指向buffer_heads
 static inline int page_has_private(struct page *page)
 {
     return !!(page->flags & PAGE_FLAGS_PRIVATE);

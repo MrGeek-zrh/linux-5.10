@@ -275,8 +275,8 @@ EXPORT_SYMBOL(generic_error_remove_page);
 int invalidate_inode_page(struct page *page)
 {
     struct address_space *mapping = page_mapping(page);
-    // mapping=0意味着什么？
-    if (!mapping) // 页面没有关联的地址空间映射
+    // mapping=0,不是page cache,是swap cache
+    if (!mapping)
         return 0;
     // 页面是脏的或正在写回
     if (PageDirty(page) || PageWriteback(page))

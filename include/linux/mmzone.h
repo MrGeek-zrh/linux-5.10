@@ -354,7 +354,7 @@ enum lruvec_flags {
 };
 
 /**
- *  最近最少使用 链表，用于页面回收
+ *  当前节点的所有类型的LRU链表
  *
  **
  *  Refault Distance算法： 平衡active-inactive 链表长度的算法(针对页面高速缓存类型页面)
@@ -1208,6 +1208,7 @@ typedef struct pglist_data { /* 描述 NUMA 内存布局 */
 	 * ==========================================================
 	 * `mem_cgroup_page_lruvec`
 	 */
+    // LRU向量包含5条LRU链表。
     struct lruvec __lruvec;
 
     unsigned long flags;

@@ -2103,22 +2103,13 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan, struct lruvec *
  * (3) interrupts must be enabled.
  */
 /**
- * isolate_lru_page - 尝试将页面从其 LRU 列表中隔离出来
- * @page: 需要从 LRU 列表中隔离的页面
+ * isolate_lru_page - 尝试将页面从其 LRU 列表中隔离出来.
  *
- * - 将页面从 LRU 列表中隔离出来
- * - 清除 PageLRU 标志
- * - 调整与该页面所在 LRU 列表对应的 vmstat 统计信息。
+ * - 隔离的目的：对LRU链表的访问需要使用lru_lock。由于LRU链表是内核中被访问非常频繁的结构，因此发生锁竞争的几率是非常高的，通过将page用LRU链表上暂时隔离开，可以避免对lru_lock的竞争
+ * @page: 需要从 LRU 列表中隔离的页面
  *
  * 如果页面成功从 LRU 列表中移除，返回 0。
  * 如果页面不在 LRU 列表中，返回 -EBUSY。
- *
- * 限制条件：
- *
- * (1) 必须在页面引用计数增加的情况下调用。这是与 isolate_lru_pages
- *     （在没有稳定引用的情况下调用）的根本区别。
- * (2) 不能持有 lru_lock 锁。
- * (3) 中断必须是启用的。
  */
 int isolate_lru_page(struct page *page)
 {

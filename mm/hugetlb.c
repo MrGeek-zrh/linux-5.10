@@ -1528,6 +1528,7 @@ int PageHeadHuge(struct page *page_head)
  * stable.  Due to locking order, we can only trylock_write.  If we can
  * not get the lock, simply return NULL to caller.
  */
+// 获取hugetlb大页的mapping
 struct address_space *hugetlb_page_mapping_lock_write(struct page *hpage)
 {
     struct address_space *mapping = page_mapping(hpage);
@@ -5424,7 +5425,7 @@ struct page *__weak follow_huge_pgd(struct mm_struct *mm, unsigned long address,
 }
 
 // 隔离hugetlb大页
-// 对大页的隔离就是设置当前大页为不活跃状态
+// - 对大页的隔离就是设置当前大页为不活跃状态,并将page放入待迁移链表中
 bool isolate_huge_page(struct page *page, struct list_head *list)
 {
     bool ret = true;
@@ -5438,7 +5439,7 @@ bool isolate_huge_page(struct page *page, struct list_head *list)
         goto unlock;
     }
     clear_page_huge_active(page);
-    // 将当前大页的所有复合页都放到待迁移链表中
+    // 将当前页面（大页的一部分）放入到待迁移链表中
     list_move_tail(&page->lru, list);
 unlock:
     spin_unlock(&hugetlb_lock);

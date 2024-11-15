@@ -113,10 +113,9 @@ struct page {
 			 * 链表头(不一定是链表头，可能是链表节点)，主要有3个用途：
              * a: page处于伙伴系统中时，用于链接相同阶的伙伴（只使用伙伴中的第一个page的lru即可达到目的）。
              * b: page属于slab时，page->lru.next指向page驻留的的缓存的管理结构，page->lru.prec指向保存该page的slab的管理结构。
-             * c: page被用户态使用或被当做页缓存使用时，用于将该page连入zone中相应的lru链表，供内存回收时使用。
-             * d: page回收时,见`reclaim_pages()`
+             * c: page被用户态使用或被当做页缓存使用时，用于将该page链入到相应的lru链表（5种），供内存回收时使用。
              *
-             * a. `zone->free_area->free_list` 为链表头的链表,见`get_page_from_free_area()`
+             * 对于用途a. `zone->free_area->free_list` 为链表头的链表,见`get_page_from_free_area()`
 			 */
             struct list_head lru; /* 串入 zone->freelist */ /* struct lruvec->lists[lru] */
 
@@ -124,10 +123,10 @@ struct page {
             /**
              *  页面指向的地址空间,一个指针，两个用途
              *  -----------------------------------------------
-             *  1. 文件映射页面，`struct address_space`
-             *  2. 匿名映射页面，`struct anon_vma`. 见`PageAnon()`,`PAGE_MAPPING_ANON`
-             *  3. 交换高速缓存页面，`swapper_spaces`
-             *  4. KSM页面对应 `struct stable_node`结构
+             *  1. 文件映射页面(bit[1-0]:00)，`struct address_space`
+             *  2. 匿名映射页面(01)，`struct anon_vma`. 见`PageAnon()`,`PAGE_MAPPING_ANON`
+             *  3. 交换高速缓存页面(mapping=0/NULL)，`swapper_spaces`
+             *  4. KSM页面(11)对应 `struct stable_node`结构
              *
              * TODO:下面说的我觉得是存疑的
              * 因为 `struct address_space` 为 8bytes 对齐(sizeof(long))，所以可将 mapping 成员的低两位用作：
@@ -138,8 +137,6 @@ struct page {
              *  - 哪些内核页面是可以迁移的？
              *   - 部分驱动中用到的内核页面也可以支持迁移
              *  
-             * 若bit[0-1]均未置位,表明这是一个 KSM 页面
-             *
              * page_rmapping(): 清除 低2位
              * page_mapping():  返回 page->mapping 成员指向的地址空间
              * page_mapped():   是否映射到用户 PTE
