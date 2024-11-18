@@ -65,6 +65,8 @@ int __read_mostly sysctl_memory_failure_recovery = 1;
 
 atomic_long_t __read_mostly num_poisoned_pages = ATOMIC_LONG_INIT(0);
 
+//         page_handle_poison(page, false, true);
+// 将页面标记为毒化
 static bool page_handle_poison(struct page *page, bool hugepage_or_freepage, bool release)
 {
     if (hugepage_or_freepage) {
@@ -86,6 +88,8 @@ static bool page_handle_poison(struct page *page, bool hugepage_or_freepage, boo
     SetPageHWPoison(page);
     if (release)
         put_page(page);
+    // TODO
+    // 上面不是刚--refcount吗
     page_ref_inc(page);
     num_poisoned_pages_inc();
 
@@ -1123,7 +1127,9 @@ static int try_to_split_thp_page(struct page *page, const char *msg)
 {
     lock_page(page);
     // 不是匿名THP大页，或者对THP大页分割失败
+    // TODO:目前 THP 仅适用于匿名内存映射和 tmpfs/shmem。但将来它可以扩展到其他文件系统。
     if (!PageAnon(page) || unlikely(split_huge_page(page))) {
+        // 不是匿名页面，或者大页分割失败
         unsigned long pfn = page_to_pfn(page);
 
         unlock_page(page);
@@ -1767,6 +1773,8 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
         isolated = isolate_huge_page(page, pagelist);
     } else {
         // 在LRU上
+        // 这时候的page除了匿名映射页面，会有还在被pte映射的文件映射页面吗？
+        // 应该会的
         if (lru)
             isolated = !isolate_lru_page(page);
         else
@@ -1854,6 +1862,7 @@ static int __soft_offline_page(struct page *page)
     }
 
     // 不是未映射的非脏page cache
+    // 匿名页面、还在被映射的文件映射页面、HugeTLB大页、non-lru movable page
     /*
      * 尝试将页面从其当前位置隔离出来,准备迁移
      * huge=true时是hugetlb页面的处理

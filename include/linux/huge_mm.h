@@ -256,9 +256,9 @@ static inline unsigned int thp_order(struct page *page)
  *
  * 大页内存中所含的 常规 page 的个数
  */
-// TODO 没看懂
 static inline int thp_nr_pages(struct page *page) /* TODO */
 {
+    // 不能是尾页
     VM_BUG_ON_PGFLAGS(PageTail(page), page);
     // 是透明大页的首页
     if (PageHead(page))

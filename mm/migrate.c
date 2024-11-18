@@ -1162,6 +1162,7 @@ static int unmap_and_move(new_page_t get_new_page, free_page_t put_new_page, uns
 	 * 不支持透明大页迁移的系统上,不能迁移透明大页
 	 */
     // TODO:这里还会出现是大页的情况吗？大页不是在其他地方被处理了吗？
+    // 大页只是被拆分了，但是PG标志还在
     if (!thp_migration_supported() && PageTransHuge(page))
         return -ENOMEM;
 
@@ -1843,6 +1844,7 @@ struct page *alloc_migration_target(struct page *page, unsigned long private)
     // 分配新页面
     new_page = __alloc_pages_nodemask(gfp_mask, order, nid, mtc->nmask);
 
+    // 能走到这里，肯定是透明大页
     // 如果分配的是THP,进行必要的初始化
     if (new_page && PageTransHuge(new_page))
         prep_transhuge_page(new_page);

@@ -326,6 +326,8 @@ struct page {
          *          即   page->_refcount = page->_mapcount + 1
 		 */
         // 共享该物理页面的页表现数目
+        // 如果_count等于_mapcount通过定位并删除所有页表条目，可以回收该页
+        // 如果_count大于_mapcount，则页面被“固定”，无法 回收，直到删除额外的引用
         atomic_t _mapcount;
 
         /*

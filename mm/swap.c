@@ -99,6 +99,7 @@ static void __page_cache_release(struct page *page)
     __ClearPageWaiters(page);
 }
 
+// 释放单个页面会伙伴系统？
 static void __put_single_page(struct page *page)
 {
     __page_cache_release(page);
@@ -1014,6 +1015,12 @@ EXPORT_SYMBOL(__pagevec_release);
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 /* used by __split_huge_page_refcount() */
+// list==null: 将拆分后的尾部页面添加到LRU链表
+// list!=null: 将尾页加到list链表中
+/**
+ ** @page: 指向复合页(大页)头的指针
+* @page_tail: 指向要添加的尾部页面的指针
+ * */
 void lru_add_page_tail(struct page *page, struct page *page_tail, struct lruvec *lruvec, struct list_head *list)
 {
     VM_BUG_ON_PAGE(!PageHead(page), page);
@@ -1021,9 +1028,11 @@ void lru_add_page_tail(struct page *page, struct page *page_tail, struct lruvec 
     VM_BUG_ON_PAGE(PageLRU(page_tail), page);
     lockdep_assert_held(&lruvec_pgdat(lruvec)->lru_lock);
 
+    // list == null
     if (!list)
         SetPageLRU(page_tail);
 
+    // 大页的首页之前是在LRU中，则尾页也放到相同的LRU中
     if (likely(PageLRU(page)))
         list_add_tail(&page_tail->lru, &page->lru);
     else if (list) {
@@ -1038,6 +1047,7 @@ void lru_add_page_tail(struct page *page, struct page *page_tail, struct lruvec 
 		 * Put page_tail on the list at the correct position
 		 * so they all end up in order.
 		 */
+        // 首页之前不在LRU中，尾部页面会被单独添加到LRU尾部
         add_page_to_lru_list_tail(page_tail, lruvec, page_lru(page_tail));
     }
 }

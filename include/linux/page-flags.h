@@ -222,7 +222,9 @@ static __always_inline int PageTail(struct page *page) /* TODO */
 }
 
 /**
- *  混合页面
+ *  是复合页面：被设置了PG_head 或者 PageTail
+ *
+ *  TODO:如何进一步区分HugeTLB大页和透明大页呢？
  */
 static __always_inline int PageCompound(struct page *page)
 {
@@ -1795,7 +1797,7 @@ PAGEFLAG_FALSE(HighMem)
 
 #ifdef CONFIG_SWAP
 /**
- * 该页现在是否属于交换区
+ * 该页现在是否属于交换缓存
  */
 static __always_inline int PageSwapCache(struct page *page)
 {
@@ -2320,6 +2322,7 @@ __PAGEFLAG(Head, head, PF_ANY) CLEARPAGEFLAG(Head, head, PF_ANY)
 
 #if __rtoax_gcc_compile_with_E__
 
+// test PG_head flag
 static __always_inline int PageHead(struct page *page)
 {
     return test_bit(PG_head, &({
@@ -2356,6 +2359,8 @@ static __always_inline void set_compound_head(struct page *page, struct page *he
     WRITE_ONCE(page->compound_head, (unsigned long)head + 1);
 }
 
+// 清除page的compound_head字段
+// - 对于尾页来说，compound head字段指向大页的首页
 static __always_inline void clear_compound_head(struct page *page)
 {
     WRITE_ONCE(page->compound_head, 0);
@@ -2401,6 +2406,7 @@ bool page_huge_active(struct page *page);
 static inline int PageTransHuge(struct page *page)
 {
     VM_BUG_ON_PAGE(PageTail(page), page);
+    // 没懂为啥只检查PG_head就行
     return PageHead(page);
 }
 
@@ -2792,19 +2798,35 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
  * __PG_HWPOISON is exceptional because it needs to be kept beyond page's
  * alloc-free cycle to prevent from reusing the page.
  */
+/**
+    PAGE_FLAGS_CHECK_AT_PREP 起开关作用，打开的时候，需要检查
+    │    下面的这些标志存疑
+│   * - PG_waiters: 表示有进程在等待访问该页面。                      │
+│   * - PG_locked: 表示页面被锁定，不能被释放或修改。                 │
+│   * - PG_dirty: 表示页面已被修改，需要写回存储。                    │
+│   * - PG_referenced: 表示页面最近被访问过。                         │
+│   * - PG_slab: 表示页面用于slab分配器。                             │
+│   * - PG_compound: 表示页面是复合页面（大页）。                     │
+│   * - PG_head: 表示页面是复合页面的头页面。
+
+   * 不检查的标志包括：                                              │
+│   * - __PG_HWPOISON: 这个标志是例外，因为它需要在页面的分配-释放周期之外保留，          │
+│   *   以防止重复使用该页面。
+│   */
+**/
 #define PAGE_FLAGS_CHECK_AT_PREP (((1UL << NR_PAGEFLAGS) - 1) & ~__PG_HWPOISON)
 
 #define PAGE_FLAGS_PRIVATE (1UL << PG_private | 1UL << PG_private_2)
-/**
+        /**
  * page_has_private - Determine if page has private stuff
  * @page: The page to be checked
  *
  * Determine if a page has private stuff, indicating that release routines
  * should be invoked upon it.
  */
-// 检查的是PG_private
-// PG_private：private指向buffer_heads
-static inline int page_has_private(struct page *page)
+        // 检查的是PG_private
+        // PG_private：private指向buffer_heads
+        static inline int page_has_private(struct page *page)
 {
     return !!(page->flags & PAGE_FLAGS_PRIVATE);
 }

@@ -16,27 +16,28 @@ void dump_mm(const struct mm_struct *mm);
 
 #ifdef CONFIG_DEBUG_VM
 #define VM_BUG_ON(cond) BUG_ON(cond)
-#define VM_BUG_ON_PAGE(cond, page)					\
-	do {								\
-		if (unlikely(cond)) {					\
-			dump_page(page, "VM_BUG_ON_PAGE(" __stringify(cond)")");\
-			BUG();						\
-		}							\
-	} while (0)
-#define VM_BUG_ON_VMA(cond, vma)					\
-	do {								\
-		if (unlikely(cond)) {					\
-			dump_vma(vma);					\
-			BUG();						\
-		}							\
-	} while (0)
-#define VM_BUG_ON_MM(cond, mm)						\
-	do {								\
-		if (unlikely(cond)) {					\
-			dump_mm(mm);					\
-			BUG();						\
-		}							\
-	} while (0)
+// 当条件为真的时候，触发bug
+#define VM_BUG_ON_PAGE(cond, page)                                    \
+    do {                                                              \
+        if (unlikely(cond)) {                                         \
+            dump_page(page, "VM_BUG_ON_PAGE(" __stringify(cond) ")"); \
+            BUG();                                                    \
+        }                                                             \
+    } while (0)
+#define VM_BUG_ON_VMA(cond, vma) \
+    do {                         \
+        if (unlikely(cond)) {    \
+            dump_vma(vma);       \
+            BUG();               \
+        }                        \
+    } while (0)
+#define VM_BUG_ON_MM(cond, mm) \
+    do {                       \
+        if (unlikely(cond)) {  \
+            dump_mm(mm);       \
+            BUG();             \
+        }                      \
+    } while (0)
 #define VM_WARN_ON(cond) (void)WARN_ON(cond)
 #define VM_WARN_ON_ONCE(cond) (void)WARN_ON_ONCE(cond)
 #define VM_WARN_ONCE(cond, format...) (void)WARN_ONCE(cond, format)

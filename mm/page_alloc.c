@@ -10660,6 +10660,7 @@ static void break_down_buddy_pages(struct zone *zone, struct page *page, struct 
 /*
  * Take a page that will be marked as poisoned off the buddy allocator.
  */
+// 将一个被标记为有毒的页面从伙伴分配器中移除
 bool take_page_off_buddy(struct page *page)
 {
     struct zone *zone = page_zone(page);

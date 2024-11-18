@@ -1587,6 +1587,7 @@ static bool try_to_unmap_one(struct page *page, struct vm_area_struct *vma, unsi
     enum ttu_flags flags = (enum ttu_flags)(long)arg;
 
     /* munlock has nothing to gain from examining un-locked vmas */
+    // munlock场景
     if ((flags & TTU_MUNLOCK) && !(vma->vm_flags & VM_LOCKED))
         return true;
 
@@ -1953,6 +1954,7 @@ bool try_to_unmap(struct page *page, enum ttu_flags flags)
     if ((flags & (TTU_MIGRATION | TTU_SPLIT_FREEZE)) && !PageKsm(page) && PageAnon(page))
         rwc.invalid_vma = invalid_migration_vma;
 
+    // 调用者已经持有rmap锁,在rmap walk的时候不用重复加锁
     if (flags & TTU_RMAP_LOCKED)
         rmap_walk_locked(page, &rwc);
     else
@@ -2050,8 +2052,16 @@ static struct anon_vma *rmap_walk_anon_lock(struct page *page, struct rmap_walk_
  * vm_flags for that VMA.  That should be OK, because that vma shouldn't be
  * LOCKED.
  *
- * 遍历这个逆向映射
- * 匿名映射 page->mapping 结构指向 struct anon_vma 结构
+* rmap_walk_anon - 遍历匿名页面的反向映射
+* @page: 要遍历的页面
+* @rwc: 遍历控制结构，包含各种回调函数
+*
+* 函数主要功能:
+* 1. 获取page关联的anon_vma结构
+* 2. 遍历anon_vma红黑树，找到所有映射该页面的VMA
+* 3. 对每个映射该页面的VMA，调用rwc中的回调函数进行处理
+*
+* 对每个vma如何处理，取决于rwc中的回调函数
  */
 static void rmap_walk_anon(struct page *page, struct rmap_walk_control *rwc, bool locked)
 {

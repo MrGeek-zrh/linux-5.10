@@ -1195,6 +1195,7 @@ static inline __must_check bool try_get_page(struct page *page)
 
 /**
  *  page->_refcount--
+ *  在引用计数降为零时释放该页面
  *
  * 调用路径:
  * - sys_munmap -> ... -> put_page

@@ -181,20 +181,29 @@ struct anon_vma_chain {
 #endif
 };
 
-// take to user
+// 用于控制unmap的行为
 enum ttu_flags {
-    TTU_MIGRATION = 0x1, /* migration mode */
-    TTU_MUNLOCK = 0x2, /* munlock mode */
+    /* migration mode */ // 迁移场景下使用
+    TTU_MIGRATION = 0x1,
+    /* munlock mode */ // munlock场景下使用
+    TTU_MUNLOCK = 0x2,
 
-    TTU_SPLIT_HUGE_PMD = 0x4, /* split huge PMD if any */
-    TTU_IGNORE_MLOCK = 0x8, /* ignore mlock */
-    TTU_IGNORE_HWPOISON = 0x20, /* corrupted page is recoverable */
+    /* split huge PMD if any */ // 如果存在huge PMD，则进行拆分
+    TTU_SPLIT_HUGE_PMD = 0x4,
+    /* ignore mlock */ // 忽略mlock状态的标志
+    TTU_IGNORE_MLOCK = 0x8,
+    /* corrupted page is recoverable */ // 损坏的页面是可恢复的
+    TTU_IGNORE_HWPOISON = 0x20,
+    // 批量刷新TLB
     TTU_BATCH_FLUSH = 0x40, /* Batch TLB flushes where possible
 					 * and caller guarantees they will
 					 * do a final flush if necessary */
+    // 不需要获取rmap锁
     TTU_RMAP_LOCKED = 0x80, /* do not grab rmap lock:
 					 * caller holds it */
-    TTU_SPLIT_FREEZE = 0x100, /* freeze pte under splitting thp */
+    // 在拆分透明大页时冻结pte
+    TTU_SPLIT_FREEZE = 0x100,
+    /* freeze pte under splitting thp */
 };
 
 #ifdef CONFIG_MMU

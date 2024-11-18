@@ -1698,6 +1698,11 @@ static int free_pool_huge_page(struct hstate *h, nodemask_t *nodes_allowed, bool
  *       0: successfully dissolved free hugepages or the page is not a
  *          hugepage (considered as already dissolved)
  */
+/**
+ *把一个空闲的大页分解成常规的基本页面。
+ *- 如果页面是空闲的大页，函数会将其从大页池中移除，清除其大页标志，并返回成功（0）。
+ *- 如果页面不是空闲的大页或分解失败，返回失败（-EBUSY）。
+ *  */
 int dissolve_free_huge_page(struct page *page)
 {
     int rc = -EBUSY;
@@ -1847,6 +1852,10 @@ static struct page *alloc_buddy_huge_page_with_mpol(struct hstate *h, struct vm_
 }
 
 /* page migration callback function */
+/**
+ *从指定节点分配HugeTLB大页
+ *- 根据给定的节点ID和节点掩码，从hugetlb page池中分配一个新的HugeTLB大页。
+ * */
 struct page *alloc_huge_page_nodemask(struct hstate *h, int preferred_nid, nodemask_t *nmask, gfp_t gfp_mask)
 {
     spin_lock(&hugetlb_lock);
@@ -5432,7 +5441,7 @@ bool isolate_huge_page(struct page *page, struct list_head *list)
 
     VM_BUG_ON_PAGE(!PageHead(page), page);
     spin_lock(&hugetlb_lock);
-    // 为页面增加引用计数,但前提是页面当前的引用计数不为零,防止对已释放到页面池的页面(引用计数为0)进行操作
+    // 大页已经不再活跃，或者当前page的refcount已经为0
     if (!page_huge_active(page) || !get_page_unless_zero(page)) {
         // 执行操作失败
         ret = false;

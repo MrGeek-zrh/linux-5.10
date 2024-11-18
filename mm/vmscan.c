@@ -928,8 +928,9 @@ static pageout_t pageout(struct page *page, struct address_space *mapping)
 /*
  * Same as remove_mapping, but if the page is removed from the mapping, it
  * gets returned with a refcount of 0.
- *
- * 尝试分离 page->mapping
+
+    - 尝试从页面缓存或交换缓存中分离(解除映射)一个页面
+    - 如果页面成功分离,会返回引用计数为0的页面
  */
 static int __remove_mapping(struct address_space *mapping, struct page *page, bool reclaimed,
                             struct mem_cgroup *target_memcg)

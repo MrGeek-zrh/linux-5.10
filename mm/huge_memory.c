@@ -2287,8 +2287,10 @@ static void unmap_page(struct page *page)
     enum ttu_flags ttu_flags = TTU_IGNORE_MLOCK | TTU_RMAP_LOCKED | TTU_SPLIT_HUGE_PMD;
     bool unmap_success;
 
+    // 如果不是透明大页的头页面，触发bug
     VM_BUG_ON_PAGE(!PageHead(page), page);
 
+    // 是匿名透明大页，设置TTU_SPLIT_FREEZE标志
     if (PageAnon(page))
         ttu_flags |= TTU_SPLIT_FREEZE;
 
@@ -2296,10 +2298,13 @@ static void unmap_page(struct page *page)
     VM_BUG_ON_PAGE(!unmap_success, page);
 }
 
+// 将迁移页表项重新映射为正常的页表项
 static void remap_page(struct page *page, unsigned int nr)
 {
     int i;
+    // 如果是大页，只处理首页？
     if (PageTransHuge(page)) {
+        // new 为啥也是page?
         remove_migration_ptes(page, page, true);
     } else {
         for (i = 0; i < nr; i++)
@@ -2307,8 +2312,16 @@ static void remap_page(struct page *page, unsigned int nr)
     }
 }
 
+/**
+   拆分大页(应该就是透明大页吧？HugeTLB大页还有被拆分的场景？)
+* │   * @head: 指向大页头的指针                                         │
+│   * @tail: 要拆分的尾部页面的索引                                   │
+│   * @lruvec: 大页的首页面所在的LRU链表的向量                                  │
+│   * @list: 指向将要存放拆分后普通页面的链表
+ * */
 static void __split_huge_page_tail(struct page *head, int tail, struct lruvec *lruvec, struct list_head *list)
 {
+    // 当前正在处理的大页的尾页
     struct page *page_tail = head + tail;
 
     VM_BUG_ON_PAGE(atomic_read(&page_tail->_mapcount) != -1, page_tail);
@@ -2320,6 +2333,7 @@ static void __split_huge_page_tail(struct page *head, int tail, struct lruvec *l
 	 * for exmaple lock_page() which set PG_waiters.
 	 */
     page_tail->flags &= ~PAGE_FLAGS_CHECK_AT_PREP;
+    // 从首节点上继承一些标志位
     page_tail->flags |= (head->flags & ((1L << PG_referenced) | (1L << PG_swapbacked) | (1L << PG_swapcache) |
                                         (1L << PG_mlocked) | (1L << PG_uptodate) | (1L << PG_active) |
                                         (1L << PG_workingset) | (1L << PG_locked) | (1L << PG_unevictable) |
@@ -2331,6 +2345,7 @@ static void __split_huge_page_tail(struct page *head, int tail, struct lruvec *l
     /* ->mapping in first tail page is compound_mapcount */
     VM_BUG_ON_PAGE(tail > 2 && page_tail->mapping != TAIL_MAPPING, page_tail);
     page_tail->mapping = head->mapping;
+    // TODO:没看懂
     page_tail->index = head->index + tail;
 
     /* Page flags must be visible before we make the page non-compound. */
@@ -2362,53 +2377,81 @@ static void __split_huge_page_tail(struct page *head, int tail, struct lruvec *l
     lru_add_page_tail(head, page_tail, lruvec, list);
 }
 
+/**
+    * @page: 指向要拆分的大页的指针
+    * @list: 指向将要存放拆分后普通页面的链表
+*    - 如果提供了list参数,将拆分后的页面添加到该链表
+*    - 如果list为NULL,则添加到LRU链表
+    * @end: 拆分操作的结束页框偏移
+    * @flags: 拆分操作的标志位
+ * *
+ * */
+// 拆分透明大页，list传来的是null
 static void __split_huge_page(struct page *page, struct list_head *list, pgoff_t end, unsigned long flags)
 {
+    /* 获取复合页的头页 */
     struct page *head = compound_head(page);
+    /* 获取页所在的节点 */
     pg_data_t *pgdat = page_pgdat(head);
+    /* LRU链表向量 */
     struct lruvec *lruvec;
+    /* 交换缓存地址空间 */
     struct address_space *swap_cache = NULL;
+    /* 交换分区偏移量 */
     unsigned long offset = 0;
+    /* 大页包含的普通页面数量 */
     unsigned int nr = thp_nr_pages(head);
     int i;
 
+    /* 获取页面所属的LRU链表向量 */
     lruvec = mem_cgroup_page_lruvec(head, pgdat);
-
-    /* complete memcg works before add pages to LRU */
+    /* 在将页面添加到LRU之前完成内存控制组(memcg)的处理 */
     mem_cgroup_split_huge_fixup(head);
 
+    /* 如果是匿名页面且在交换缓存中 */
     if (PageAnon(head) && PageSwapCache(head)) {
+        /* 获取交换项 */
+        // PG_swapcache：页面处于交换缓存中，private指向swp_entry_t
         swp_entry_t entry = { .val = page_private(head) };
-
+        /* 获取交换分区偏移量 */
         offset = swp_offset(entry);
+        /* 获取交换缓存的地址空间 */
         swap_cache = swap_address_space(entry);
+        /* 锁定交换缓存的页面树 */
         xa_lock(&swap_cache->i_pages);
     }
 
+    /* 从后向前处理每个子页面(除了首页) */
     for (i = nr - 1; i >= 1; i--) {
+        /* 拆分子页面 */
         __split_huge_page_tail(head, i, lruvec, list);
-        /* Some pages can be beyond i_size: drop them from page cache */
+
+        /* 处理超出文件大小的页面:从页面缓存中删除 */
         if (head[i].index >= end) {
             ClearPageDirty(head + i);
             __delete_from_page_cache(head + i, NULL);
+            /* 如果启用了SHMEM且是swap backed页面,减少共享内存计数 */
             if (IS_ENABLED(CONFIG_SHMEM) && PageSwapBacked(head))
                 shmem_uncharge(head->mapping->host, 1);
             put_page(head + i);
-        } else if (!PageAnon(page)) {
+        }
+        /* 如果不是匿名页面,将页面存储到文件映射的基数树中 */
+        else if (!PageAnon(page)) {
             __xa_store(&head->mapping->i_pages, head[i].index, head + i, 0);
-        } else if (swap_cache) {
+        }
+        /* 如果是匿名页面且在交换缓存中,将页面存储到交换缓存的基数树中 */
+        else if (swap_cache) {
             __xa_store(&swap_cache->i_pages, offset + i, head + i, 0);
         }
     }
 
-    // 首页被清除复合页标记,转换为普通页
+    /* 清除复合页标志 */
     ClearPageCompound(head);
-
+    /* 拆分页面所有者信息(用于调试) */
     split_page_owner(head, nr);
 
-    /* See comment in __split_huge_page_tail() */
+    /* 根据页面类型增加引用计数并解锁相应的基数树 */
     if (PageAnon(head)) {
-        /* Additional pin to swap cache */
         if (PageSwapCache(head)) {
             page_ref_add(head, 2);
             xa_unlock(&swap_cache->i_pages);
@@ -2416,34 +2459,32 @@ static void __split_huge_page(struct page *page, struct list_head *list, pgoff_t
             page_ref_inc(head);
         }
     } else {
-        /* Additional pin to page cache */
         page_ref_add(head, 2);
         xa_unlock(&head->mapping->i_pages);
     }
 
+    /* 解锁节点的LRU锁 */
     spin_unlock_irqrestore(&pgdat->lru_lock, flags);
 
+    /* 重新映射页面 */
+    // 为啥是head呢
+    // TODO:
     remap_page(head, nr);
 
+    /* 如果首页面在交换缓存中,拆分交换簇 */
     if (PageSwapCache(head)) {
         swp_entry_t entry = { .val = page_private(head) };
-
         split_swap_cluster(entry);
     }
 
+    /* 处理除了请求页面外的所有子页面 */
     for (i = 0; i < nr; i++) {
         struct page *subpage = head + i;
         if (subpage == page)
             continue;
+        /* 解锁子页面 */
         unlock_page(subpage);
-
-        /*
-		 * Subpages may be freed if there wasn't any mapping
-		 * like if add_to_swap() is running on a lru page that
-		 * had its mapping zapped. And freeing these pages
-		 * requires taking the lru_lock so we do the put_page
-		 * of the tail pages after the split is complete.
-		 */
+        /* 释放子页面的引用 */
         put_page(subpage);
     }
 }
@@ -2549,12 +2590,16 @@ int page_trans_huge_mapcount(struct page *page, int *total_mapcount)
 }
 
 /* Racy check whether the huge page can be split */
+// 检查透明大页是否可以被拆分
 bool can_split_huge_page(struct page *page, int *pextra_pins)
 {
     int extra_pins;
 
     /* Additional pins from page cache */
     if (PageAnon(page))
+        // 透明大页的换出是整个大页的所有子页都会被换出吧
+        // 应该是
+        // 所以当当前page在
         extra_pins = PageSwapCache(page) ? thp_nr_pages(page) : 0;
     else
         extra_pins = thp_nr_pages(page);
@@ -2606,55 +2651,67 @@ bool can_split_huge_page(struct page *page, int *pextra_pins)
   *  */
 
 /**
- * 将大页分割成多个基本页面
- *
- * @page: 要分割的大页中的任意页面
- * @list:
- * - NULL时,拆分的所有尾页面添加到LRU;
- * - 非NULL时尾页添加到指定链表
- * - 首页(即原大页)转换为普通页面并保持在原管理系统中(page cache或匿名页管理)
- *
- * 调用要求:
- * 1. 必须持有page引用计数,否则返回-EBUSY
- * 2. page必须上锁
- *
- * 实现流程:
- * 1. 移除所有页表映射
- * 2. 继承page属性到子页面(flags/mapping/index等)
- * 3. 迁移GUP pin和PG_locked标志到指定页面
- * 4. 重建页表映射
- *
- * 返回值:
- * 0:       分割成功
- * -EBUSY:  page被pin或匿名内存区域消失*
- * */
+* split_huge_page_to_list - 将透明大页拆分为标准页面
+* @page: 要拆分的透明大页中的任意页面指针
+* @list: 拆分后的尾页添加到此链表,为NULL时添加到LRU链表
+*
+* 详细说明:
+* 本函数用于将一个透明大页(THP)拆分为多个标准页面。拆分过程如下：
+* 1. 首先检查页面状态(是否锁定、是否可写回等)
+* 2. 获取并检查页面的引用计数
+* 3. 解除所有页表映射关系
+* 4. 对每个标准页面:
+*   - 继承原透明大页的属性(mapping/index等)
+*   - 设置适当的引用计数
+*   - 添加到指定链表或LRU
+* 5. 清除原透明大页的复合页标记
+* 6. 重建页表映射
+*
+* 调用要求:
+* 1. 调用者必须持有page的引用计数,否则返回-EBUSY
+* 2. page必须已经上锁(PageLocked)
+*
+* 返回值:
+* - 0: 拆分成功
+* - -EBUSY: page被pin或匿名内存区域消失
+*
+* 注意事项:
+* 1. 本函数存在竞态条件,拆分前会再次检查页面状态
+* 2. 拆分过程会临时禁止其他进程访问这些页面
+* 3. 必须在持有适当锁的情况下调用此函数
+*/
+// 拆分透明大页的参数设置：split_huge_page_to_list(page, NULL);
 int split_huge_page_to_list(struct page *page, struct list_head *list)
 {
+    // 获取透明大页的首页(compound head)
     struct page *head = compound_head(page);
+    // 获取页面所在NUMA节点的数据结构
     struct pglist_data *pgdata = NODE_DATA(page_to_nid(head));
+    // 获取延迟拆分队列
     struct deferred_split *ds_queue = get_deferred_split_queue(head);
+    // 匿名内存区域结构指针,初始为NULL
     struct anon_vma *anon_vma = NULL;
+    // 文件映射的地址空间结构指针,初始为NULL
     struct address_space *mapping = NULL;
+    // 声明计数、映射计数、额外引用计数和返回值变量
     int count, mapcount, extra_pins, ret;
+    // 中断标志
     unsigned long flags;
+    // 文件映射的结束位置
     pgoff_t end;
 
+    // 验证:不能是零页、必须已锁定、必须是复合页
     VM_BUG_ON_PAGE(is_huge_zero_page(head), head);
     VM_BUG_ON_PAGE(!PageLocked(head), head);
     VM_BUG_ON_PAGE(!PageCompound(head), head);
 
+    // 如果页面正在写回,返回繁忙
     if (PageWriteback(head))
         return -EBUSY;
 
+    // 处理匿名页面的情况
     if (PageAnon(head)) {
-        /*
-		 * The caller does not necessarily hold an mmap_lock that would
-		 * prevent the anon_vma disappearing so we first we take a
-		 * reference to it and then lock the anon_vma for write. This
-		 * is similar to page_lock_anon_vma_read except the write lock
-		 * is taken to serialise against parallel split or collapse
-		 * operations.
-		 */
+        // 获取并锁定匿名内存区域
         anon_vma = page_get_anon_vma(head);
         if (!anon_vma) {
             ret = -EBUSY;
@@ -2662,66 +2719,58 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
         }
         end = -1;
         mapping = NULL;
+        // 对匿名内存区域加写锁
         anon_vma_lock_write(anon_vma);
     } else {
+        // 处理文件映射页面的情况
         mapping = head->mapping;
-
-        /* Truncated ? */
         if (!mapping) {
             ret = -EBUSY;
             goto out;
         }
-
+        // 对文件映射加读锁
         anon_vma = NULL;
         i_mmap_lock_read(mapping);
-
-        /*
-		 *__split_huge_page() may need to trim off pages beyond EOF:
-		 * but on 32-bit, i_size_read() takes an irq-unsafe seqlock,
-		 * which cannot be nested inside the page tree lock. So note
-		 * end now: i_size itself may be changed at any moment, but
-		 * head page lock is good enough to serialize the trimming.
-		 */
+        // 计算文件映射的结束位置
         end = DIV_ROUND_UP(i_size_read(mapping->host), PAGE_SIZE);
     }
 
-    /*
-	 * Racy check if we can split the page, before unmap_page() will
-	 * split PMDs
-	 */
+    // 检查页面是否可以拆分(存在竞态)
     if (!can_split_huge_page(head, &extra_pins)) {
         ret = -EBUSY;
         goto out_unlock;
     }
 
+    // 解除所有页表映射
     unmap_page(head);
     VM_BUG_ON_PAGE(compound_mapcount(head), head);
 
-    /* prevent PageLRU to go away from under us, and freeze lru stats */
+    // 锁定LRU链表,防止并发访问
     spin_lock_irqsave(&pgdata->lru_lock, flags);
 
+    // 如果是文件映射,检查页面是否在页缓存中
     if (mapping) {
         XA_STATE(xas, &mapping->i_pages, page_index(head));
-
-        /*
-		 * Check if the head page is present in page cache.
-		 * We assume all tail are present too, if head is there.
-		 */
         xa_lock(&mapping->i_pages);
         if (xas_load(&xas) != head)
             goto fail;
     }
 
-    /* Prevent deferred_split_scan() touching ->_refcount */
+    // 锁定延迟拆分队列,防止deferred_split_scan()修改引用计数
     spin_lock(&ds_queue->split_queue_lock);
     count = page_count(head);
     mapcount = total_mapcount(head);
+
+    // 如果没有映射且可以冻结页面引用计数
     if (!mapcount && page_ref_freeze(head, 1 + extra_pins)) {
+        // 如果在延迟拆分队列中,从队列移除
         if (!list_empty(page_deferred_list(head))) {
             ds_queue->split_queue_len--;
             list_del(page_deferred_list(head));
         }
         spin_unlock(&ds_queue->split_queue_lock);
+
+        // 更新统计信息
         if (mapping) {
             if (PageSwapBacked(head))
                 __dec_node_page_state(head, NR_SHMEM_THPS);
@@ -2729,9 +2778,11 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
                 __dec_node_page_state(head, NR_FILE_THPS);
         }
 
+        // 执行实际的拆分操作
         __split_huge_page(page, list, end, flags);
         ret = 0;
     } else {
+        // 拆分失败的调试信息和错误处理
         if (IS_ENABLED(CONFIG_DEBUG_VM) && mapcount) {
             pr_alert("total_mapcount: %u, page_count(): %u\n", mapcount, count);
             if (PageTail(page))
@@ -2744,11 +2795,13 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
         if (mapping)
             xa_unlock(&mapping->i_pages);
         spin_unlock_irqrestore(&pgdata->lru_lock, flags);
+        // 恢复页表映射
         remap_page(head, thp_nr_pages(head));
         ret = -EBUSY;
     }
 
 out_unlock:
+    // 释放锁和清理工作
     if (anon_vma) {
         anon_vma_unlock_write(anon_vma);
         put_anon_vma(anon_vma);
@@ -2756,6 +2809,7 @@ out_unlock:
     if (mapping)
         i_mmap_unlock_read(mapping);
 out:
+    // 更新统计信息并返回
     count_vm_event(!ret ? THP_SPLIT_PAGE : THP_SPLIT_PAGE_FAILED);
     return ret;
 }

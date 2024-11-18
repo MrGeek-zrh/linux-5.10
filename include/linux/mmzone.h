@@ -1036,8 +1036,10 @@ extern struct page *mem_map;
 #endif
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+// 支持对透明大页分裂请求的推迟处理
 struct deferred_split {
     spinlock_t split_queue_lock;
+    // 待处理的分裂请求
     struct list_head split_queue;
     unsigned long split_queue_len;
 };

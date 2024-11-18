@@ -195,21 +195,13 @@ static void truncate_cleanup_page(struct address_space *mapping, struct page *pa
  * Returns non-zero if the page was successfully invalidated.
  */
 /*
- * invalidate_complete_page - 将页面从地址空间映射中完全删除
- * @mapping: 页面所属的地址空间
- * @page: 要删除的页面
- *
- * 该函数完成页面删除的实际工作:
- * 1. 检查页面是否仍然属于正确的mapping
- * 2. 如果页面有私有数据,尝试释放它
- * 3. 调用remove_mapping()将页面从地址空间中移除
+  1. 删除page的private字段保存的buffer head数据
+  2. 将当前page从地址空间中删除
  *
  * 返回值:
  * 1 - 页面成功删除
- * 0 - 页面无法删除,原因可能是:
- *     - 页面不属于给定的mapping
- *     - 页面有私有数据且无法释放
- *     - remove_mapping失败
+ *
+ * 0 - 页面无法删除
  */
 static int invalidate_complete_page(struct address_space *mapping, struct page *page)
 {
@@ -225,6 +217,7 @@ static int invalidate_complete_page(struct address_space *mapping, struct page *
         return 0;
 
     /* 从地址空间中移除页面 */
+    // 注意，应该只是在地址空间中移除这个paqe，地址空间的相关字段可能保存了很多page结构，这些是不应当受迁移当前page的影响的
     ret = remove_mapping(mapping, page);
 
     return ret;
@@ -267,6 +260,9 @@ EXPORT_SYMBOL(generic_error_remove_page);
  */
 /**
  * 使page cache失效
+ *1. 删除page的private字段保存的buffer head数据
+  2. 将当前page从地址空间中删除
+
  *
  * 返回值:
  * 1 - 页面成功被删除
@@ -275,21 +271,17 @@ EXPORT_SYMBOL(generic_error_remove_page);
 int invalidate_inode_page(struct page *page)
 {
     struct address_space *mapping = page_mapping(page);
-    // mapping=0,不是page cache,是swap cache
+    // mapping=0,说明当前page是swap cache，同时rmap还没有建立完毕
     if (!mapping)
         return 0;
-    // 页面是脏的或正在写回
+    // 页面是脏的或正在写回，不能使其失效
     if (PageDirty(page) || PageWriteback(page))
         return 0;
     // 页面仍然在被页表项映射
     if (page_mapped(page))
         return 0;
     /*
-	 * 所有检查都通过:
-	 * - 页面干净
-	 * - 页面未被使用
-	 * - 有关联的地址空间
-	 * 可以安全删除该页面
+      对于文件映射，如果已经取消了pte对page的映射，page是干净的（本来就是感觉的，或者回写到磁盘完毕），那么就可以直接使当前page的内容失效
 	 */
     return invalidate_complete_page(mapping, page);
 }

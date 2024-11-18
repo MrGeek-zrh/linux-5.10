@@ -100,6 +100,7 @@ static inline int page_ref_sub_return(struct page *page, int nr)
     return ret;
 }
 
+// 增加页面的引用计数
 static inline void page_ref_inc(struct page *page)
 {
     atomic_inc(&page->_refcount); /* 引用计数 */
