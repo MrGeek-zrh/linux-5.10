@@ -175,7 +175,7 @@ int split_huge_page_to_list(struct page *page, struct list_head *list);
  *
  * @page: 要分割的大页中的任意页面
  * - 拆分的所有尾页面添加到相应的LRU;
- * - 首页(即原大页)转换为普通页面并保持在原管理系统中(page cache或匿名页管理)
+ * - 首页(即原大页)转换为普通页面并保持在原管理系统中(匿名页管理)
  *  */
 static inline int split_huge_page(struct page *page)
 {

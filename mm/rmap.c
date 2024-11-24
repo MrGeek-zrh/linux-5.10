@@ -1930,6 +1930,10 @@ static int page_mapcount_is_zero(struct page *page)
  *
  * 将 映射到这个 物理 页面 的 页表项移除
  *  解除用户映射 PTE
+ *
+ *  NOTE:注意区分munmap和 unmap的含义。
+ *  - munmap是和mmap对应的，是删除内存映射。
+ *  - unmap是解除页表项映射关系，并不会删除基数树中的page cache/红黑树中的page等结构
  */
 bool try_to_unmap(struct page *page, enum ttu_flags flags)
 {

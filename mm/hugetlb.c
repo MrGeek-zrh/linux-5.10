@@ -981,6 +981,7 @@ static bool vma_has_reserves(struct vm_area_struct *vma, long chg)
     return false;
 }
 
+// 把大内存页添加到空闲大内存页链表hstate->hugepage_freelists[nid]中
 static void enqueue_huge_page(struct hstate *h, struct page *page)
 {
     int nid = page_to_nid(page);
@@ -1449,6 +1450,10 @@ void free_huge_page(struct page *page)
 
 static void prep_new_huge_page(struct hstate *h, struct page *page, int nid)
 {
+    // 初始化HugeTLB大页 首页的page->lru链表
+    // HugeTLB大页中的LRU字段的作用是啥？
+    // 难道lru字段是用来加入到hugepage_freelists中的？
+    // 是这样的
     INIT_LIST_HEAD(&page->lru);
     set_compound_page_dtor(page, HUGETLB_PAGE_DTOR);
     set_hugetlb_cgroup(page, NULL);
@@ -1608,7 +1613,9 @@ static struct page *alloc_buddy_huge_page(struct hstate *h, gfp_t gfp_mask, int 
 /*
  * Common helper to allocate a fresh hugetlb page. All specific allocators
  * should use this function to get new hugetlb pages
- */
+ *
+ * 分配一个新的HugeTLB大页
+ * */
 static struct page *alloc_fresh_huge_page(struct hstate *h, gfp_t gfp_mask, int nid, nodemask_t *nmask,
                                           nodemask_t *node_alloc_noretry)
 {
@@ -5441,8 +5448,8 @@ bool isolate_huge_page(struct page *page, struct list_head *list)
 
     VM_BUG_ON_PAGE(!PageHead(page), page);
     spin_lock(&hugetlb_lock);
-    // 大页已经不再活跃，或者当前page的refcount已经为0
     if (!page_huge_active(page) || !get_page_unless_zero(page)) {
+        // 大页已经不再活跃，或者当前page的refcount已经为0
         // 执行操作失败
         ret = false;
         goto unlock;

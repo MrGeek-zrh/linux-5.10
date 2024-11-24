@@ -1127,7 +1127,7 @@ static int try_to_split_thp_page(struct page *page, const char *msg)
 {
     lock_page(page);
     // 不是匿名THP大页，或者对THP大页分割失败
-    // TODO:目前 THP 仅适用于匿名内存映射和 tmpfs/shmem。但将来它可以扩展到其他文件系统。
+    // 目前 THP 仅适用于匿名内存映射和 tmpfs/shmem。但将来它可以扩展到其他文件系统。
     if (!PageAnon(page) || unlikely(split_huge_page(page))) {
         // 不是匿名页面，或者大页分割失败
         unsigned long pfn = page_to_pfn(page);
@@ -1822,7 +1822,9 @@ static bool isolate_page(struct page *page, struct list_head *pagelist)
 static int __soft_offline_page(struct page *page)
 {
     int ret;
-    struct page *hpage = compound_head(page); // 获取页面的compound head,用于处理大页
+    // 能够走到这里的复合页一定不会是透明大页，因为透明大页已经被拆分为普通页面了，拆分为普通页面的时候，会清除复合页的相关标志
+    // 拿到HugeTLB大页的首页
+    struct page *hpage = compound_head(page);
     bool huge = PageHuge(page); // 判断是否是hugetlb大页
     LIST_HEAD(pagelist); // 初始化page迁移使用的链表
     struct migration_target_control mtc = {

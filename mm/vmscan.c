@@ -2104,13 +2104,28 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan, struct lruvec *
  * (3) interrupts must be enabled.
  */
 /**
- * isolate_lru_page - 尝试将页面从其 LRU 列表中隔离出来.
- *
- * - 隔离的目的：对LRU链表的访问需要使用lru_lock。由于LRU链表是内核中被访问非常频繁的结构，因此发生锁竞争的几率是非常高的，通过将page用LRU链表上暂时隔离开，可以避免对lru_lock的竞争
- * @page: 需要从 LRU 列表中隔离的页面
- *
- * 如果页面成功从 LRU 列表中移除，返回 0。
- * 如果页面不在 LRU 列表中，返回 -EBUSY。
+│  * isolate_lru_page - 尝试从其LRU列表中隔离页面                                     │
+│  * @page: 要从LRU列表中隔离的页面                                                   │
+│  *                                                                                  │
+│  * 从LRU列表中隔离@page，清除PageLRU并调整与页面所在LRU列表对应的vmstat统计信息。   │
+│  *                                                                                  │
+│  * 如果页面已从LRU列表中移除，则返回0。                                             │
+│  * 如果页面不在LRU列表中，则返回-EBUSY。                                            │
+│  *                                                                                  │
+│  * 返回的页面将清除PageLRU()标志。如果在活动列表中找到，则将设置PageActive标志。    │
+│  *                                                                                  │
+│  如果在不可驱逐列表中找到，则将设置PageUnevictable标志。调用者可能需要在释放页面之  │
+│  清除该标志。                                                                       │
+│  *                                                                                  │
+│  * 对于找到页面的列表，相关的vmstat统计信息将递减。                                 │
+│  *                                                                                  │
+│  * 限制条件：                                                                       │
+│  *                                                                                  │
+│  * (1)                                                                              │
+│  必须在页面的引用计数提升后调用。这与isolate_lru_pages的根本区别在于，后者在没有稳  │
+│  引用的情况下调用。                                                                 │
+│  * (2) 不能持有lru_lock。                                                           │
+│  * (3) 必须启用中断。 
  */
 int isolate_lru_page(struct page *page)
 {
@@ -2124,6 +2139,7 @@ int isolate_lru_page(struct page *page)
         struct lruvec *lruvec;
 
         spin_lock_irq(&pgdat->lru_lock);
+        // 获取到page所在的LRU
         lruvec = mem_cgroup_page_lruvec(page, pgdat);
         if (PageLRU(page)) {
             int lru = page_lru(page);

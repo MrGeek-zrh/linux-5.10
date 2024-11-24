@@ -528,7 +528,9 @@ EXPORT_SYMBOL(lru_cache_add);
  * Place @page on the inactive or unevictable LRU list, depending on its
  * evictability.
  *
- * 将@page放在不活跃或无法定罪的 LRU 列表中，具体取决于其可回收性。
+ * 将@page放在不活跃或不可回收的 LRU 列表中，具体取决于其可回收性。
+ * - 可回收：放到不活跃LRU
+ * - 不可回收：放到可回收LRU
  */
 void lru_cache_add_inactive_or_unevictable(struct page *page, struct vm_area_struct *vma)
 {
@@ -1015,7 +1017,7 @@ EXPORT_SYMBOL(__pagevec_release);
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 /* used by __split_huge_page_refcount() */
-// list==null: 将拆分后的尾部页面添加到LRU链表
+// list==null: 将拆分后的尾部添加到页面的LRU链表
 // list!=null: 将尾页加到list链表中
 /**
  ** @page: 指向复合页(大页)头的指针

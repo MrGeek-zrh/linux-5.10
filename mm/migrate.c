@@ -336,6 +336,8 @@ void remove_migration_ptes(struct page *old, struct page *new, bool locked)
  * get to the page and wait until migration is finished.
  * When we return from this function the fault will be retried.
  */
+// 当进程访问了正处于迁移过程的页表项的时候，会触发page fault。该函数是这种page fault的主要处理逻辑
+// - 将这些进程阻塞，当页面迁移完成，重新唤醒
 void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep, spinlock_t *ptl)
 {
     pte_t pte;
@@ -422,6 +424,8 @@ static int expected_page_refs(struct address_space *mapping, struct page *page)
  * 1 for anonymous pages without a mapping
  * 2 for pages with a mapping
  * 3 for pages with a mapping and PagePrivate/PagePrivate2 set.
+ *
+ * 迁移页面的映射信息到新的页面上
  */
 int migrate_page_move_mapping(struct address_space *mapping, struct page *newpage, struct page *page, int extra_count)
 {
@@ -574,8 +578,8 @@ int migrate_huge_page_move_mapping(struct address_space *mapping, struct page *n
  *
  * Pages are locked upon entry and exit.
  *
- * 迁移 的核心函数
- *  
+  mapping=null的页面会使用这个迁移函数进行迁移
+ *
  ** 函数流程
  *
  *  1. 调用 migrate_page_move_mapping
@@ -836,27 +840,21 @@ static int move_to_new_page(struct page *newpage, struct page *page, enum migrat
     struct address_space *mapping;
     int rc = -EAGAIN;
 
-    /**
-     *  是否为 LRU 页面
-     */
+    // 这里其实叫做：不是non-lru movable页面比较好
     bool is_lru = !__PageMovable(page);
 
     VM_BUG_ON_PAGE(!PageLocked(page), page);
     VM_BUG_ON_PAGE(!PageLocked(newpage), newpage);
 
-    // 1. 页面为 匿名页面 但是没有 分配交换缓存， 返回 NULL
-    /* 2. 页面为 匿名页面 并且分配了交换缓存，那么 mapping 会指向 交换缓存 */
-    /* 3. 页面为 文件映射 页面，那么 mapping 指向文件映射对应的地址空间 */
     mapping = page_mapping(page);
 
     // LRU页面：
-    // 1. 匿名页面，mapping指向了交换缓存
-    // 2. 匿名页面，mapping没有指向交换缓存
-    // 3. 文件映射页面
+    // 1. 匿名页面
+    // 2. 文件映射页面
     if (likely(is_lru)) {
-        /**
-           // 当一个交换页面从交换分区 被读取之后，他会被 添加到 LRU 链表里，我们把它当做一个交换页面缓存，但是他还没有设置 RMAP，因此 page->mapping 为空。
-         */
+        // 当一个交换页面从交换分区 被读取之后，他会被 添加到 LRU 链表里，我们把它当做一个交换页面缓存，如果此时他还没有设置 RMAP， page->mapping 就为空。
+        // 其实这里单独进行判断mapping是必然的。
+        // - mapping==null说明反向映射还没设置好，也及时mapping->a_ops的相关字段还没填充，这时候当然不能调用a_ops的migratepage回调函数，因为都没有呀！
         if (!mapping)
             rc = migrate_page(mapping, newpage, page, mode);
 
@@ -874,7 +872,8 @@ static int move_to_new_page(struct page *newpage, struct page *page, enum migrat
 			 */
             rc = mapping->a_ops->migratepage(mapping, newpage, page, mode);
         else
-            // 匿名页面或者文件系统没有注册回调函数，就使用系统默认的回调函数
+            // mapping有值，但是没有注册迁移函数
+            // - 匿名页面或者文件系统没有注册回调函数，就使用系统默认的回调函数
             rc = fallback_migrate_page(mapping, newpage, page, mode);
     } else {
         // 非LRU的特殊页面
@@ -1292,7 +1291,9 @@ out:
  * will wait in the page fault for migration to complete.
  */
 /*                                                                                    │
-  * 这是用于大页迁移的 unmap_and_move_page() 的对应函数。                                │
+  * NOTE: 这里提到直接IO，是指通过文件映射方式创建的HugeTLB大页需要使用的，而不是用于普通的文件映射的IO。HugeTLB大页不能用于普通的文件映射
+  *
+  * 这是用于hugetlb大页迁移的 unmap_and_move_page() 的对应函数。                                │
   *                                                                                      │
   * 这个函数不等待大页 I/O 的完成，因为在大页的迁移过程中没有 I/O 和迁移之间的竞争。     │
   *
@@ -1602,6 +1603,7 @@ int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
     struct page *page2;
 
     // 判断当前进程是否有写入交换区的权限
+    // TODO
     int swapwrite = current->flags & PF_SWAPWRITE;
 
     // rc用于保存函数返回值,nr_subpages记录页面的子页数量
@@ -1680,6 +1682,7 @@ int migrate_pages(struct list_head *from, /* 待迁移页面链表头 */
         {
         retry:
             // 但是在内存软下线的情况下，似乎只有hugetlb会走到这一步吧；透明大页已经被分割了？
+            // 是的，透明大页被切割为普通页面的时候，PG_head、PG_compound标志都被清空了。这里应该是对应其他情况吧
             // TODO:既然是这样，这里为啥要用PageTransHuge而不是PageHuge？
             // 是否是透明大页
             is_thp = PageTransHuge(page) && !PageHuge(page);

@@ -2287,7 +2287,7 @@ static void unmap_page(struct page *page)
     enum ttu_flags ttu_flags = TTU_IGNORE_MLOCK | TTU_RMAP_LOCKED | TTU_SPLIT_HUGE_PMD;
     bool unmap_success;
 
-    // 如果不是透明大页的头页面，触发bug
+    // 如果不是大页的头页面，触发bug
     VM_BUG_ON_PAGE(!PageHead(page), page);
 
     // 是匿名透明大页，设置TTU_SPLIT_FREEZE标志
@@ -2381,7 +2381,7 @@ static void __split_huge_page_tail(struct page *head, int tail, struct lruvec *l
     * @page: 指向要拆分的大页的指针
     * @list: 指向将要存放拆分后普通页面的链表
 *    - 如果提供了list参数,将拆分后的页面添加到该链表
-*    - 如果list为NULL,则添加到LRU链表
+*    - 如果list为NULL,则添加到首页对应的LRU链表
     * @end: 拆分操作的结束页框偏移
     * @flags: 拆分操作的标志位
  * *
@@ -2408,7 +2408,7 @@ static void __split_huge_page(struct page *page, struct list_head *list, pgoff_t
     /* 在将页面添加到LRU之前完成内存控制组(memcg)的处理 */
     mem_cgroup_split_huge_fixup(head);
 
-    /* 如果是匿名页面且在交换缓存中 */
+    // 首页是处于交换缓存中的匿名页
     if (PageAnon(head) && PageSwapCache(head)) {
         /* 获取交换项 */
         // PG_swapcache：页面处于交换缓存中，private指向swp_entry_t
@@ -2421,9 +2421,10 @@ static void __split_huge_page(struct page *page, struct list_head *list, pgoff_t
         xa_lock(&swap_cache->i_pages);
     }
 
-    /* 从后向前处理每个子页面(除了首页) */
+    // 处理所有尾页
     for (i = nr - 1; i >= 1; i--) {
         /* 拆分子页面 */
+        // 将尾页都添加到首页之前所在的lru链表中（如果list==null）
         __split_huge_page_tail(head, i, lruvec, list);
 
         /* 处理超出文件大小的页面:从页面缓存中删除 */
@@ -2439,7 +2440,7 @@ static void __split_huge_page(struct page *page, struct list_head *list, pgoff_t
         else if (!PageAnon(page)) {
             __xa_store(&head->mapping->i_pages, head[i].index, head + i, 0);
         }
-        /* 如果是匿名页面且在交换缓存中,将页面存储到交换缓存的基数树中 */
+        /* 如果是匿名页面且在交换缓存中,将页面重新存储到交换缓存的基数树中 */
         else if (swap_cache) {
             __xa_store(&swap_cache->i_pages, offset + i, head + i, 0);
         }
@@ -2653,7 +2654,7 @@ bool can_split_huge_page(struct page *page, int *pextra_pins)
 /**
 * split_huge_page_to_list - 将透明大页拆分为标准页面
 * @page: 要拆分的透明大页中的任意页面指针
-* @list: 拆分后的尾页添加到此链表,为NULL时添加到LRU链表
+* @list: 拆分后的尾页添加到此链表,为NULL时添加到首页的LRU链表
 *
 * 详细说明:
 * 本函数用于将一个透明大页(THP)拆分为多个标准页面。拆分过程如下：
@@ -2711,6 +2712,7 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
 
     // 处理匿名页面的情况
     if (PageAnon(head)) {
+        // 透明大页应该是一定走到这个判断，而不是下面那个分支
         // 获取并锁定匿名内存区域
         anon_vma = page_get_anon_vma(head);
         if (!anon_vma) {
@@ -2741,7 +2743,8 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
         goto out_unlock;
     }
 
-    // 解除所有页表映射
+    // 解除对首页的页表映射
+    // 后面啥时候应该会设置为迁移页表项
     unmap_page(head);
     VM_BUG_ON_PAGE(compound_mapcount(head), head);
 

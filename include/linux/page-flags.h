@@ -2402,7 +2402,8 @@ bool page_huge_active(struct page *page);
  * hugetlbfs pages, but not normal pages. PageTransHuge() can only be
  * called only in the core VM paths where hugetlbfs pages can't exist.
  */
-// 判断是否是hugetlb 或者透明大页
+// 检查PG_head标志
+// - 判断是否是hugetlb 或者透明大页
 static inline int PageTransHuge(struct page *page)
 {
     VM_BUG_ON_PAGE(PageTail(page), page);

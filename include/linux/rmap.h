@@ -182,10 +182,13 @@ struct anon_vma_chain {
 };
 
 // 用于控制unmap的行为
+// ttu: try to unmap
 enum ttu_flags {
     /* migration mode */ // 迁移场景下使用
     TTU_MIGRATION = 0x1,
     /* munlock mode */ // munlock场景下使用
+    // munlock 对应与mlock?
+    // mlock 函数可以将指定的内存页面锁定在物理内存中，防止它们被交换到磁盘上.
     TTU_MUNLOCK = 0x2,
 
     /* split huge PMD if any */ // 如果存在huge PMD，则进行拆分

@@ -320,7 +320,7 @@ struct hstate { /* hugetlb 页 size */
     unsigned long nr_overcommit_huge_pages;
 
     // 处于激活状态的大页链表
-    // 激活状态是指预留的大页被使用以后，会变为激活状态。
+    // 激活状态是指预留的大页被使用以后，会变为激活状态:第一个尾页的PG_private标志被设置
     // 除了这个，正在被使用的应该也可以被称为激活状态？是的
     struct list_head hugepage_activelist;
     // 未被使用的空闲链表(未被使用不代表一定可被分配，reserved大页也是空闲大页)
@@ -412,6 +412,7 @@ static inline unsigned huge_page_shift(struct hstate *h)
 
 static inline bool hstate_is_gigantic(struct hstate *h)
 {
+    // 大页大于8MB?
     return huge_page_order(h) >= MAX_ORDER;
 }
 

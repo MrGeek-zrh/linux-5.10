@@ -128,7 +128,25 @@ struct khugepaged_scan {
 	 */
     struct mm_slot *mm_slot;
     /**
-	 * 下一个被扫描的地址
+	 * 当前mm_slot中下一个要扫描的虚拟地址
+	 * * 2. 维护过程:
+* (1) 初始化：
+* ```c
+* // 当开始扫描新的mm_slot时
+* mm_slot = list_entry(khugepaged_scan.mm_head.next, struct mm_slot, mm_node);
+* khugepaged_scan.address = 0;  // 从0地址开始扫描
+* khugepaged_scan.mm_slot = mm_slot;
+* ```
+*
+* (2) 更新：
+* ```c
+* // 在扫描过程中，每处理完一个huge page区域后更新
+* khugepaged_scan.address += HPAGE_PMD_SIZE;  // 增加2MB
+* ```
+*
+* (3) 重置：
+* - 当前mm_slot扫描完成时，切换到下一个mm_slot并重置address为0
+* - 如果已经扫描完所有mm_slot，更新全扫描计数器khugepaged_full_scans
 	 */
     unsigned long address;
 };
@@ -881,16 +899,23 @@ static int khugepaged_find_target_node(void)
     return 0;
 }
 
+// 从伙伴系统中分配一个2MB的大页
 static inline struct page *alloc_khugepaged_hugepage(void)
 {
     struct page *page;
 
+    // 分配一个order为9的2MB大页
     page = alloc_pages(alloc_hugepage_khugepaged_gfpmask(), HPAGE_PMD_ORDER);
     if (page)
         prep_transhuge_page(page);
     return page;
 }
 
+/**
+ 分配用于透明大页的2MB页面
+- 如果分配失败且wait为true,则让进程睡眠一段时间后重试
+- 如果分配成功,调用prep_transhuge_page()对页面进行初始化
+ */
 static struct page *khugepaged_alloc_hugepage(bool *wait)
 {
     struct page *hpage;
@@ -1034,6 +1059,9 @@ static bool __collapse_huge_page_swapin(struct mm_struct *mm, struct vm_area_str
     return true;
 }
 
+// 合并vma关联的虚拟内存页为透明大页
+// - 将4KB基础物理页面中的内容复制到新的2MB大页中
+// - 用新的对大页的pmd映射替换原有的pte映射
 static void collapse_huge_page(struct mm_struct *mm, unsigned long address, struct page **hpage, int node,
                                int referenced, int unmapped)
 {
@@ -1041,6 +1069,7 @@ static void collapse_huge_page(struct mm_struct *mm, unsigned long address, stru
     pmd_t *pmd, _pmd;
     pte_t *pte;
     pgtable_t pgtable;
+    // 新分配的2MB物理大页
     struct page *new_page;
     spinlock_t *pmd_ptl, *pte_ptl;
     int isolated = 0, result = 0;
@@ -1060,6 +1089,7 @@ static void collapse_huge_page(struct mm_struct *mm, unsigned long address, stru
 	 * that. We will recheck the vma after taking it again in write mode.
 	 */
     mmap_read_unlock(mm);
+    // 分配2MB物理大页
     new_page = khugepaged_alloc_page(hpage, gfp, node);
     if (!new_page) {
         result = SCAN_ALLOC_HUGE_PAGE_FAIL;
@@ -1155,11 +1185,13 @@ static void collapse_huge_page(struct mm_struct *mm, unsigned long address, stru
 	 */
     anon_vma_unlock_write(vma->anon_vma);
 
+    // 将数据从原来 4K 的小页中复制到 2M 的大页里，并将原来 4K 的小页释放掉
     __collapse_huge_page_copy(pte, new_page, vma, address, pte_ptl, &compound_pagelist);
     pte_unmap(pte);
     __SetPageUptodate(new_page);
     pgtable = pmd_pgtable(_pmd);
 
+    // 为大页生成新的页中间目录
     _pmd = mk_huge_pmd(new_page, vma->vm_page_prot);
     _pmd = maybe_pmd_mkwrite(pmd_mkdirty(_pmd), vma);
 
@@ -1173,8 +1205,10 @@ static void collapse_huge_page(struct mm_struct *mm, unsigned long address, stru
     spin_lock(pmd_ptl);
     BUG_ON(!pmd_none(*pmd));
     page_add_new_anon_rmap(new_page, vma, address, true);
+    // 将大页加入到不活跃或者不可回收的LRU链表中
     lru_cache_add_inactive_or_unevictable(new_page, vma);
     pgtable_trans_huge_deposit(mm, pmd, pgtable);
+    // 将进程的pmd设置为新创建的pmd
     set_pmd_at(mm, address, pmd, _pmd);
     update_mmu_cache_pmd(vma, address, pmd);
     spin_unlock(pmd_ptl);
@@ -1197,35 +1231,52 @@ out:
 static int khugepaged_scan_pmd(struct mm_struct *mm, struct vm_area_struct *vma, unsigned long address,
                                struct page **hpage)
 {
+    // 指向页中间目录项的指针
     pmd_t *pmd;
+    // 指向页表项的指针和其临时变量
     pte_t *pte, *_pte;
+    // 函数返回值和扫描结果
     int ret = 0, result = 0, referenced = 0;
+    // none或zero页面计数、共享页面计数
     int none_or_zero = 0, shared = 0;
+    // 当前处理的页面指针
     struct page *page = NULL;
+    // 当前扫描的虚拟地址
     unsigned long _address;
+    // 页表锁
     spinlock_t *ptl;
+    // NUMA节点ID、未映射页面计数
     int node = NUMA_NO_NODE, unmapped = 0;
+    // 页面是否可写标志
     bool writable = false;
 
+    // 地址必须按大页对齐
     VM_BUG_ON(address & ~HPAGE_PMD_MASK);
 
+    // 获取地址对应的PMD表项
     pmd = mm_find_pmd(mm, address);
     if (!pmd) {
+        // PMD为空则返回扫描失败
         result = SCAN_PMD_NULL;
         goto out;
     }
 
+    // 清空NUMA节点负载数组
     memset(khugepaged_node_load, 0, sizeof(khugepaged_node_load));
+
+    // 获取并锁定页表项
     pte = pte_offset_map_lock(mm, pmd, address, &ptl);
+
+    // 遍历大页范围内的所有PTE
     for (_address = address, _pte = pte; _pte < pte + HPAGE_PMD_NR; _pte++, _address += PAGE_SIZE) {
         pte_t pteval = *_pte;
+
+        // 处理交换页面
         if (is_swap_pte(pteval)) {
+            // 统计交换页面的数量++unmapped
+            //
             if (++unmapped <= khugepaged_max_ptes_swap) {
-                /*
-				 * Always be strict with uffd-wp
-				 * enabled swap entries.  Please see
-				 * comment below for pte_uffd_wp().
-				 */
+                // 检查是否有uffd-wp启用的交换条目
                 if (pte_swp_uffd_wp(pteval)) {
                     result = SCAN_PTE_UFFD_WP;
                     goto out_unmap;
@@ -1236,6 +1287,8 @@ static int khugepaged_scan_pmd(struct mm_struct *mm, struct vm_area_struct *vma,
                 goto out_unmap;
             }
         }
+
+        // 处理空页面或零页面
         if (pte_none(pteval) || is_zero_pfn(pte_pfn(pteval))) {
             if (!userfaultfd_armed(vma) && ++none_or_zero <= khugepaged_max_ptes_none) {
                 continue;
@@ -1244,51 +1297,40 @@ static int khugepaged_scan_pmd(struct mm_struct *mm, struct vm_area_struct *vma,
                 goto out_unmap;
             }
         }
+
+        // 检查页面是否存在
         if (!pte_present(pteval)) {
             result = SCAN_PTE_NON_PRESENT;
             goto out_unmap;
         }
-        if (pte_uffd_wp(pteval)) {
-            /*
-			 * Don't collapse the page if any of the small
-			 * PTEs are armed with uffd write protection.
-			 * Here we can also mark the new huge pmd as
-			 * write protected if any of the small ones is
-			 * marked but that could bring uknown
-			 * userfault messages that falls outside of
-			 * the registered range.  So, just be simple.
-			 */
-            result = SCAN_PTE_UFFD_WP;
-            goto out_unmap;
-        }
-        if (pte_write(pteval))
-            writable = true;
 
+        // 获取页面结构
         page = vm_normal_page(vma, _address, pteval);
         if (unlikely(!page)) {
             result = SCAN_PAGE_NULL;
             goto out_unmap;
         }
 
+        // 必须是匿名页面
+        VM_BUG_ON_PAGE(!PageAnon(page), page);
+
+        // 检查共享页面数量限制
         if (page_mapcount(page) > 1 && ++shared > khugepaged_max_ptes_shared) {
             result = SCAN_EXCEED_SHARED_PTE;
             goto out_unmap;
         }
 
-        page = compound_head(page);
-
-        /*
-		 * Record which node the original page is from and save this
-		 * information to khugepaged_node_load[].
-		 * Khupaged will allocate hugepage from the node has the max
-		 * hit record.
-		 */
+        // 检查页面的NUMA节点
         node = page_to_nid(page);
         if (khugepaged_scan_abort(node)) {
             result = SCAN_SCAN_ABORT;
             goto out_unmap;
         }
+
+        // 更新节点负载统计
         khugepaged_node_load[node]++;
+
+        // 检查页面的各种状态
         if (!PageLRU(page)) {
             result = SCAN_PAGE_LRU;
             goto out_unmap;
@@ -1302,50 +1344,43 @@ static int khugepaged_scan_pmd(struct mm_struct *mm, struct vm_area_struct *vma,
             goto out_unmap;
         }
 
-        /*
-		 * Check if the page has any GUP (or other external) pins.
-		 *
-		 * Here the check is racy it may see totmal_mapcount > refcount
-		 * in some cases.
-		 * For example, one process with one forked child process.
-		 * The parent has the PMD split due to MADV_DONTNEED, then
-		 * the child is trying unmap the whole PMD, but khugepaged
-		 * may be scanning the parent between the child has
-		 * PageDoubleMap flag cleared and dec the mapcount.  So
-		 * khugepaged may see total_mapcount > refcount.
-		 *
-		 * But such case is ephemeral we could always retry collapse
-		 * later.  However it may report false positive if the page
-		 * has excessive GUP pins (i.e. 512).  Anyway the same check
-		 * will be done again later the risk seems low.
-		 */
+        // 检查页面引用计数
         if (!is_refcount_suitable(page)) {
             result = SCAN_PAGE_COUNT;
             goto out_unmap;
         }
+
+        // 检查页面的访问状态
         if (pte_young(pteval) || page_is_young(page) || PageReferenced(page) ||
             mmu_notifier_test_young(vma->vm_mm, address))
             referenced++;
+
+        // 检查页面是否可写
+        if (pte_write(pteval))
+            writable = true;
     }
-    if (!writable) {
-        result = SCAN_PAGE_RO;
-    } else if (!referenced || (unmapped && referenced < HPAGE_PMD_NR / 2)) {
-        result = SCAN_LACK_REFERENCED_PAGE;
+
+    // 检查最终结果
+    if (likely(writable)) {
+        if (likely(referenced)) {
+            result = SCAN_SUCCEED;
+            ret = 1;
+        }
     } else {
-        result = SCAN_SUCCEED;
-        ret = 1;
+        result = SCAN_PAGE_RO;
     }
+
 out_unmap:
     pte_unmap_unlock(pte, ptl);
+
+out:
+    // 如果扫描成功，尝试合并页面
     if (ret) {
         node = khugepaged_find_target_node();
-        /* collapse_huge_page will return with the mmap_lock released */
         collapse_huge_page(mm, address, hpage, node, referenced, unmapped);
     }
-    /**
-	 *
-	 */
-out:
+
+    // 记录扫描跟踪信息
     trace_mm_khugepaged_scan_pmd(mm, page, writable, referenced, none_or_zero, result, unmapped);
     return ret;
 }
