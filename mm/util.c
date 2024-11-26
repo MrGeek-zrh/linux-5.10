@@ -36,8 +36,8 @@
  */
 void kfree_const(const void *x)
 {
-	if (!is_kernel_rodata((unsigned long)x))
-		kfree(x);
+    if (!is_kernel_rodata((unsigned long)x))
+        kfree(x);
 }
 EXPORT_SYMBOL(kfree_const);
 
@@ -50,17 +50,17 @@ EXPORT_SYMBOL(kfree_const);
  */ /* 复制字符串 */
 char *kstrdup(const char *s, gfp_t gfp)
 {
-	size_t len;
-	char *buf;
+    size_t len;
+    char *buf;
 
-	if (!s)
-		return NULL;
+    if (!s)
+        return NULL;
 
-	len = strlen(s) + 1;
-	buf = kmalloc_track_caller(len, gfp);
-	if (buf)
-		memcpy(buf, s, len);
-	return buf;
+    len = strlen(s) + 1;
+    buf = kmalloc_track_caller(len, gfp);
+    if (buf)
+        memcpy(buf, s, len);
+    return buf;
 }
 EXPORT_SYMBOL(kstrdup);
 
@@ -77,10 +77,10 @@ EXPORT_SYMBOL(kstrdup);
  */
 const char *kstrdup_const(const char *s, gfp_t gfp)
 {
-	if (is_kernel_rodata((unsigned long)s))
-		return s;
+    if (is_kernel_rodata((unsigned long)s))
+        return s;
 
-	return kstrdup(s, gfp);
+    return kstrdup(s, gfp);
 }
 EXPORT_SYMBOL(kstrdup_const);
 
@@ -96,19 +96,19 @@ EXPORT_SYMBOL(kstrdup_const);
  */
 char *kstrndup(const char *s, size_t max, gfp_t gfp)
 {
-	size_t len;
-	char *buf;
+    size_t len;
+    char *buf;
 
-	if (!s)
-		return NULL;
+    if (!s)
+        return NULL;
 
-	len = strnlen(s, max);
-	buf = kmalloc_track_caller(len+1, gfp);
-	if (buf) {
-		memcpy(buf, s, len);
-		buf[len] = '\0';
-	}
-	return buf;
+    len = strnlen(s, max);
+    buf = kmalloc_track_caller(len + 1, gfp);
+    if (buf) {
+        memcpy(buf, s, len);
+        buf[len] = '\0';
+    }
+    return buf;
 }
 EXPORT_SYMBOL(kstrndup);
 
@@ -123,12 +123,12 @@ EXPORT_SYMBOL(kstrndup);
  */
 void *kmemdup(const void *src, size_t len, gfp_t gfp)
 {
-	void *p;
+    void *p;
 
-	p = kmalloc_track_caller(len, gfp);
-	if (p)
-		memcpy(p, src, len);
-	return p;
+    p = kmalloc_track_caller(len, gfp);
+    if (p)
+        memcpy(p, src, len);
+    return p;
 }
 EXPORT_SYMBOL(kmemdup);
 
@@ -143,17 +143,17 @@ EXPORT_SYMBOL(kmemdup);
  */
 char *kmemdup_nul(const char *s, size_t len, gfp_t gfp)
 {
-	char *buf;
+    char *buf;
 
-	if (!s)
-		return NULL;
+    if (!s)
+        return NULL;
 
-	buf = kmalloc_track_caller(len + 1, gfp);
-	if (buf) {
-		memcpy(buf, s, len);
-		buf[len] = '\0';
-	}
-	return buf;
+    buf = kmalloc_track_caller(len + 1, gfp);
+    if (buf) {
+        memcpy(buf, s, len);
+        buf[len] = '\0';
+    }
+    return buf;
 }
 EXPORT_SYMBOL(kmemdup_nul);
 
@@ -168,18 +168,18 @@ EXPORT_SYMBOL(kmemdup_nul);
  */
 void *memdup_user(const void __user *src, size_t len)
 {
-	void *p;
+    void *p;
 
-	p = kmalloc_track_caller(len, GFP_USER | __GFP_NOWARN);
-	if (!p)
-		return ERR_PTR(-ENOMEM);
+    p = kmalloc_track_caller(len, GFP_USER | __GFP_NOWARN);
+    if (!p)
+        return ERR_PTR(-ENOMEM);
 
-	if (copy_from_user(p, src, len)) {
-		kfree(p);
-		return ERR_PTR(-EFAULT);
-	}
+    if (copy_from_user(p, src, len)) {
+        kfree(p);
+        return ERR_PTR(-EFAULT);
+    }
 
-	return p;
+    return p;
 }
 EXPORT_SYMBOL(memdup_user);
 
@@ -194,18 +194,18 @@ EXPORT_SYMBOL(memdup_user);
  */
 void *vmemdup_user(const void __user *src, size_t len)
 {
-	void *p;
+    void *p;
 
-	p = kvmalloc(len, GFP_USER);
-	if (!p)
-		return ERR_PTR(-ENOMEM);
+    p = kvmalloc(len, GFP_USER);
+    if (!p)
+        return ERR_PTR(-ENOMEM);
 
-	if (copy_from_user(p, src, len)) {
-		kvfree(p);
-		return ERR_PTR(-EFAULT);
-	}
+    if (copy_from_user(p, src, len)) {
+        kvfree(p);
+        return ERR_PTR(-EFAULT);
+    }
 
-	return p;
+    return p;
 }
 EXPORT_SYMBOL(vmemdup_user);
 
@@ -218,28 +218,28 @@ EXPORT_SYMBOL(vmemdup_user);
  */
 char *strndup_user(const char __user *s, long n)
 {
-	char *p;
-	long length;
+    char *p;
+    long length;
 
-	length = strnlen_user(s, n);
+    length = strnlen_user(s, n);
 
-	if (!length)
-		return ERR_PTR(-EFAULT);
+    if (!length)
+        return ERR_PTR(-EFAULT);
 
-	if (length > n)
-		return ERR_PTR(-EINVAL);
+    if (length > n)
+        return ERR_PTR(-EINVAL);
 
     /**
      *
      */
-	p = memdup_user(s, length);
+    p = memdup_user(s, length);
 
-	if (IS_ERR(p))
-		return p;
+    if (IS_ERR(p))
+        return p;
 
-	p[length - 1] = '\0';
+    p[length - 1] = '\0';
 
-	return p;
+    return p;
 }
 EXPORT_SYMBOL(strndup_user);
 
@@ -253,170 +253,170 @@ EXPORT_SYMBOL(strndup_user);
  */
 void *memdup_user_nul(const void __user *src, size_t len)
 {
-	char *p;
+    char *p;
 
-	/*
+    /*
 	 * Always use GFP_KERNEL, since copy_from_user() can sleep and
 	 * cause pagefault, which makes it pointless to use GFP_NOFS
 	 * or GFP_ATOMIC.
 	 */
-	p = kmalloc_track_caller(len + 1, GFP_KERNEL);
-	if (!p)
-		return ERR_PTR(-ENOMEM);
+    p = kmalloc_track_caller(len + 1, GFP_KERNEL);
+    if (!p)
+        return ERR_PTR(-ENOMEM);
 
-	if (copy_from_user(p, src, len)) {
-		kfree(p);
-		return ERR_PTR(-EFAULT);
-	}
-	p[len] = '\0';
+    if (copy_from_user(p, src, len)) {
+        kfree(p);
+        return ERR_PTR(-EFAULT);
+    }
+    p[len] = '\0';
 
-	return p;
+    return p;
 }
 EXPORT_SYMBOL(memdup_user_nul);
 
 void __vma_link_list(struct mm_struct *mm, struct vm_area_struct *vma,
-		struct vm_area_struct *prev)    /* 将新的vma 添加至链表 */
+                     struct vm_area_struct *prev) /* 将新的vma 添加至链表 */
 {
-	struct vm_area_struct *next;
+    struct vm_area_struct *next;
 
-	vma->vm_prev = prev;
-	if (prev) {
-		next = prev->vm_next;
-		prev->vm_next = vma;
-	} else {
-		next = mm->mmap;
-		mm->mmap = vma;
-	}
-	vma->vm_next = next;
-	if (next)
-		next->vm_prev = vma;
+    vma->vm_prev = prev;
+    if (prev) {
+        next = prev->vm_next;
+        prev->vm_next = vma;
+    } else {
+        next = mm->mmap;
+        mm->mmap = vma;
+    }
+    vma->vm_next = next;
+    if (next)
+        next->vm_prev = vma;
 }
 
 void __vma_unlink_list(struct mm_struct *mm, struct vm_area_struct *vma)
 {
-	struct vm_area_struct *prev, *next;
+    struct vm_area_struct *prev, *next;
 
-	next = vma->vm_next;
-	prev = vma->vm_prev;
-	if (prev)
-		prev->vm_next = next;
-	else
-		mm->mmap = next;
-	if (next)
-		next->vm_prev = prev;
+    next = vma->vm_next;
+    prev = vma->vm_prev;
+    if (prev)
+        prev->vm_next = next;
+    else
+        mm->mmap = next;
+    if (next)
+        next->vm_prev = prev;
 }
 
 /* Check if the vma is being used as a stack by this task */
 int vma_is_stack_for_current(struct vm_area_struct *vma)
 {
-	struct task_struct * __maybe_unused t = current;
+    struct task_struct *__maybe_unused t = current;
 
-	return (vma->vm_start <= KSTK_ESP(t) && vma->vm_end >= KSTK_ESP(t));
+    return (vma->vm_start <= KSTK_ESP(t) && vma->vm_end >= KSTK_ESP(t));
 }
 
 #ifndef STACK_RND_MASK
-#define STACK_RND_MASK (0x7ff >> (PAGE_SHIFT - 12))     /* 8MB of VA */
+#define STACK_RND_MASK (0x7ff >> (PAGE_SHIFT - 12)) /* 8MB of VA */
 #endif
 
 unsigned long randomize_stack_top(unsigned long stack_top)
 {
-	unsigned long random_variable = 0;
+    unsigned long random_variable = 0;
 
-	if (current->flags & PF_RANDOMIZE) {
-		random_variable = get_random_long();
-		random_variable &= STACK_RND_MASK;
-		random_variable <<= PAGE_SHIFT;
-	}
+    if (current->flags & PF_RANDOMIZE) {
+        random_variable = get_random_long();
+        random_variable &= STACK_RND_MASK;
+        random_variable <<= PAGE_SHIFT;
+    }
 #ifdef CONFIG_STACK_GROWSUP
-	return PAGE_ALIGN(stack_top) + random_variable;
+    return PAGE_ALIGN(stack_top) + random_variable;
 #else
-	return PAGE_ALIGN(stack_top) - random_variable;
+    return PAGE_ALIGN(stack_top) - random_variable;
 #endif
 }
 
 #ifdef CONFIG_ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT
 unsigned long arch_randomize_brk(struct mm_struct *mm)
 {
-	/* Is the current task 32bit ? */
-	if (!IS_ENABLED(CONFIG_64BIT) || is_compat_task())
-		return randomize_page(mm->brk, SZ_32M);
+    /* Is the current task 32bit ? */
+    if (!IS_ENABLED(CONFIG_64BIT) || is_compat_task())
+        return randomize_page(mm->brk, SZ_32M);
 
-	return randomize_page(mm->brk, SZ_1G);
+    return randomize_page(mm->brk, SZ_1G);
 }
 
 unsigned long arch_mmap_rnd(void)
 {
-	unsigned long rnd;
+    unsigned long rnd;
 
 #ifdef CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS
-	if (is_compat_task())
-		rnd = get_random_long() & ((1UL << mmap_rnd_compat_bits) - 1);
-	else
+    if (is_compat_task())
+        rnd = get_random_long() & ((1UL << mmap_rnd_compat_bits) - 1);
+    else
 #endif /* CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS */
-		rnd = get_random_long() & ((1UL << mmap_rnd_bits) - 1);
+        rnd = get_random_long() & ((1UL << mmap_rnd_bits) - 1);
 
-	return rnd << PAGE_SHIFT;
+    return rnd << PAGE_SHIFT;
 }
 
 static int mmap_is_legacy(struct rlimit *rlim_stack)
 {
-	if (current->personality & ADDR_COMPAT_LAYOUT)
-		return 1;
+    if (current->personality & ADDR_COMPAT_LAYOUT)
+        return 1;
 
-	if (rlim_stack->rlim_cur == RLIM_INFINITY)
-		return 1;
+    if (rlim_stack->rlim_cur == RLIM_INFINITY)
+        return 1;
 
-	return sysctl_legacy_va_layout;
+    return sysctl_legacy_va_layout;
 }
 
 /*
  * Leave enough space between the mmap area and the stack to honour ulimit in
  * the face of randomisation.
  */
-#define MIN_GAP		(SZ_128M)
-#define MAX_GAP		(STACK_TOP / 6 * 5)
+#define MIN_GAP (SZ_128M)
+#define MAX_GAP (STACK_TOP / 6 * 5)
 
 static unsigned long mmap_base(unsigned long rnd, struct rlimit *rlim_stack)
 {
-	unsigned long gap = rlim_stack->rlim_cur;
-	unsigned long pad = stack_guard_gap;
+    unsigned long gap = rlim_stack->rlim_cur;
+    unsigned long pad = stack_guard_gap;
 
-	/* Account for stack randomization if necessary */
-	if (current->flags & PF_RANDOMIZE)
-		pad += (STACK_RND_MASK << PAGE_SHIFT);
+    /* Account for stack randomization if necessary */
+    if (current->flags & PF_RANDOMIZE)
+        pad += (STACK_RND_MASK << PAGE_SHIFT);
 
-	/* Values close to RLIM_INFINITY can overflow. */
-	if (gap + pad > gap)
-		gap += pad;
+    /* Values close to RLIM_INFINITY can overflow. */
+    if (gap + pad > gap)
+        gap += pad;
 
-	if (gap < MIN_GAP)
-		gap = MIN_GAP;
-	else if (gap > MAX_GAP)
-		gap = MAX_GAP;
+    if (gap < MIN_GAP)
+        gap = MIN_GAP;
+    else if (gap > MAX_GAP)
+        gap = MAX_GAP;
 
-	return PAGE_ALIGN(STACK_TOP - gap - rnd);
+    return PAGE_ALIGN(STACK_TOP - gap - rnd);
 }
 
 void arch_pick_mmap_layout(struct mm_struct *mm, struct rlimit *rlim_stack)
 {
-	unsigned long random_factor = 0UL;
+    unsigned long random_factor = 0UL;
 
-	if (current->flags & PF_RANDOMIZE)
-		random_factor = arch_mmap_rnd();
+    if (current->flags & PF_RANDOMIZE)
+        random_factor = arch_mmap_rnd();
 
-	if (mmap_is_legacy(rlim_stack)) {
-		mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
-		mm->get_unmapped_area = arch_get_unmapped_area;
-	} else {
-		mm->mmap_base = mmap_base(random_factor, rlim_stack);
-		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
-	}
+    if (mmap_is_legacy(rlim_stack)) {
+        mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
+        mm->get_unmapped_area = arch_get_unmapped_area;
+    } else {
+        mm->mmap_base = mmap_base(random_factor, rlim_stack);
+        mm->get_unmapped_area = arch_get_unmapped_area_topdown;
+    }
 }
 #elif defined(CONFIG_MMU) && !defined(HAVE_ARCH_PICK_MMAP_LAYOUT)
 void arch_pick_mmap_layout(struct mm_struct *mm, struct rlimit *rlim_stack)
 {
-	mm->mmap_base = TASK_UNMAPPED_BASE;
-	mm->get_unmapped_area = arch_get_unmapped_area;
+    mm->mmap_base = TASK_UNMAPPED_BASE;
+    mm->get_unmapped_area = arch_get_unmapped_area;
 }
 #endif
 
@@ -435,34 +435,31 @@ void arch_pick_mmap_layout(struct mm_struct *mm, struct rlimit *rlim_stack)
  * * 0       on success
  * * -ENOMEM if RLIMIT_MEMLOCK would be exceeded.
  */
-int __account_locked_vm(struct mm_struct *mm, unsigned long pages, bool inc,
-			struct task_struct *task, bool bypass_rlim)
+int __account_locked_vm(struct mm_struct *mm, unsigned long pages, bool inc, struct task_struct *task, bool bypass_rlim)
 {
-	unsigned long locked_vm, limit;
-	int ret = 0;
+    unsigned long locked_vm, limit;
+    int ret = 0;
 
-	mmap_assert_write_locked(mm);
+    mmap_assert_write_locked(mm);
 
-	locked_vm = mm->locked_vm;
-	if (inc) {
-		if (!bypass_rlim) {
-			limit = task_rlimit(task, RLIMIT_MEMLOCK) >> PAGE_SHIFT;
-			if (locked_vm + pages > limit)
-				ret = -ENOMEM;
-		}
-		if (!ret)
-			mm->locked_vm = locked_vm + pages;
-	} else {
-		WARN_ON_ONCE(pages > locked_vm);
-		mm->locked_vm = locked_vm - pages;
-	}
+    locked_vm = mm->locked_vm;
+    if (inc) {
+        if (!bypass_rlim) {
+            limit = task_rlimit(task, RLIMIT_MEMLOCK) >> PAGE_SHIFT;
+            if (locked_vm + pages > limit)
+                ret = -ENOMEM;
+        }
+        if (!ret)
+            mm->locked_vm = locked_vm + pages;
+    } else {
+        WARN_ON_ONCE(pages > locked_vm);
+        mm->locked_vm = locked_vm - pages;
+    }
 
-	pr_debug("%s: [%d] caller %ps %c%lu %lu/%lu%s\n", __func__, task->pid,
-		 (void *)_RET_IP_, (inc) ? '+' : '-', pages << PAGE_SHIFT,
-		 locked_vm << PAGE_SHIFT, task_rlimit(task, RLIMIT_MEMLOCK),
-		 ret ? " - exceeded" : "");
+    pr_debug("%s: [%d] caller %ps %c%lu %lu/%lu%s\n", __func__, task->pid, (void *)_RET_IP_, (inc) ? '+' : '-',
+             pages << PAGE_SHIFT, locked_vm << PAGE_SHIFT, task_rlimit(task, RLIMIT_MEMLOCK), ret ? " - exceeded" : "");
 
-	return ret;
+    return ret;
 }
 EXPORT_SYMBOL_GPL(__account_locked_vm);
 
@@ -480,85 +477,82 @@ EXPORT_SYMBOL_GPL(__account_locked_vm);
  */
 int account_locked_vm(struct mm_struct *mm, unsigned long pages, bool inc)
 {
-	int ret;
+    int ret;
 
-	if (pages == 0 || !mm)
-		return 0;
+    if (pages == 0 || !mm)
+        return 0;
 
-	mmap_write_lock(mm);
-	ret = __account_locked_vm(mm, pages, inc, current,
-				  capable(CAP_IPC_LOCK));
-	mmap_write_unlock(mm);
+    mmap_write_lock(mm);
+    ret = __account_locked_vm(mm, pages, inc, current, capable(CAP_IPC_LOCK));
+    mmap_write_unlock(mm);
 
-	return ret;
+    return ret;
 }
 EXPORT_SYMBOL_GPL(account_locked_vm);
 
 /**
  *
  */
-unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
-	unsigned long len, unsigned long prot,
-	unsigned long flag, unsigned long pgoff)
+unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr, unsigned long len, unsigned long prot,
+                            unsigned long flag, unsigned long pgoff)
 {
-	unsigned long ret;
-	struct mm_struct *mm = current->mm;
-	unsigned long populate;
-	LIST_HEAD(uf);
+    unsigned long ret;
+    struct mm_struct *mm = current->mm;
+    unsigned long populate;
+    LIST_HEAD(uf);
 
-	/**
+    /**
 	 * @brief 映射文件 - 鉴权
 	 *
 	 */
-	ret = security_mmap_file(file, prot, flag);
-	/**
+    ret = security_mmap_file(file, prot, flag);
+    /**
 	 * @brief 鉴权成功，进行映射
 	 *
 	 */
-	if (!ret) {
-		/**
+    if (!ret) {
+        /**
 		 * @brief 信号量 down
 		 *
 		 */
-		if (mmap_write_lock_killable(mm))
-			return -EINTR;
-		/**
+        if (mmap_write_lock_killable(mm))
+            return -EINTR;
+        /**
 		 * @brief 核心函数
 		 *
 		 */
-		ret = do_mmap(file, addr, len, prot, flag, pgoff, &populate, &uf);
+        ret = do_mmap(file, addr, len, prot, flag, pgoff, &populate, &uf);
 
-		/**
+        /**
 		 * @brief 信号量 up
 		 *
 		 */
-		mmap_write_unlock(mm);
-		userfaultfd_unmap_complete(mm, &uf);
+        mmap_write_unlock(mm);
+        userfaultfd_unmap_complete(mm, &uf);
 
-		/**
+        /**
 		 * @brief 如果需要，立即填充vma对应的内存
 		 *
 		 */
-		if (populate)
-			mm_populate(ret, populate);
-	}
-	return ret;
+        if (populate)
+            mm_populate(ret, populate);
+    }
+    return ret;
 }
 /**
  * 映射文件
  *
  * sudo bpftrace -e 'kprobe:vm_mmap {printf("%-8s %-16lx %-8lx\n", comm, arg1, arg2);}'
  */
-unsigned long vm_mmap(struct file *file, unsigned long addr,
-	unsigned long len, unsigned long prot,
-	unsigned long flag, unsigned long offset)
+unsigned long vm_mmap(struct file *file, unsigned long addr, unsigned long len, unsigned long prot, unsigned long flag,
+                      unsigned long offset)
 {
-	if (unlikely(offset + PAGE_ALIGN(len) < offset))
-		return -EINVAL;
-	if (unlikely(offset_in_page(offset)))
-		return -EINVAL;
+    if (unlikely(offset + PAGE_ALIGN(len) < offset))
+        return -EINVAL;
+    if (unlikely(offset_in_page(offset)))
+        return -EINVAL;
 
-	return vm_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
+    return vm_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
 }
 EXPORT_SYMBOL(vm_mmap);
 
@@ -583,41 +577,40 @@ EXPORT_SYMBOL(vm_mmap);
  */
 void *kvmalloc_node(size_t size, gfp_t flags, int node)
 {
-	gfp_t kmalloc_flags = flags;
-	void *ret;
+    gfp_t kmalloc_flags = flags;
+    void *ret;
 
-	/*
+    /*
 	 * vmalloc uses GFP_KERNEL for some internal allocations (e.g page tables)
 	 * so the given set of flags has to be compatible.
 	 */
-	if ((flags & GFP_KERNEL) != GFP_KERNEL)
-		return kmalloc_node(size, flags, node);
+    if ((flags & GFP_KERNEL) != GFP_KERNEL)
+        return kmalloc_node(size, flags, node);
 
-	/*
+    /*
 	 * We want to attempt a large physically contiguous block first because
 	 * it is less likely to fragment multiple larger blocks and therefore
 	 * contribute to a long term fragmentation less than vmalloc fallback.
 	 * However make sure that larger requests are not too disruptive - no
 	 * OOM killer and no allocation failure warnings as we have a fallback.
 	 */
-	if (size > PAGE_SIZE) {
-		kmalloc_flags |= __GFP_NOWARN;
+    if (size > PAGE_SIZE) {
+        kmalloc_flags |= __GFP_NOWARN;
 
-		if (!(kmalloc_flags & __GFP_RETRY_MAYFAIL))
-			kmalloc_flags |= __GFP_NORETRY;
-	}
+        if (!(kmalloc_flags & __GFP_RETRY_MAYFAIL))
+            kmalloc_flags |= __GFP_NORETRY;
+    }
 
-	ret = kmalloc_node(size, kmalloc_flags, node);
+    ret = kmalloc_node(size, kmalloc_flags, node);
 
-	/*
+    /*
 	 * It doesn't really make sense to fallback to vmalloc for sub page
 	 * requests
 	 */
-	if (ret || size <= PAGE_SIZE)
-		return ret;
+    if (ret || size <= PAGE_SIZE)
+        return ret;
 
-	return __vmalloc_node(size, 1, flags, node,
-			__builtin_return_address(0));
+    return __vmalloc_node(size, 1, flags, node, __builtin_return_address(0));
 }
 EXPORT_SYMBOL(kvmalloc_node);
 
@@ -633,10 +626,10 @@ EXPORT_SYMBOL(kvmalloc_node);
  */
 void kvfree(const void *addr)
 {
-	if (is_vmalloc_addr(addr))
-		vfree(addr);
-	else
-		kfree(addr);
+    if (is_vmalloc_addr(addr))
+        vfree(addr);
+    else
+        kfree(addr);
 }
 EXPORT_SYMBOL(kvfree);
 
@@ -651,21 +644,21 @@ EXPORT_SYMBOL(kvfree);
  */
 void kvfree_sensitive(const void *addr, size_t len)
 {
-	if (likely(!ZERO_OR_NULL_PTR(addr))) {
-		memzero_explicit((void *)addr, len);
-		kvfree(addr);
-	}
+    if (likely(!ZERO_OR_NULL_PTR(addr))) {
+        memzero_explicit((void *)addr, len);
+        kvfree(addr);
+    }
 }
 EXPORT_SYMBOL(kvfree_sensitive);
 
-static inline void *__page_rmapping(struct page *page)  /* 清理标志位 */
+static inline void *__page_rmapping(struct page *page) /* 清理标志位 */
 {
-	unsigned long mapping;
+    unsigned long mapping;
 
-	mapping = (unsigned long)page->mapping;
-	mapping &= ~PAGE_MAPPING_FLAGS; //清除 page->mapping 低2位
+    mapping = (unsigned long)page->mapping;
+    mapping &= ~PAGE_MAPPING_FLAGS; //清除 page->mapping 低2位
 
-	return (void *)mapping;
+    return (void *)mapping;
 }
 
 /**
@@ -675,8 +668,8 @@ static inline void *__page_rmapping(struct page *page)  /* 清理标志位 */
  */
 void *page_rmapping(struct page *page)
 {
-	page = compound_head(page);     /* 回到起始页 */
-	return __page_rmapping(page);   /* 清空 page->mapping 的低两位 `PAGE_MAPPING_FLAGS`*/
+    page = compound_head(page); /* 回到起始页 */
+    return __page_rmapping(page); /* 清空 page->mapping 的低两位 `PAGE_MAPPING_FLAGS`*/
 }
 
 /*
@@ -684,38 +677,40 @@ void *page_rmapping(struct page *page)
  * For compound page it returns true if any subpage of compound page is mapped.
  *
  * 是否映射到 用户 PTE。使用 page->_mapcout 为依据
+ *
+ * NOTE:并不是所有可迁移页面都是page_mapped 。比如read/write产生的page cache
  */
 bool page_mapped(struct page *page)
 {
-	int i;
+    int i;
 
-	if (likely(!PageCompound(page)))
-		return atomic_read(&page->_mapcount) >= 0;
-	page = compound_head(page);
-	if (atomic_read(compound_mapcount_ptr(page)) >= 0)
-		return true;
+    if (likely(!PageCompound(page)))
+        return atomic_read(&page->_mapcount) >= 0;
+    page = compound_head(page);
+    if (atomic_read(compound_mapcount_ptr(page)) >= 0)
+        return true;
 
     /* 不能为大页内存 */
-	if (PageHuge(page))
-		return false;
+    if (PageHuge(page))
+        return false;
 
     for (i = 0; i < compound_nr(page); i++) {
-		if (atomic_read(&page[i]._mapcount) >= 0)
-			return true;
-	}
-	return false;
+        if (atomic_read(&page[i]._mapcount) >= 0)
+            return true;
+    }
+    return false;
 }
 EXPORT_SYMBOL(page_mapped);
 
-struct anon_vma *page_anon_vma(struct page *page)   /* 获取 anon_vma 结构 */
+struct anon_vma *page_anon_vma(struct page *page) /* 获取 anon_vma 结构 */
 {
-	unsigned long mapping;
+    unsigned long mapping;
 
-	page = compound_head(page);
-	mapping = (unsigned long)page->mapping;
-	if ((mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
-		return NULL;
-	return __page_rmapping(page);   /* 获取 anon_vma 结构 */
+    page = compound_head(page);
+    mapping = (unsigned long)page->mapping;
+    if ((mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
+        return NULL;
+    return __page_rmapping(page); /* 获取 anon_vma 结构 */
 }
 
 /**
@@ -728,30 +723,30 @@ struct anon_vma *page_anon_vma(struct page *page)   /* 获取 anon_vma 结构 */
  */
 struct address_space *page_mapping(struct page *page)
 {
-	struct address_space *mapping;
+    struct address_space *mapping;
 
-	page = compound_head(page);
+    page = compound_head(page);
 
-	/* This happens if someone calls flush_dcache_page on slab page */
-	if (unlikely(PageSlab(page)))
-		return NULL;
+    /* This happens if someone calls flush_dcache_page on slab page */
+    if (unlikely(PageSlab(page)))
+        return NULL;
 
     /* 交换高速缓存页面 */
-	if (unlikely(PageSwapCache(page))) {
-		swp_entry_t entry;
+    if (unlikely(PageSwapCache(page))) {
+        swp_entry_t entry;
 
-		entry.val = page_private(page);
-		return swap_address_space(entry);   /* 指向 swapper_spaces */
-	}
+        entry.val = page_private(page);
+        return swap_address_space(entry); /* 指向 swapper_spaces */
+    }
 
-	mapping = page->mapping;
+    mapping = page->mapping;
 
     /* 匿名映射时返回空 */
-	if ((unsigned long)mapping & PAGE_MAPPING_ANON)
-		return NULL;
+    if ((unsigned long)mapping & PAGE_MAPPING_ANON)
+        return NULL;
 
     /* 文件映射页面 */
-	return (void *)((unsigned long)mapping & ~PAGE_MAPPING_FLAGS);
+    return (void *)((unsigned long)mapping & ~PAGE_MAPPING_FLAGS);
 }
 EXPORT_SYMBOL(page_mapping);
 
@@ -760,62 +755,60 @@ EXPORT_SYMBOL(page_mapping);
  */
 struct address_space *page_mapping_file(struct page *page)
 {
-	if (unlikely(PageSwapCache(page)))
-		return NULL;
-	return page_mapping(page);
+    if (unlikely(PageSwapCache(page)))
+        return NULL;
+    return page_mapping(page);
 }
 
 /* Slow path of page_mapcount() for compound pages */
 int __page_mapcount(struct page *page)
 {
-	int ret;
+    int ret;
 
-	ret = atomic_read(&page->_mapcount) + 1;
-	/*
+    ret = atomic_read(&page->_mapcount) + 1;
+    /*
 	 * For file THP page->_mapcount contains total number of mapping
 	 * of the page: no need to look into compound_mapcount.
 	 */
-	if (!PageAnon(page) && !PageHuge(page))
-		return ret;
-	page = compound_head(page);
-	ret += atomic_read(compound_mapcount_ptr(page)) + 1;
-	if (PageDoubleMap(page))
-		ret--;
-	return ret;
+    if (!PageAnon(page) && !PageHuge(page))
+        return ret;
+    page = compound_head(page);
+    ret += atomic_read(compound_mapcount_ptr(page)) + 1;
+    if (PageDoubleMap(page))
+        ret--;
+    return ret;
 }
 EXPORT_SYMBOL_GPL(__page_mapcount);
 
-int __read_mostly sysctl_overcommit_memory  = OVERCOMMIT_GUESS;
-int __read_mostly sysctl_overcommit_ratio  = 50;
-unsigned long __read_mostly sysctl_overcommit_kbytes ;
-int __read_mostly sysctl_max_map_count  = DEFAULT_MAX_MAP_COUNT;
-unsigned long __read_mostly sysctl_user_reserve_kbytes  = 1UL << 17; /* 128MB */
-unsigned long __read_mostly sysctl_admin_reserve_kbytes  = 1UL << 13; /* 8MB */
+int __read_mostly sysctl_overcommit_memory = OVERCOMMIT_GUESS;
+int __read_mostly sysctl_overcommit_ratio = 50;
+unsigned long __read_mostly sysctl_overcommit_kbytes;
+int __read_mostly sysctl_max_map_count = DEFAULT_MAX_MAP_COUNT;
+unsigned long __read_mostly sysctl_user_reserve_kbytes = 1UL << 17; /* 128MB */
+unsigned long __read_mostly sysctl_admin_reserve_kbytes = 1UL << 13; /* 8MB */
 
-int overcommit_ratio_handler(struct ctl_table *table, int write, void *buffer,
-		size_t *lenp, loff_t *ppos)
+int overcommit_ratio_handler(struct ctl_table *table, int write, void *buffer, size_t *lenp, loff_t *ppos)
 {
-	int ret;
+    int ret;
 
-	ret = proc_dointvec(table, write, buffer, lenp, ppos);
-	if (ret == 0 && write)
-		sysctl_overcommit_kbytes = 0;
-	return ret;
+    ret = proc_dointvec(table, write, buffer, lenp, ppos);
+    if (ret == 0 && write)
+        sysctl_overcommit_kbytes = 0;
+    return ret;
 }
 
 static void sync_overcommit_as(struct work_struct *dummy)
 {
-	percpu_counter_sync(&vm_committed_as);
+    percpu_counter_sync(&vm_committed_as);
 }
 
-int overcommit_policy_handler(struct ctl_table *table, int write, void *buffer,
-		size_t *lenp, loff_t *ppos)
+int overcommit_policy_handler(struct ctl_table *table, int write, void *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table t;
-	int new_policy;
-	int ret;
+    struct ctl_table t;
+    int new_policy;
+    int ret;
 
-	/*
+    /*
 	 * The deviation of sync_overcommit_as could be big with loose policy
 	 * like OVERCOMMIT_ALWAYS/OVERCOMMIT_GUESS. When changing policy to
 	 * strict OVERCOMMIT_NEVER, we need to reduce the deviation to comply
@@ -826,33 +819,32 @@ int overcommit_policy_handler(struct ctl_table *table, int write, void *buffer,
 	 *	2. sync percpu count on each CPU
 	 *	3. switch the policy
 	 */
-	if (write) {
-		t = *table;
-		t.data = &new_policy;
-		ret = proc_dointvec_minmax(&t, write, buffer, lenp, ppos);
-		if (ret)
-			return ret;
+    if (write) {
+        t = *table;
+        t.data = &new_policy;
+        ret = proc_dointvec_minmax(&t, write, buffer, lenp, ppos);
+        if (ret)
+            return ret;
 
-		mm_compute_batch(new_policy);
-		if (new_policy == OVERCOMMIT_NEVER)
-			schedule_on_each_cpu(sync_overcommit_as);
-		sysctl_overcommit_memory = new_policy;
-	} else {
-		ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
-	}
+        mm_compute_batch(new_policy);
+        if (new_policy == OVERCOMMIT_NEVER)
+            schedule_on_each_cpu(sync_overcommit_as);
+        sysctl_overcommit_memory = new_policy;
+    } else {
+        ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
+    }
 
-	return ret;
+    return ret;
 }
 
-int overcommit_kbytes_handler(struct ctl_table *table, int write, void *buffer,
-		size_t *lenp, loff_t *ppos)
+int overcommit_kbytes_handler(struct ctl_table *table, int write, void *buffer, size_t *lenp, loff_t *ppos)
 {
-	int ret;
+    int ret;
 
-	ret = proc_doulongvec_minmax(table, write, buffer, lenp, ppos);
-	if (ret == 0 && write)
-		sysctl_overcommit_ratio = 0;
-	return ret;
+    ret = proc_doulongvec_minmax(table, write, buffer, lenp, ppos);
+    if (ret == 0 && write)
+        sysctl_overcommit_ratio = 0;
+    return ret;
 }
 
 /*
@@ -860,16 +852,15 @@ int overcommit_kbytes_handler(struct ctl_table *table, int write, void *buffer,
  */
 unsigned long vm_commit_limit(void)
 {
-	unsigned long allowed;
+    unsigned long allowed;
 
-	if (sysctl_overcommit_kbytes)
-		allowed = sysctl_overcommit_kbytes >> (PAGE_SHIFT - 10);
-	else
-		allowed = ((totalram_pages() - hugetlb_total_pages())
-			   * sysctl_overcommit_ratio / 100);
-	allowed += total_swap_pages;
+    if (sysctl_overcommit_kbytes)
+        allowed = sysctl_overcommit_kbytes >> (PAGE_SHIFT - 10);
+    else
+        allowed = ((totalram_pages() - hugetlb_total_pages()) * sysctl_overcommit_ratio / 100);
+    allowed += total_swap_pages;
 
-	return allowed;
+    return allowed;
 }
 
 /*
@@ -893,7 +884,7 @@ struct percpu_counter vm_committed_as ____cacheline_aligned_in_smp;
  */
 unsigned long vm_memory_committed(void)
 {
-	return percpu_counter_sum_positive(&vm_committed_as);
+    return percpu_counter_sum_positive(&vm_committed_as);
 }
 EXPORT_SYMBOL_GPL(vm_memory_committed);
 
@@ -915,44 +906,44 @@ EXPORT_SYMBOL_GPL(vm_memory_committed);
  */
 int __vm_enough_memory(struct mm_struct *mm, long pages, int cap_sys_admin)
 {
-	long allowed;
+    long allowed;
 
-	vm_acct_memory(pages);
+    vm_acct_memory(pages);
 
-	/*
+    /*
 	 * Sometimes we want to use more memory than we have
 	 */
-	if (sysctl_overcommit_memory == OVERCOMMIT_ALWAYS)
-		return 0;
+    if (sysctl_overcommit_memory == OVERCOMMIT_ALWAYS)
+        return 0;
 
-	if (sysctl_overcommit_memory == OVERCOMMIT_GUESS) {
-		if (pages > totalram_pages() + total_swap_pages)
-			goto error;
-		return 0;
-	}
+    if (sysctl_overcommit_memory == OVERCOMMIT_GUESS) {
+        if (pages > totalram_pages() + total_swap_pages)
+            goto error;
+        return 0;
+    }
 
-	allowed = vm_commit_limit();
-	/*
+    allowed = vm_commit_limit();
+    /*
 	 * Reserve some for root
 	 */
-	if (!cap_sys_admin)
-		allowed -= sysctl_admin_reserve_kbytes >> (PAGE_SHIFT - 10);
+    if (!cap_sys_admin)
+        allowed -= sysctl_admin_reserve_kbytes >> (PAGE_SHIFT - 10);
 
-	/*
+    /*
 	 * Don't let a single process grow so big a user can't recover
 	 */
-	if (mm) {
-		long reserve = sysctl_user_reserve_kbytes >> (PAGE_SHIFT - 10);
+    if (mm) {
+        long reserve = sysctl_user_reserve_kbytes >> (PAGE_SHIFT - 10);
 
-		allowed -= min_t(long, mm->total_vm / 32, reserve);
-	}
+        allowed -= min_t(long, mm->total_vm / 32, reserve);
+    }
 
-	if (percpu_counter_read_positive(&vm_committed_as) < allowed)
-		return 0;
+    if (percpu_counter_read_positive(&vm_committed_as) < allowed)
+        return 0;
 error:
-	vm_unacct_memory(pages);
+    vm_unacct_memory(pages);
 
-	return -ENOMEM;
+    return -ENOMEM;
 }
 
 /**
@@ -967,51 +958,49 @@ error:
  */
 int get_cmdline(struct task_struct *task, char *buffer, int buflen)
 {
-	int res = 0;
-	unsigned int len;
-	struct mm_struct *mm = get_task_mm(task);
-	unsigned long arg_start, arg_end, env_start, env_end;
-	if (!mm)
-		goto out;
-	if (!mm->arg_end)
-		goto out_mm;	/* Shh! No looking before we're done */
+    int res = 0;
+    unsigned int len;
+    struct mm_struct *mm = get_task_mm(task);
+    unsigned long arg_start, arg_end, env_start, env_end;
+    if (!mm)
+        goto out;
+    if (!mm->arg_end)
+        goto out_mm; /* Shh! No looking before we're done */
 
-	spin_lock(&mm->arg_lock);
-	arg_start = mm->arg_start;
-	arg_end = mm->arg_end;
-	env_start = mm->env_start;
-	env_end = mm->env_end;
-	spin_unlock(&mm->arg_lock);
+    spin_lock(&mm->arg_lock);
+    arg_start = mm->arg_start;
+    arg_end = mm->arg_end;
+    env_start = mm->env_start;
+    env_end = mm->env_end;
+    spin_unlock(&mm->arg_lock);
 
-	len = arg_end - arg_start;
+    len = arg_end - arg_start;
 
-	if (len > buflen)
-		len = buflen;
+    if (len > buflen)
+        len = buflen;
 
-	res = access_process_vm(task, arg_start, buffer, len, FOLL_FORCE);
+    res = access_process_vm(task, arg_start, buffer, len, FOLL_FORCE);
 
-	/*
+    /*
 	 * If the nul at the end of args has been overwritten, then
 	 * assume application is using setproctitle(3).
 	 */
-	if (res > 0 && buffer[res-1] != '\0' && len < buflen) {
-		len = strnlen(buffer, res);
-		if (len < res) {
-			res = len;
-		} else {
-			len = env_end - env_start;
-			if (len > buflen - res)
-				len = buflen - res;
-			res += access_process_vm(task, env_start,
-						 buffer+res, len,
-						 FOLL_FORCE);
-			res = strnlen(buffer, res);
-		}
-	}
+    if (res > 0 && buffer[res - 1] != '\0' && len < buflen) {
+        len = strnlen(buffer, res);
+        if (len < res) {
+            res = len;
+        } else {
+            len = env_end - env_start;
+            if (len > buflen - res)
+                len = buflen - res;
+            res += access_process_vm(task, env_start, buffer + res, len, FOLL_FORCE);
+            res = strnlen(buffer, res);
+        }
+    }
 out_mm:
-	mmput(mm);
+    mmput(mm);
 out:
-	return res;
+    return res;
 }
 
 /**
@@ -1019,18 +1008,18 @@ out:
  */
 int __weak memcmp_pages(struct page *page1, struct page *page2)
 {
-	char *addr1, *addr2;
-	int ret;
+    char *addr1, *addr2;
+    int ret;
 
-	addr1 = kmap_atomic(page1);
-	addr2 = kmap_atomic(page2);
+    addr1 = kmap_atomic(page1);
+    addr2 = kmap_atomic(page2);
 
     /**
      *  是比较 两个 page 结构??
      *  为什么不是比较 page 对应的 物理页 PTE 里面的内容?
      */
-	ret = memcmp(addr1, addr2, PAGE_SIZE);
-	kunmap_atomic(addr2);
-	kunmap_atomic(addr1);
-	return ret;
+    ret = memcmp(addr1, addr2, PAGE_SIZE);
+    kunmap_atomic(addr2);
+    kunmap_atomic(addr1);
+    return ret;
 }

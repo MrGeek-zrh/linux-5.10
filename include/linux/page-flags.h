@@ -2814,20 +2814,19 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
 │   * - __PG_HWPOISON: 这个标志是例外，因为它需要在页面的分配-释放周期之外保留，          │
 │   *   以防止重复使用该页面。
 │   */
-**/
 #define PAGE_FLAGS_CHECK_AT_PREP (((1UL << NR_PAGEFLAGS) - 1) & ~__PG_HWPOISON)
 
 #define PAGE_FLAGS_PRIVATE (1UL << PG_private | 1UL << PG_private_2)
-        /**
+/**
  * page_has_private - Determine if page has private stuff
  * @page: The page to be checked
  *
  * Determine if a page has private stuff, indicating that release routines
  * should be invoked upon it.
  */
-        // 检查的是PG_private
-        // PG_private：private指向buffer_heads
-        static inline int page_has_private(struct page *page)
+// 检查的是PG_private
+// PG_private：private指向buffer_heads
+static inline int page_has_private(struct page *page)
 {
     return !!(page->flags & PAGE_FLAGS_PRIVATE);
 }

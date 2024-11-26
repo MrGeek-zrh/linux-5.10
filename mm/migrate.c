@@ -402,21 +402,29 @@ unlock:
 }
 #endif
 
+/**
+* expected_page_refs - 计算页面的预期引用计数
+* @mapping: 指向页面的地址空间的指针
+* @page: 指向要计算的页面的指针
+*/
 static int expected_page_refs(struct address_space *mapping, struct page *page)
 {
+    /* 基础引用计数为1，表示页面本身的基本引用 */
     int expected_count = 1;
 
-    /*
-	 * Device private pages have an extra refcount as they are
-	 * ZONE_DEVICE pages.
-	 */
+    // 如果页面是设备私有页面，则额外加1
     expected_count += is_device_private_page(page);
+
+    /*
+    * 如果页面有mapping，则需要考虑:
+    * 1. thp_nr_pages(page): 如果是透明大页，需要计入所有子页面的引用
+    * 2. page_has_private(page): 如果页面设置了PG_private，+1
+    */
     if (mapping)
         expected_count += thp_nr_pages(page) + page_has_private(page);
 
     return expected_count;
 }
-
 /*
  * Replace the page in the mapping.
  *
@@ -425,13 +433,19 @@ static int expected_page_refs(struct address_space *mapping, struct page *page)
  * 2 for pages with a mapping
  * 3 for pages with a mapping and PagePrivate/PagePrivate2 set.
  *
- * 迁移页面的映射信息到新的页面上
+ * 迁移页面的映射信息到新的页面上,主要就是page结构的一些字段的值
+ * 1. 验证和冻结源页面的引用计数
+* 2. 将源页面的基本属性(index、mapping等)复制到新页面
+* 3. 原子地在radix树中用新页面替换源页面
+* 4. 处理页面的脏状态
+* 5. 更新内存统计信息
  */
 int migrate_page_move_mapping(struct address_space *mapping, struct page *newpage, struct page *page, int extra_count)
 {
     XA_STATE(xas, &mapping->i_pages, page_index(page));
     struct zone *oldzone, *newzone;
     int dirty;
+    // TODO:
     int expected_count = expected_page_refs(mapping, page) + extra_count;
     int nr = thp_nr_pages(page);
 
@@ -486,7 +500,7 @@ int migrate_page_move_mapping(struct address_space *mapping, struct page *newpag
         ClearPageDirty(page);
         SetPageDirty(newpage);
     }
-
+    /* 在radix树中替换页面 */
     xas_store(&xas, newpage);
     if (PageTransHuge(page)) {
         int i;
@@ -517,6 +531,7 @@ int migrate_page_move_mapping(struct address_space *mapping, struct page *newpag
 	 * via NR_FILE_PAGES and NR_ANON_MAPPED if they
 	 * are mapped to swap space.
 	 */
+    /* 更新内存统计信息 */
     if (newzone != oldzone) {
         struct lruvec *old_lruvec, *new_lruvec;
         struct mem_cgroup *memcg;
@@ -606,13 +621,12 @@ int migrate_page(struct address_space *mapping, struct page *newpage, struct pag
      *
      */
     if (mode != MIGRATE_SYNC_NO_COPY)
+        // 拷贝页面内容
         migrate_page_copy(newpage, page);
     else
+        // 拷贝剩余的旧page的字段到新page的相应字段中
         migrate_page_states(newpage, page);
 
-    /**
-     *
-     */
     return MIGRATEPAGE_SUCCESS;
 }
 EXPORT_SYMBOL(migrate_page);

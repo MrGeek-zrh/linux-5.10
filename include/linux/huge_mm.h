@@ -260,7 +260,7 @@ static inline int thp_nr_pages(struct page *page) /* TODO */
 {
     // 不能是尾页
     VM_BUG_ON_PGFLAGS(PageTail(page), page);
-    // 是透明大页的首页
+    // 是大页的首页
     if (PageHead(page))
         return HPAGE_PMD_NR; /* TODO */
     return 1;

@@ -1928,8 +1928,7 @@ static int page_mapcount_is_zero(struct page *page)
  *
  * If unmap is successful, return true. Otherwise, false.
  *
- * 将 映射到这个 物理 页面 的 页表项移除
- *  解除用户映射 PTE
+ * 将 映射到这个 物理 页面 的 页表项移除,并将page pte设置成migration entry
  *
  *  NOTE:注意区分munmap和 unmap的含义。
  *  - munmap是和mmap对应的，是删除内存映射。
