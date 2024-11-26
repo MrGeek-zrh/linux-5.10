@@ -1824,6 +1824,7 @@ static struct page *alloc_migrate_huge_page(struct hstate *h, gfp_t gfp_mask, in
 {
     struct page *page;
 
+    // 是巨页
     if (hstate_is_gigantic(h))
         return NULL;
 
