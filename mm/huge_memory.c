@@ -2724,6 +2724,7 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
         // 对匿名内存区域加写锁
         anon_vma_lock_write(anon_vma);
     } else {
+        // 这个我觉得是拆分HugeTLB文件映射方式的大页的吧。
         // 处理文件映射页面的情况
         mapping = head->mapping;
         if (!mapping) {

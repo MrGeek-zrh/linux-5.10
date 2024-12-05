@@ -1117,7 +1117,7 @@ static int identify_page_state(unsigned long pfn, struct page *p, unsigned long 
  * @page: 要分割的THP页面
  *
  * - 拆分的所有尾页面添加到LRU;
- * - 首页转换为普通页面并保持在原管理系统中(page cache或匿名页管理)
+ * - 首页保存在原有的管理结构中
  *
  * 返回值:
  * 0      - 分割成功完成
