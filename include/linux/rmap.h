@@ -204,7 +204,7 @@ enum ttu_flags {
     // 不需要获取rmap锁
     TTU_RMAP_LOCKED = 0x80, /* do not grab rmap lock:
 					 * caller holds it */
-    // 在拆分透明大页时冻结pte
+    // 在拆分透明大页时冻结pte,不允许被访问
     TTU_SPLIT_FREEZE = 0x100,
     /* freeze pte under splitting thp */
 };

@@ -2282,6 +2282,7 @@ void vma_adjust_trans_huge(struct vm_area_struct *vma, unsigned long start, unsi
     }
 }
 
+// 专门处理大页的unmap函数
 static void unmap_page(struct page *page)
 {
     enum ttu_flags ttu_flags = TTU_IGNORE_MLOCK | TTU_RMAP_LOCKED | TTU_SPLIT_HUGE_PMD;
@@ -2711,6 +2712,7 @@ int split_huge_page_to_list(struct page *page, struct list_head *list)
         return -EBUSY;
 
     // 处理匿名页面的情况
+    // HugeTLB大页和透明大页应该都会走到这里
     if (PageAnon(head)) {
         // 透明大页应该是一定走到这个判断，而不是下面那个分支
         // 获取并锁定匿名内存区域

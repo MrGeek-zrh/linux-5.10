@@ -773,6 +773,7 @@ struct inode {
 	 */
     union {
         struct pipe_inode_info *i_pipe; /* pipe info */
+        // 块设备
         struct block_device *i_bdev;
 
         /**
